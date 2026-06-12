@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\laragon\\\\www\\\\FIDS\" -Recurse -Force)",
+      "Bash(Select-Object -Property FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)",
+      "Bash(ConvertTo-Json -Depth 100)",
+      "Bash(xargs grep -l \"TODO\\\\|FIXME\\\\|XXX\\\\|HACK\")",
+      "Bash(npx tsc *)",
+      "Bash(php artisan *)",
+      "Bash(ls /mnt/c/laragon/bin/php/ 2>/dev/null || ls /c/laragon/bin/php/ 2>/dev/null)",
+      "Read(//mnt/c/laragon/bin/**)",
+      "Bash(/mnt/c/laragon/bin/php/php-8.4.21-Win32-vs17-x64/php.exe --version)",
+      "Bash(node node_modules/typescript/bin/tsc --noEmit)"
+    ]
+  }
+}

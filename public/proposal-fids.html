@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIDS — Proposal Sistem Informasi Penerbangan</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #1a1a2e;
+    background: #f8f9fc;
+    line-height: 1.6;
+  }
+
+  /* ── COVER ── */
+  .cover {
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px 40px;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .cover::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 70% 30%, rgba(99,102,241,.25) 0%, transparent 60%),
+                radial-gradient(ellipse at 20% 80%, rgba(139,92,246,.2) 0%, transparent 50%);
+  }
+  .cover-logo {
+    font-size: 72px; font-weight: 900; letter-spacing: 8px;
+    background: linear-gradient(90deg, #818cf8, #c084fc, #f472b6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 8px; position: relative;
+  }
+  .cover-sub  { font-size: 18px; color: #a5b4fc; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 40px; position: relative; }
+  .cover-title { font-size: 42px; font-weight: 700; margin-bottom: 16px; position: relative; }
+  .cover-desc  { font-size: 18px; color: #c4b5fd; max-width: 620px; margin-bottom: 60px; position: relative; }
+  .cover-badges { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; position: relative; }
+  .badge {
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2);
+    border-radius: 100px; padding: 8px 20px; font-size: 13px; color: #e0e7ff;
+    backdrop-filter: blur(10px);
+  }
+  .cover-footer {
+    position: absolute; bottom: 30px; color: rgba(255,255,255,.4); font-size: 13px;
+  }
+
+  /* ── CONTENT WRAPPER ── */
+  .page  { max-width: 960px; margin: 0 auto; padding: 60px 40px; }
+  .page-break { page-break-before: always; }
+
+  /* ── SECTION HEADER ── */
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+    color: #6366f1; margin-bottom: 8px;
+  }
+  .section-title {
+    font-size: 32px; font-weight: 800; color: #0f0c29; margin-bottom: 12px;
+  }
+  .section-desc { font-size: 16px; color: #64748b; margin-bottom: 48px; max-width: 680px; }
+  .divider { height: 3px; width: 60px; background: linear-gradient(90deg,#6366f1,#a855f7); border-radius: 2px; margin-bottom: 16px; }
+
+  /* ── FEATURE CARDS ── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; margin-bottom: 48px; }
+  .card {
+    background: white; border-radius: 16px; padding: 28px 24px;
+    box-shadow: 0 2px 16px rgba(0,0,0,.06); border: 1px solid #e2e8f0;
+    transition: transform .2s;
+  }
+  .card:hover { transform: translateY(-4px); }
+  .card-icon  { font-size: 32px; margin-bottom: 16px; }
+  .card-title { font-size: 16px; font-weight: 700; color: #1e1b4b; margin-bottom: 8px; }
+  .card-text  { font-size: 14px; color: #64748b; line-height: 1.6; }
+
+  /* ── SCREENSHOT GALLERY ── */
+  .gallery { margin-bottom: 64px; }
+  .gallery-row { display: grid; gap: 20px; margin-bottom: 20px; }
+  .gallery-row.cols-1 { grid-template-columns: 1fr; }
+  .gallery-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .gallery-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .gallery-item { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.10); border: 1px solid #e2e8f0; }
+  .gallery-item img { width: 100%; display: block; }
+  .gallery-caption {
+    background: white; padding: 12px 16px;
+    font-size: 13px; font-weight: 600; color: #374151;
+    border-top: 1px solid #f1f5f9;
+  }
+  .gallery-caption span { display: block; font-size: 12px; font-weight: 400; color: #9ca3af; margin-top: 2px; }
+
+  /* ── TECH TABLE ── */
+  .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 48px; }
+  .tech-card { background: white; border-radius: 16px; padding: 28px; border: 1px solid #e2e8f0; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
+  .tech-card h3 { font-size: 14px; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+  .tech-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+  .tech-row:last-child { border-bottom: none; }
+  .tech-key { font-size: 14px; color: #64748b; }
+  .tech-val { font-size: 14px; font-weight: 600; color: #1e1b4b; }
+  .pill { background: #ede9fe; color: #6d28d9; border-radius: 100px; padding: 3px 12px; font-size: 12px; font-weight: 600; }
+
+  /* ── HIGHLIGHT BOXES ── */
+  .highlight-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 48px; }
+  .highlight-box {
+    border-radius: 16px; padding: 28px 24px; color: white; text-align: center;
+  }
+  .highlight-box h2 { font-size: 40px; font-weight: 900; margin-bottom: 4px; }
+  .highlight-box p  { font-size: 14px; opacity: .85; }
+  .hb-purple { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+  .hb-pink   { background: linear-gradient(135deg, #ec4899, #f43f5e); }
+  .hb-teal   { background: linear-gradient(135deg, #14b8a6, #06b6d4); }
+
+  /* ── DISPLAY SCREENS TABLE ── */
+  .screen-table { width: 100%; border-collapse: collapse; margin-bottom: 48px; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 16px rgba(0,0,0,.06); }
+  .screen-table th { background: #4f46e5; color: white; padding: 14px 20px; text-align: left; font-size: 13px; font-weight: 600; }
+  .screen-table td { padding: 14px 20px; font-size: 14px; border-bottom: 1px solid #f1f5f9; background: white; }
+  .screen-table tr:last-child td { border-bottom: none; }
+  .screen-table tr:hover td { background: #faf5ff; }
+  .url-badge { font-family: monospace; font-size: 12px; background: #f0fdf4; color: #16a34a; padding: 3px 10px; border-radius: 6px; }
+
+  /* ── CTA ── */
+  .cta {
+    background: linear-gradient(135deg, #1e1b4b, #312e81);
+    color: white; border-radius: 24px; padding: 64px 48px;
+    text-align: center; margin-top: 64px;
+  }
+  .cta h2 { font-size: 36px; font-weight: 800; margin-bottom: 16px; }
+  .cta p  { font-size: 17px; color: #c4b5fd; margin-bottom: 40px; max-width: 560px; margin-left: auto; margin-right: auto; }
+  .cta-info { display: flex; justify-content: center; gap: 48px; flex-wrap: wrap; }
+  .cta-item h4 { font-size: 13px; color: #a5b4fc; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .cta-item p  { font-size: 16px; font-weight: 600; }
+
+  /* ── PRINT ── */
+  @media print {
+    body { background: white; }
+    .cover { min-height: 100vh; }
+    .page { padding: 40px; }
+    .card:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ COVER -->
+<div class="cover">
+  <div class="cover-logo">FIDS</div>
+  <div class="cover-sub">Flight Information Display System</div>
+  <div class="cover-title">Sistem Informasi Penerbangan<br>Bandara Modern</div>
+  <div class="cover-desc">Solusi lengkap pengelolaan dan tampilan informasi penerbangan secara real-time — dari penjadwalan hingga layar publik bandara.</div>
+  <div class="cover-badges">
+    <span class="badge">✈ Real-Time</span>
+    <span class="badge">🖥 Multi-Display</span>
+    <span class="badge">🌐 Berbasis Web</span>
+    <span class="badge">🔊 Text-to-Speech</span>
+    <span class="badge">📊 Analytics</span>
+    <span class="badge">📱 Responsive</span>
+  </div>
+  <div class="cover-footer">Dokumen Penawaran Produk · 2026</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ TENTANG -->
+<div class="page">
+  <div class="section-label">Tentang Sistem</div>
+  <div class="divider"></div>
+  <div class="section-title">Apa itu FIDS?</div>
+  <div class="section-desc">
+    FIDS adalah sistem informasi bandara berbasis web yang mengelola seluruh siklus informasi penerbangan — mulai dari input jadwal master, operasional harian, hingga tampilan real-time di seluruh layar publik bandara. Dibangun dengan teknologi modern, dapat berjalan di perangkat apa pun yang memiliki browser.
+  </div>
+
+  <div class="highlight-grid">
+    <div class="highlight-box hb-purple">
+      <h2>20+</h2>
+      <p>Modul Fitur Lengkap</p>
+    </div>
+    <div class="highlight-box hb-pink">
+      <h2>9</h2>
+      <p>Jenis Layar Display Publik</p>
+    </div>
+    <div class="highlight-box hb-teal">
+      <h2>36+</h2>
+      <p>Tabel Database Terintegrasi</p>
+    </div>
+  </div>
+
+  <!-- Welcome Page Screenshot -->
+  <div class="gallery">
+    <div class="gallery-row cols-1">
+      <div class="gallery-item">
+        <img src="screenshots/01-welcome.png" alt="Halaman Utama FIDS">
+        <div class="gallery-caption">Portal Utama FIDS <span>Halaman navigasi publik dengan akses ke semua layar display bandara</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature Cards -->
+  <div class="section-label">Keunggulan Utama</div>
+  <div class="divider"></div>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon">⚡</div>
+      <div class="card-title">Real-Time Tanpa Reload</div>
+      <div class="card-text">Status penerbangan diperbarui secara otomatis di semua layar tampil tanpa perlu refresh manual.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🖥</div>
+      <div class="card-title">Multi-Screen Display</div>
+      <div class="card-text">Satu sistem untuk 9 jenis layar tampil: keberangkatan, kedatangan, gate, check-in, baggage claim, CCTV, iklan, jam dunia, dan layar publik gabungan.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔊</div>
+      <div class="card-title">Public Address System</div>
+      <div class="card-text">Pengumuman bandara dengan konversi teks ke suara (TTS) otomatis, dua bahasa, jadwal siaran, dan batas maksimum putar.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">📺</div>
+      <div class="card-title">Tanpa Hardware Khusus</div>
+      <div class="card-text">Layar display hanya butuh TV/monitor + browser. Tidak diperlukan set-top box atau perangkat proprietary mahal.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🌏</div>
+      <div class="card-title">Multi-Zona Waktu</div>
+      <div class="card-text">Mendukung WIB, WITA, WIT, dan UTC — cocok untuk seluruh bandara di Indonesia.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">📊</div>
+      <div class="card-title">Laporan & Analytics</div>
+      <div class="card-text">Laporan keberangkatan & kedatangan lengkap dengan grafik, on-time rate, delay rate, dan export PDF.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ LAYAR DISPLAY PUBLIK -->
+<div class="page page-break">
+  <div class="section-label">Layar Display Publik</div>
+  <div class="divider"></div>
+  <div class="section-title">Tampilan Real-Time untuk Penumpang</div>
+  <div class="section-desc">Semua layar tampil berjalan otomatis, diperbarui real-time, dan dapat dikustomisasi sesuai identitas bandara.</div>
+
+  <!-- Departure & Arrival -->
+  <div class="gallery">
+    <div class="gallery-row cols-2">
+      <div class="gallery-item">
+        <img src="screenshots/02-departure-display.png" alt="Papan Keberangkatan">
+        <div class="gallery-caption">Papan Keberangkatan (FIDS Board) <span>Nomor penerbangan, maskapai, tujuan, jadwal, gate, dan status</span></div>
+      </div>
+      <div class="gallery-item">
+        <img src="screenshots/03-arrival-display.png" alt="Papan Kedatangan">
+        <div class="gallery-caption">Papan Kedatangan <span>Penerbangan datang, asal, baggage claim belt, dan status</span></div>
+      </div>
+    </div>
+
+    <!-- Gate & Check-in -->
+    <div class="gallery-row cols-2">
+      <div class="gallery-item">
+        <img src="screenshots/05-gate-display.png" alt="Gate Boarding Display">
+        <div class="gallery-caption">Layar Gate Boarding <span>Tampilan per gate dengan maskapai, nomor penerbangan, dan tujuan</span></div>
+      </div>
+      <div class="gallery-item">
+        <img src="screenshots/04-checkin-display.png" alt="Counter Check-in Display">
+        <div class="gallery-caption">Layar Counter Check-In <span>Status setiap counter: terbuka / tutup beserta penerbangan yang dilayani</span></div>
+      </div>
+    </div>
+
+    <!-- Baggage & World Clock -->
+    <div class="gallery-row cols-2">
+      <div class="gallery-item">
+        <img src="screenshots/06-baggage-display.png" alt="Baggage Claim Display">
+        <div class="gallery-caption">Layar Pengambilan Bagasi <span>Belt aktif beserta penerbangan asal dan maskapai</span></div>
+      </div>
+      <div class="gallery-item">
+        <img src="screenshots/07-worldclock.png" alt="World Clock Display">
+        <div class="gallery-caption">Master Clock / Jam Dunia <span>UTC · WIB · WITA · WIT — sinkronisasi NTP otomatis</span></div>
+      </div>
+    </div>
+
+    <!-- Public Screen Combined -->
+    <div class="gallery-row cols-1">
+      <div class="gallery-item">
+        <img src="screenshots/09-public-screen.png" alt="Public Information Screen">
+        <div class="gallery-caption">Layar Informasi Publik Gabungan <span>Jadwal keberangkatan + kedatangan + cuaca + iklan + jam dalam satu tampilan, layout dapat dikustomisasi</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen URL Table -->
+  <div class="section-label">Daftar URL Layar Display</div>
+  <div class="divider"></div>
+  <table class="screen-table">
+    <thead>
+      <tr><th>Layar</th><th>Fungsi</th><th>URL Akses</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Papan Keberangkatan</td><td>Daftar penerbangan berangkat + status real-time</td><td><span class="url-badge">/public/flight/departure</span></td></tr>
+      <tr><td>Papan Kedatangan</td><td>Daftar penerbangan tiba + belt bagasi</td><td><span class="url-badge">/public/flight/arrival</span></td></tr>
+      <tr><td>Counter Check-In</td><td>Status tiap counter (terbuka/tutup + maskapai)</td><td><span class="url-badge">/public/gate/checkin</span></td></tr>
+      <tr><td>Gate Boarding</td><td>Tampilan per gate dengan info penerbangan</td><td><span class="url-badge">/public/gate/boarding</span></td></tr>
+      <tr><td>Baggage Claim</td><td>Belt aktif + penerbangan asal</td><td><span class="url-badge">/public/gate/baggageclaim</span></td></tr>
+      <tr><td>Monitor CCTV Bagasi</td><td>Live stream kamera + overlay info penerbangan</td><td><span class="url-badge">/public/cctv/baggage</span></td></tr>
+      <tr><td>Layar Publik Gabungan</td><td>Jadwal + cuaca + iklan + jam dalam satu layar</td><td><span class="url-badge">/public/screen</span></td></tr>
+      <tr><td>Looping Iklan</td><td>Slideshow gambar/video otomatis</td><td><span class="url-badge">/public/advertisement</span></td></tr>
+      <tr><td>Jam Dunia</td><td>Multi-timezone (UTC, WIB, WITA, WIT)</td><td><span class="url-badge">/public/world-clock</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ADMIN PANEL -->
+<div class="page page-break">
+  <div class="section-label">Panel Administrasi</div>
+  <div class="divider"></div>
+  <div class="section-title">Kendali Penuh di Tangan Operator</div>
+  <div class="section-desc">Admin panel dilengkapi dengan dashboard operasional, manajemen penerbangan harian, laporan analitik, dan semua pengaturan tampilan layar.</div>
+
+  <!-- Login & Dashboard -->
+  <div class="gallery">
+    <div class="gallery-row cols-2">
+      <div class="gallery-item">
+        <img src="screenshots/10-login.png" alt="Login">
+        <div class="gallery-caption">Halaman Login Admin <span>Autentikasi aman dengan email verification</span></div>
+      </div>
+      <div class="gallery-item">
+        <img src="screenshots/11-admin-dashboard.png" alt="Dashboard Admin">
+        <div class="gallery-caption">Dashboard Operasional <span>Statistik penerbangan hari ini, grafik jam sibuk, cuaca, dan waktu server</span></div>
+      </div>
+    </div>
+
+    <!-- Daily Flights -->
+    <div class="gallery-row cols-2">
+      <div class="gallery-item">
+        <img src="screenshots/12-admin-flights.png" alt="Keberangkatan Hari Ini">
+        <div class="gallery-caption">Manajemen Keberangkatan Harian <span>Update status real-time: Scheduled → Check-in → Boarding → Departed</span></div>
+      </div>
+      <div class="gallery-item">
+        <img src="screenshots/13-admin-arrivals.png" alt="Kedatangan Hari Ini">
+        <div class="gallery-caption">Manajemen Kedatangan Harian <span>Update status: Scheduled → Landed → Baggage Claim</span></div>
+      </div>
+    </div>
+
+    <!-- Airlines & Gates -->
+    <div class="gallery-row cols-2">
+      <div class="gallery-item">
+        <img src="screenshots/14-admin-airlines.png" alt="Manajemen Maskapai">
+        <div class="gallery-caption">Manajemen Maskapai <span>Data maskapai dengan logo, kode, dan warna identitas</span></div>
+      </div>
+      <div class="gallery-item">
+        <img src="screenshots/15-admin-gates.png" alt="Manajemen Gate">
+        <div class="gallery-caption">Manajemen Boarding Gate <span>Status gate real-time beserta penerbangan yang terjadwal</span></div>
+      </div>
+    </div>
+
+    <!-- Announcements & Display Settings -->
+    <div class="gallery-row cols-2">
+      <div class="gallery-item">
+        <img src="screenshots/16-admin-announcements.png" alt="Public Announcement">
+        <div class="gallery-caption">Public Address System (PAS) <span>Pengumuman bandara dengan Text-to-Speech otomatis dua bahasa</span></div>
+      </div>
+      <div class="gallery-item">
+        <img src="screenshots/19-admin-display-settings.png" alt="Display Settings">
+        <div class="gallery-caption">Pengaturan Tampilan Layar <span>Kustomisasi logo, nama bandara, background, ticker, dan tema warna</span></div>
+      </div>
+    </div>
+
+    <!-- Reports -->
+    <div class="gallery-row cols-1">
+      <div class="gallery-item">
+        <img src="screenshots/18-admin-reports.png" alt="Laporan">
+        <div class="gallery-caption">Laporan & Analytics Penerbangan <span>Statistik on-time rate, delay rate, distribusi maskapai, dan export PDF</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ TEKNOLOGI -->
+<div class="page page-break">
+  <div class="section-label">Stack Teknologi</div>
+  <div class="divider"></div>
+  <div class="section-title">Dibangun dengan Teknologi Modern</div>
+  <div class="section-desc">Menggunakan framework dan library terpercaya yang banyak dipakai di industri global — bukan solusi buatan sendiri yang sulit dipelihara.</div>
+
+  <div class="tech-grid">
+    <div class="tech-card">
+      <h3>⚙ Backend</h3>
+      <div class="tech-row"><span class="tech-key">Framework</span><span class="tech-val"><span class="pill">Laravel 13</span></span></div>
+      <div class="tech-row"><span class="tech-key">Bahasa</span><span class="tech-val">PHP 8.3+</span></div>
+      <div class="tech-row"><span class="tech-key">Database</span><span class="tech-val">MySQL 8</span></div>
+      <div class="tech-row"><span class="tech-key">Authentication</span><span class="tech-val">Laravel Breeze + Sanctum</span></div>
+      <div class="tech-row"><span class="tech-key">Role & Permission</span><span class="tech-val">Spatie Laravel Permission</span></div>
+      <div class="tech-row"><span class="tech-key">PDF Export</span><span class="tech-val">Laravel DomPDF</span></div>
+      <div class="tech-row"><span class="tech-key">Storage</span><span class="tech-val">Local / AWS S3</span></div>
+      <div class="tech-row"><span class="tech-key">Queue</span><span class="tech-val">Database Queue</span></div>
+    </div>
+    <div class="tech-card">
+      <h3>🎨 Frontend</h3>
+      <div class="tech-row"><span class="tech-key">UI Framework</span><span class="tech-val"><span class="pill">React 18 + TypeScript</span></span></div>
+      <div class="tech-row"><span class="tech-key">Laravel Bridge</span><span class="tech-val">Inertia.js (SPA)</span></div>
+      <div class="tech-row"><span class="tech-key">Styling</span><span class="tech-val">Tailwind CSS 3</span></div>
+      <div class="tech-row"><span class="tech-key">Build Tool</span><span class="tech-val">Vite 8</span></div>
+      <div class="tech-row"><span class="tech-key">Komponen UI</span><span class="tech-val">Radix UI / shadcn</span></div>
+      <div class="tech-row"><span class="tech-key">Charts</span><span class="tech-val">Recharts</span></div>
+      <div class="tech-row"><span class="tech-key">Icons</span><span class="tech-val">Lucide React</span></div>
+      <div class="tech-row"><span class="tech-key">Routing</span><span class="tech-val">Ziggy (Laravel ↔ React)</span></div>
+    </div>
+    <div class="tech-card">
+      <h3>🖥 Infrastruktur</h3>
+      <div class="tech-row"><span class="tech-key">Web Server</span><span class="tech-val">Nginx / Apache</span></div>
+      <div class="tech-row"><span class="tech-key">Session & Cache</span><span class="tech-val">Database</span></div>
+      <div class="tech-row"><span class="tech-key">Time Sync</span><span class="tech-val">NTP Protocol</span></div>
+      <div class="tech-row"><span class="tech-key">Cuaca</span><span class="tech-val">BMKG Open Data API</span></div>
+      <div class="tech-row"><span class="tech-key">Deployment</span><span class="tech-val">VPS / Shared Hosting / Cloud</span></div>
+      <div class="tech-row"><span class="tech-key">OS</span><span class="tech-val">Linux / Windows Server</span></div>
+    </div>
+    <div class="tech-card">
+      <h3>✅ Spesifikasi Minimum</h3>
+      <div class="tech-row"><span class="tech-key">Server PHP</span><span class="tech-val">PHP 8.3+</span></div>
+      <div class="tech-row"><span class="tech-key">Database</span><span class="tech-val">MySQL 8.0+</span></div>
+      <div class="tech-row"><span class="tech-key">RAM Server</span><span class="tech-val">2 GB (rekomendasi 4 GB)</span></div>
+      <div class="tech-row"><span class="tech-key">Layar Display</span><span class="tech-key">TV/Monitor + Browser</span></div>
+      <div class="tech-row"><span class="tech-key">Koneksi</span><span class="tech-val">LAN lokal / Internet</span></div>
+      <div class="tech-row"><span class="tech-key">Lisensi</span><span class="tech-val">Tidak ada biaya tambahan</span></div>
+    </div>
+  </div>
+
+  <!-- Modul List -->
+  <div class="section-label">Modul Lengkap</div>
+  <div class="divider"></div>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon">✈</div>
+      <div class="card-title">Data Master Penerbangan</div>
+      <div class="card-text">Maskapai · Bandara · Rute · Pesawat · Gate · Counter Check-in · Baggage Belt · Kode Keterangan</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">📅</div>
+      <div class="card-title">Jadwal Master & Harian</div>
+      <div class="card-text">Jadwal mingguan otomatis generate ke harian. Update status penerbangan dengan audit trail lengkap.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔊</div>
+      <div class="card-title">Public Address System</div>
+      <div class="card-text">Pengumuman TTS dua bahasa, jadwal siaran, batas putar, dan antrian broadcast otomatis.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">📡</div>
+      <div class="card-title">Integrasi CCTV</div>
+      <div class="card-text">Live stream via iframe, MJPEG, atau YouTube. Overlay informasi penerbangan otomatis saat pesawat tiba.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🌤</div>
+      <div class="card-title">Info Cuaca BMKG</div>
+      <div class="card-text">Data cuaca real-time dari BMKG: suhu, kelembapan, angin, dan kondisi cuaca di layar publik.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🎞</div>
+      <div class="card-title">Manajemen Iklan Media</div>
+      <div class="card-text">Upload gambar/video hingga 200MB. Atur durasi, urutan, dan status aktif per iklan.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🕐</div>
+      <div class="card-title">Sinkronisasi NTP</div>
+      <div class="card-text">Server NTP terkonfigurasi dengan auto-sync, interval yang dapat diatur, dan riwayat sinkronisasi.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">📈</div>
+      <div class="card-title">Laporan & Export PDF</div>
+      <div class="card-text">Laporan keberangkatan/kedatangan dengan grafik, on-time rate, delay rate, dan export PDF langsung.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🎨</div>
+      <div class="card-title">Kustomisasi Tampilan</div>
+      <div class="card-text">Logo, background, tema warna, ticker teks, layout layar publik — semua dapat diatur dari panel admin.</div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta">
+    <h2>Siap untuk Bandara Anda?</h2>
+    <p>Sistem FIDS siap diimplementasikan untuk bandara skala kecil hingga menengah dengan biaya investasi yang efisien.</p>
+    <div class="cta-info">
+      <div class="cta-item">
+        <h4>Platform</h4>
+        <p>Web-Based (Browser)</p>
+      </div>
+      <div class="cta-item">
+        <h4>Bahasa</h4>
+        <p>Indonesia & Inggris</p>
+      </div>
+      <div class="cta-item">
+        <h4>Lisensi Extra</h4>
+        <p>Tidak Ada</p>
+      </div>
+      <div class="cta-item">
+        <h4>Customisasi</h4>
+        <p>Tersedia</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
