@@ -13,8 +13,8 @@ const CSS = `
     50%       { transform: translateY(-9px); }
 }
 @keyframes center-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.22), 0 0 50px rgba(100,200,255,0.12); }
-    60%       { box-shadow: 0 0 0 16px rgba(255,255,255,0), 0 0 50px rgba(100,200,255,0.18); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(125,211,252,0.30), 0 0 60px rgba(56,189,248,0.20); }
+    60%       { box-shadow: 0 0 0 18px rgba(125,211,252,0), 0 0 80px rgba(56,189,248,0.35); }
 }
 @keyframes ring-slow {
     from { transform: rotate(0deg); }
@@ -23,6 +23,10 @@ const CSS = `
 @keyframes ring-rev {
     from { transform: rotate(0deg); }
     to   { transform: rotate(-360deg); }
+}
+@keyframes ring-mid {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
 }
 @keyframes dot-breathe {
     0%, 100% { opacity: 0.07; }
@@ -41,15 +45,35 @@ const CSS = `
     0%        { transform: scale(1);   opacity: 0.75; }
     70%, 100% { transform: scale(2.2); opacity: 0; }
 }
+@keyframes halo-pulse {
+    0%, 100% { opacity: 0.18; transform: scale(1); }
+    50%       { opacity: 0.35; transform: scale(1.08); }
+}
+@keyframes orbit-dot {
+    from { transform: rotate(0deg) translateX(68px) rotate(0deg); }
+    to   { transform: rotate(360deg) translateX(68px) rotate(-360deg); }
+}
+@keyframes orbit-dot-rev {
+    from { transform: rotate(0deg) translateX(78px) rotate(0deg); }
+    to   { transform: rotate(-360deg) translateX(78px) rotate(360deg); }
+}
+@keyframes logo-glow {
+    0%, 100% { filter: drop-shadow(0 2px 8px rgba(56,189,248,0.5)); }
+    50%       { filter: drop-shadow(0 2px 16px rgba(125,211,252,0.9)); }
+}
+@keyframes text-glow {
+    0%, 100% { text-shadow: 0 0 10px rgba(125,211,252,0.6), 0 1px 3px rgba(0,0,0,0.3); }
+    50%       { text-shadow: 0 0 22px rgba(125,211,252,1.0), 0 1px 3px rgba(0,0,0,0.3); }
+}
 `;
 
 // ─── Orbital geometry ──────────────────────────────────────────────────────
-const CX = 280;
-const CY = 280;
-const ORBIT_R = 210;
-const CONTAINER = 560;
-const BUBBLE = 102;
-const CENTER_D = 144;
+const CX = 290;
+const CY = 290;
+const ORBIT_R = 215;
+const CONTAINER = 580;
+const BUBBLE = 104;
+const CENTER_D = 172;
 
 function orbPos(i: number, total: number) {
     const angle = ((i * 360 / total) - 90) * (Math.PI / 180);
@@ -220,32 +244,120 @@ export default function Welcome() {
                                 height: CENTER_D,
                             }}
                         >
-                            {/* Outer spinning ring */}
+                            {/* Ambient glow halo */}
                             <div
-                                className="absolute inset-0 rounded-full border-[1.5px] border-transparent"
+                                className="absolute rounded-full pointer-events-none"
                                 style={{
-                                    borderTopColor: 'rgba(125,211,252,0.7)',
-                                    borderRightColor: 'rgba(125,211,252,0.2)',
-                                    animation: 'ring-slow 6s linear infinite',
+                                    inset: -20,
+                                    background: 'radial-gradient(circle, rgba(56,189,248,0.28) 0%, rgba(14,165,233,0.10) 55%, transparent 75%)',
+                                    animation: 'halo-pulse 3.5s ease-in-out infinite',
                                 }}
                             />
-                            {/* Inner counter-ring */}
+
+                            {/* Outer dashed arc ring */}
                             <div
-                                className="absolute inset-[6px] rounded-full border border-white/15"
-                                style={{ animation: 'ring-rev 10s linear infinite' }}
+                                className="absolute inset-[-4px] rounded-full"
+                                style={{
+                                    border: '1.5px dashed rgba(125,211,252,0.40)',
+                                    animation: 'ring-slow 9s linear infinite',
+                                }}
                             />
-                            {/* Core */}
+
+                            {/* Outer solid ring with gradient shimmer */}
                             <div
-                                className="absolute inset-[3px] rounded-full bg-white/20 backdrop-blur-md ring-[2.5px] ring-white/40 flex flex-col items-center justify-center gap-0.5"
-                                style={{ animation: 'center-pulse 3s ease-in-out infinite' }}
+                                className="absolute inset-0 rounded-full"
+                                style={{
+                                    border: '2px solid transparent',
+                                    background: 'linear-gradient(#0a2040, #0a2040) padding-box, conic-gradient(from 0deg, rgba(125,211,252,0.9) 0%, rgba(56,189,248,0.15) 40%, rgba(125,211,252,0.9) 100%) border-box',
+                                    animation: 'ring-slow 4.5s linear infinite',
+                                }}
+                            />
+
+                            {/* Mid counter-ring with dots */}
+                            <div
+                                className="absolute inset-[7px] rounded-full"
+                                style={{
+                                    border: '1.5px solid rgba(186,230,253,0.18)',
+                                    animation: 'ring-rev 12s linear infinite',
+                                }}
+                            />
+
+                            {/* Orbiting dot — clockwise */}
+                            <div
+                                className="absolute rounded-full"
+                                style={{
+                                    width: 7, height: 7,
+                                    top: '50%', left: '50%',
+                                    marginTop: -3.5, marginLeft: -3.5,
+                                    background: 'radial-gradient(circle, #7dd3fc 0%, #38bdf8 100%)',
+                                    boxShadow: '0 0 8px 3px rgba(125,211,252,0.7)',
+                                    animation: 'orbit-dot 4s linear infinite',
+                                }}
+                            />
+
+                            {/* Orbiting dot — counter */}
+                            <div
+                                className="absolute rounded-full"
+                                style={{
+                                    width: 5, height: 5,
+                                    top: '50%', left: '50%',
+                                    marginTop: -2.5, marginLeft: -2.5,
+                                    background: 'radial-gradient(circle, #e0f2fe 0%, #bae6fd 100%)',
+                                    boxShadow: '0 0 6px 2px rgba(186,230,253,0.6)',
+                                    animation: 'orbit-dot-rev 7s linear infinite',
+                                }}
+                            />
+
+                            {/* Core glass */}
+                            <div
+                                className="absolute inset-[4px] rounded-full flex flex-col items-center justify-center gap-0.5"
+                                style={{
+                                    background: 'linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(180,220,255,0.18) 100%)',
+                                    backdropFilter: 'blur(14px)',
+                                    WebkitBackdropFilter: 'blur(14px)',
+                                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,80,160,0.2)',
+                                    border: '1.5px solid rgba(255,255,255,0.45)',
+                                    animation: 'center-pulse 3s ease-in-out infinite',
+                                }}
                             >
+                                {/* Inner subtle gradient ring inside core */}
+                                <div
+                                    className="absolute inset-0 rounded-full pointer-events-none"
+                                    style={{
+                                        background: 'radial-gradient(circle at 38% 32%, rgba(255,255,255,0.22) 0%, transparent 60%)',
+                                    }}
+                                />
+
                                 {logoBandara ? (
-                                    <img src={logoBandara} alt="logo" className="w-12 h-12 object-contain drop-shadow" />
+                                    <img
+                                        src={logoBandara}
+                                        alt="logo"
+                                        className="relative z-10 object-contain"
+                                        style={{
+                                            width: 58, height: 58,
+                                            animation: 'logo-glow 3s ease-in-out infinite',
+                                        }}
+                                    />
                                 ) : (
-                                    <Plane size={36} className="text-white drop-shadow-lg" style={{ transform: 'rotate(-45deg)' }} />
+                                    <div
+                                        className="relative z-10 flex items-center justify-center rounded-full"
+                                        style={{
+                                            width: 54, height: 54,
+                                            background: 'linear-gradient(135deg, rgba(56,189,248,0.35) 0%, rgba(14,165,233,0.20) 100%)',
+                                            border: '1.5px solid rgba(125,211,252,0.50)',
+                                        }}
+                                    >
+                                        <Plane size={30} className="text-white drop-shadow-lg" style={{ transform: 'rotate(-45deg)', filter: 'drop-shadow(0 0 8px rgba(125,211,252,0.8))' }} />
+                                    </div>
                                 )}
-                                <span className="text-white font-black text-[13px] tracking-[0.18em] drop-shadow">FIDS</span>
-                                <span className="text-white/65 text-[8px] font-semibold text-center leading-tight px-1 tracking-wide">
+
+                                <span
+                                    className="relative z-10 text-white font-black text-[14px] tracking-[0.22em]"
+                                    style={{ animation: 'text-glow 3s ease-in-out infinite' }}
+                                >
+                                    FIDS
+                                </span>
+                                <span className="relative z-10 text-sky-100/80 text-[8px] font-semibold text-center leading-tight px-2 tracking-wide">
                                     {airport.length > 22 ? airport.substring(0, 20) + '…' : airport}
                                 </span>
                             </div>
