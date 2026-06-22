@@ -9,6 +9,7 @@ use App\Models\Airline;
 use App\Models\Flight;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class CheckinCounterController extends Controller
 {
@@ -47,7 +48,12 @@ class CheckinCounterController extends Controller
             'terminal' => 'required|string',
             'status_counter' => 'required|in:buka,tutup,standby',
             'airline_id' => 'nullable|exists:airlines,id',
+            'idle_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
+
+        if ($request->hasFile('idle_image')) {
+            $validated['idle_image'] = $request->file('idle_image')->store('checkin-counters', 'public');
+        }
 
         CheckinCounter::create($validated);
         return redirect()->back()->with('success', 'Check-in Counter berhasil ditambahkan.');
@@ -61,7 +67,21 @@ class CheckinCounterController extends Controller
             'terminal' => 'required|string',
             'status_counter' => 'required|in:buka,tutup,standby',
             'airline_id' => 'nullable|exists:airlines,id',
+            'idle_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'remove_idle_image' => 'nullable|boolean',
         ]);
+
+        // Hapus gambar lama jika diminta atau saat diganti dengan yang baru.
+        if (($request->boolean('remove_idle_image') || $request->hasFile('idle_image')) && $checkin_counter->idle_image) {
+            Storage::disk('public')->delete($checkin_counter->idle_image);
+            $validated['idle_image'] = null;
+        }
+
+        if ($request->hasFile('idle_image')) {
+            $validated['idle_image'] = $request->file('idle_image')->store('checkin-counters', 'public');
+        }
+
+        unset($validated['remove_idle_image']);
 
         $checkin_counter->update($validated);
 
@@ -93,6 +113,9 @@ class CheckinCounterController extends Controller
 
     public function destroy(CheckinCounter $checkin_counter)
     {
+        if ($checkin_counter->idle_image) {
+            Storage::disk('public')->delete($checkin_counter->idle_image);
+        }
         $checkin_counter->delete();
         return redirect()->back()->with('success', 'Check-in Counter berhasil dihapus.');
     }

@@ -24,6 +24,7 @@ interface CheckinCounter {
     nomor_counter: string;
     status_counter: string;
     terminal: string;
+    idle_image?: string | null;
     airline?: Airline;
     flights?: Flight[];
 }
@@ -132,9 +133,17 @@ export default function CheckinCounterDisplay() {
 
                                         <div className="w-3/4 flex flex-col justify-center p-6 relative">
                                             {counter.status_counter === 'tutup' ? (
-                                                <div className="text-3xl font-bold tracking-widest uppercase text-gray-600 text-center opacity-50">
-                                                    {t.closed[lang]}
-                                                </div>
+                                                counter.idle_image ? (
+                                                    <img
+                                                        src={counter.idle_image}
+                                                        alt={`Counter ${counter.nomor_counter}`}
+                                                        className="absolute inset-0 h-full w-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="text-3xl font-bold tracking-widest uppercase text-gray-600 text-center opacity-50">
+                                                        {t.closed[lang]}
+                                                    </div>
+                                                )
                                             ) : (
                                                 <>
                                                     <div className="flex justify-between items-center mb-4">

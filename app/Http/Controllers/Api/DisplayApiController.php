@@ -92,6 +92,8 @@ class DisplayApiController extends Controller
             $arr['airline']['logo'] = '/storage/' . $counter->airline->logo;
         }
 
+        $arr['idle_image'] = $counter->idle_image ? '/storage/' . $counter->idle_image : null;
+
         return response()->json(['data' => $arr]);
     }
 
@@ -117,6 +119,29 @@ class DisplayApiController extends Controller
         $arr['flights'] = FlightResource::collection($belt->flights)->resolve();
 
         return response()->json(['data' => $arr]);
+    }
+
+    /**
+     * Dipanggil oleh layar publik setelah sebuah pengumuman selesai diputar.
+     * Menaikkan broadcast_count dan menghapus pengumuman bila sudah mencapai batas.
+     * Endpoint publik (tanpa auth/CSRF) agar layar kiosk yang tidak login tetap bisa melapor.
+     */
+    public function markAnnouncementPlayed(Announcement $announcement)
+    {
+        $announcement->increment('broadcast_count');
+        $announcement->update(['last_broadcast_at' => now()]);
+
+        if ($announcement->broadcast_count >= $announcement->max_broadcasts) {
+            $announcement->delete();
+            return response()->json(['success' => true, 'deleted' => true]);
+        }
+
+        return response()->json([
+            'success'         => true,
+            'deleted'         => false,
+            'broadcast_count' => $announcement->broadcast_count,
+            'max_broadcasts'  => $announcement->max_broadcasts,
+        ]);
     }
 
     public function announcements()
@@ -167,6 +192,7 @@ class DisplayApiController extends Controller
             if ($counter->airline && $counter->airline->logo) {
                 $arr['airline']['logo'] = '/storage/' . $counter->airline->logo;
             }
+            $arr['idle_image'] = $counter->idle_image ? '/storage/' . $counter->idle_image : null;
             $arr['flights'] = FlightResource::collection($counter->flights)->resolve();
             return $arr;
         });

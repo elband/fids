@@ -16,6 +16,7 @@ import {
     MapPin,
     CheckCircle2,
     XCircle,
+    Image as ImageIcon,
 } from 'lucide-react';
 import MasterHero from '@/Components/MasterHero';
 import { appConfirm } from '@/lib/confirm';
@@ -49,6 +50,7 @@ interface CheckinCounter {
     terminal: string;
     status_counter: 'buka' | 'tutup' | 'standby';
     airline_id: number | null;
+    idle_image: string | null;
     airline?: Airline;
     flights?: Flight[];
 }
@@ -71,6 +73,8 @@ export default function Index({ counters, airlines, flights }: Props) {
         status_counter: 'tutup',
         airline_id: '',
         flight_id: '',
+        idle_image: null as File | null,
+        remove_idle_image: false as boolean,
     });
 
     const openModal = (counter: CheckinCounter | null = null) => {
@@ -82,6 +86,8 @@ export default function Index({ counters, airlines, flights }: Props) {
                 status_counter: counter.status_counter,
                 airline_id: counter.airline_id?.toString() || '',
                 flight_id: '',
+                idle_image: null,
+                remove_idle_image: false,
             });
             setSelectedCounter(counter);
         } else {
@@ -100,6 +106,8 @@ export default function Index({ counters, airlines, flights }: Props) {
                 status_counter: 'tutup',
                 airline_id: '',
                 flight_id: '',
+                idle_image: null,
+                remove_idle_image: false,
             });
             setSelectedCounter(null);
         }
@@ -114,6 +122,8 @@ export default function Index({ counters, airlines, flights }: Props) {
             status_counter: counter.status_counter,
             airline_id: counter.airline_id?.toString() || '',
             flight_id: '',
+            idle_image: null,
+            remove_idle_image: false,
         });
         setSelectedCounter(counter);
         setIsAssignModalOpen(true);
@@ -133,11 +143,17 @@ export default function Index({ counters, airlines, flights }: Props) {
                 onSuccess: () => closeModal(),
             });
         } else if (selectedCounter) {
-            put(route('admin.checkin-counters.update', selectedCounter.id), {
+            // POST + _method=PUT agar upload file (idle_image) didukung Laravel/Inertia.
+            router.post(route('admin.checkin-counters.update', selectedCounter.id), {
+                _method: 'put',
+                ...data,
+            }, {
+                forceFormData: true,
                 onSuccess: () => closeModal(),
             });
         } else {
             post(route('admin.checkin-counters.store'), {
+                forceFormData: true,
                 onSuccess: () => closeModal(),
             });
         }
@@ -395,6 +411,20 @@ export default function Index({ counters, airlines, flights }: Props) {
                                                     </div>
                                                 )}
                                             </div>
+
+                                            {/* Gambar saat counter tutup */}
+                                            {counter.idle_image && (
+                                                <div className="mt-3 flex items-center gap-2 rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-2">
+                                                    <img
+                                                        src={`/storage/${counter.idle_image}`}
+                                                        alt="Gambar counter saat tutup"
+                                                        className="h-10 w-14 rounded object-cover shrink-0"
+                                                    />
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                                                        <ImageIcon size={11} /> Gambar saat tutup
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Footer actions */}
@@ -499,6 +529,50 @@ export default function Index({ counters, airlines, flights }: Props) {
                                         <option key={a.id} value={a.id}>{a.nama}</option>
                                     ))}
                                 </select>
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Gambar Saat Tutup (Opsional)
+                                </label>
+                                <p className="mb-2 text-xs text-gray-400">
+                                    Ditampilkan di layar display ketika counter tidak aktif. Maks 5MB (JPG/PNG/WebP).
+                                </p>
+
+                                {/* Preview gambar baru / gambar yang sudah ada */}
+                                {(data.idle_image || (selectedCounter?.idle_image && !data.remove_idle_image)) && (
+                                    <div className="relative mb-2 inline-block">
+                                        <img
+                                            src={data.idle_image ? URL.createObjectURL(data.idle_image) : `/storage/${selectedCounter?.idle_image}`}
+                                            alt="Pratinjau gambar counter"
+                                            className="h-28 w-auto rounded-lg border border-gray-200 object-contain dark:border-gray-600"
+                                        />
+                                    </div>
+                                )}
+
+                                <input
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    onChange={(e) => setData((prev) => ({
+                                        ...prev,
+                                        idle_image: e.target.files ? e.target.files[0] : null,
+                                        remove_idle_image: false,
+                                    }))}
+                                    className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100"
+                                />
+                                {errors.idle_image && <p className="mt-1 text-sm text-red-600">{errors.idle_image}</p>}
+
+                                {selectedCounter?.idle_image && !data.idle_image && (
+                                    <label className="mt-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                        <input
+                                            type="checkbox"
+                                            checked={data.remove_idle_image}
+                                            onChange={(e) => setData('remove_idle_image', e.target.checked)}
+                                            className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                                        />
+                                        Hapus gambar saat ini
+                                    </label>
+                                )}
                             </div>
 
                             <div className="mt-6 flex justify-end gap-3">

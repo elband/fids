@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Modal from '@/Components/Modal';
 import TextInput from '@/Components/TextInput';
 import InputLabel from '@/Components/InputLabel';
@@ -36,6 +36,17 @@ interface Props {
 export default function Index({ announcements, missingDependencies = [] }: Props) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAnn, setEditingAnn] = useState<Announcement | null>(null);
+
+    // Auto-refresh: perbarui daftar tiap 20 detik agar "Sisa pemutaran" turun secara live
+    // ketika pengumuman diputar di layar publik (tanpa perlu reload manual).
+    // Dijeda saat modal tambah/edit terbuka agar tidak mengganggu pengisian form.
+    useEffect(() => {
+        if (isModalOpen) return;
+        const timer = setInterval(() => {
+            router.reload({ only: ['announcements'] });
+        }, 20000);
+        return () => clearInterval(timer);
+    }, [isModalOpen]);
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
         judul: '',

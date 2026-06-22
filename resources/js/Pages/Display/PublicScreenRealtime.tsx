@@ -314,14 +314,11 @@ export default function PublicScreenRealtime({ settings, departures, arrivals, w
         announce(text, { lang: 'id-ID', rate: 0.92 })
             .catch((e) => console.error('Speak failed', e))
             .then(() => {
-                // increment broadcast_count di server
-                return fetch(route('admin.public-announcements.increment-count', ann.id), {
+                // Laporkan ke server bahwa pengumuman selesai diputar -> broadcast_count naik.
+                // Endpoint API publik (tanpa auth/CSRF) agar layar kiosk yang tidak login tetap bisa melapor.
+                return fetch(`/api/fids/announcements/${ann.id}/played`, {
                     method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
+                    headers: { 'Accept': 'application/json' },
                 });
             })
             .catch((e) => console.error('Increment failed', e))
@@ -330,7 +327,15 @@ export default function PublicScreenRealtime({ settings, departures, arrivals, w
                 // refresh pending agar yang sudah max keluar dari antrian
                 fetch(route('api.pending-announcements'))
                     .then((r) => r.json())
-                    .then(setPending)
+                    .then((fresh) => {
+                        // Lepas id dari daftar "sudah diputar" bila server sudah men-gating-nya
+                        // (tidak lagi pending). Dengan begitu pengumuman bisa diputar lagi
+                        // pada siklus berikutnya setelah interval_pemutaran terlewati.
+                        if (!fresh.some((a: any) => a.id === ann.id)) {
+                            playedIdsRef.current.delete(ann.id);
+                        }
+                        setPending(fresh);
+                    })
                     .catch(() => { /* ignore */ });
             });
     }, [pending, audioEnabled]);

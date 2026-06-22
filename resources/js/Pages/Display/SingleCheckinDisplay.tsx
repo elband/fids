@@ -21,6 +21,7 @@ interface CheckinCounter {
     id: number;
     nomor_counter: string;
     status_counter: string;
+    idle_image?: string | null;
     flights?: Flight[];
 }
 
@@ -106,6 +107,40 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
     }
 
     const isClosed = counter?.status_counter !== 'buka';
+
+    // Saat counter tidak aktif dan ada gambar khusus, tampilkan gambar tersebut layar penuh.
+    if (isClosed && counter.idle_image) {
+        return (
+            <FidsLayout title={`FIDS - Counter ${identifier}`}>
+                <div className="relative h-screen w-screen overflow-hidden bg-black">
+                    <img
+                        src={counter.idle_image}
+                        alt={`Counter ${counter.nomor_counter}`}
+                        className="absolute inset-0 h-full w-full object-cover"
+                    />
+                    <div className="absolute top-[2vw] left-[2vw] z-10 flex items-center gap-[1vw] rounded-2xl bg-black/40 px-[2vw] py-[1vw] backdrop-blur-xl">
+                        <Clock size={32} strokeWidth={2} className="text-[#FFD700]" />
+                        <div className="flex flex-col">
+                            <span style={{ fontSize: '3vw' }} className="font-black leading-none tracking-tighter text-[#FFD700] drop-shadow-md">
+                                {time24h}
+                            </span>
+                            <span style={{ fontSize: '0.9vw' }} className="mt-1 font-bold uppercase tracking-[0.2em] text-[#FFD700]/70">
+                                {dateFullId}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="absolute bottom-[2vw] right-[2vw] z-10 rounded-2xl bg-black/40 px-[2vw] py-[1vw] backdrop-blur-xl">
+                        <span style={{ fontSize: '1.2vw' }} className="font-bold uppercase tracking-[0.3em] text-[#FFD700]/70">
+                            {t.checkinCounterLabel[lang]}
+                        </span>
+                        <div style={{ fontSize: '4vw', lineHeight: 1 }} className="font-black text-[#FFD700] drop-shadow-lg">
+                            {counter.nomor_counter}
+                        </div>
+                    </div>
+                </div>
+            </FidsLayout>
+        );
+    }
 
     return (
         <FidsLayout title={`FIDS - Counter ${identifier}`}>

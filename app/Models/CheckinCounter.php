@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class CheckinCounter extends Model
 {
-    protected $fillable = ['nomor_counter', 'area', 'terminal', 'airline_id', 'status_counter'];
+    protected $fillable = ['nomor_counter', 'area', 'terminal', 'airline_id', 'status_counter', 'idle_image'];
 
     public function airline()
     {
