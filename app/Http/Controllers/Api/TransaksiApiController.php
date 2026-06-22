@@ -27,7 +27,7 @@ class TransaksiApiController extends Controller
     {
         $paginator = $this->baseQuery('departure')->paginate(self::PER_PAGE);
 
-        $paginator->getCollection()->transform(fn (Flight $f) => $this->transform($f));
+        $paginator->getCollection()->transform(fn (Flight $f) => $this->stripNulls($this->transform($f)));
 
         return $this->envelope('Keberangkatan', $paginator);
     }
@@ -39,9 +39,29 @@ class TransaksiApiController extends Controller
     {
         $paginator = $this->baseQuery('arrival')->paginate(self::PER_PAGE);
 
-        $paginator->getCollection()->transform(fn (Flight $f) => $this->transform($f));
+        $paginator->getCollection()->transform(fn (Flight $f) => $this->stripNulls($this->transform($f)));
 
         return $this->envelope('Kedatangan', $paginator);
+    }
+
+    /**
+     * Hapus seluruh nilai null (rekursif, termasuk di objek bersarang) dari record.
+     * Objek bersarang yang menjadi kosong setelah dibersihkan ikut dihapus.
+     */
+    private function stripNulls(array $arr): array
+    {
+        $out = [];
+        foreach ($arr as $key => $value) {
+            if (is_array($value)) {
+                $value = $this->stripNulls($value);
+                if (!empty($value)) {
+                    $out[$key] = $value;
+                }
+            } elseif ($value !== null) {
+                $out[$key] = $value;
+            }
+        }
+        return $out;
     }
 
     /**
