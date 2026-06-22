@@ -80,7 +80,9 @@ Route::get('/display/baggage-claim/{nomor}', fn ($nomor) => redirect("/public/ga
 
 Route::get('/api/pending-announcements', [DisplayController::class, 'pendingAnnouncementsApi'])->name('api.pending-announcements');
 
-Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
+// RBAC (audit C-02): seluruh modul admin hanya untuk role operasional.
+// Pengguna terautentikasi tanpa role (mis. sisa data lama) ditolak (deny-by-default).
+Route::middleware(['auth', 'verified', 'role:Super Admin|Admin Operasional'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/export-flight-logs', [DashboardController::class, 'exportFlightLogs'])->name('dashboard.export-flight-logs');
     
@@ -136,8 +138,8 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::post('public-announcements/{public_announcement}/broadcast', [PublicAnnouncementController::class, 'broadcast'])->name('public-announcements.broadcast');
     Route::post('public-announcements/{public_announcement}/increment-count', [PublicAnnouncementController::class, 'incrementCount'])->name('public-announcements.increment-count');
 
-    // User Management (Super Admin only)
-    Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);
+    // User Management — hanya Super Admin (audit C-02)
+    Route::resource('users', UserController::class)->except(['create', 'edit', 'show'])->middleware('role:Super Admin');
 
     // NTP Settings
     Route::get('ntp-settings', [NtpSettingController::class, 'index'])->name('ntp-settings.index');

@@ -129,16 +129,21 @@ class DisplayApiController extends Controller
     public function markAnnouncementPlayed(Announcement $announcement)
     {
         $announcement->increment('broadcast_count');
-        $announcement->update(['last_broadcast_at' => now()]);
 
-        if ($announcement->broadcast_count >= $announcement->max_broadcasts) {
-            $announcement->delete();
-            return response()->json(['success' => true, 'deleted' => true]);
-        }
+        // Audit C-03: endpoint publik ini TIDAK menghapus data secara permanen.
+        // Saat mencapai batas, pengumuman hanya dinonaktifkan (status_aktif=false) agar
+        // tidak hilang dari antrian pending; pembersihan permanen dilakukan oleh proses
+        // terotentikasi di Admin (PublicAnnouncementController@index).
+        $reachedLimit = $announcement->broadcast_count >= $announcement->max_broadcasts;
+
+        $announcement->update([
+            'last_broadcast_at' => now(),
+            'status_aktif'      => $reachedLimit ? false : $announcement->status_aktif,
+        ]);
 
         return response()->json([
             'success'         => true,
-            'deleted'         => false,
+            'finished'        => $reachedLimit,
             'broadcast_count' => $announcement->broadcast_count,
             'max_broadcasts'  => $announcement->max_broadcasts,
         ]);
