@@ -85,6 +85,27 @@ function createTone(ctx: AudioContext, dest: AudioNode, freq: number, amp: numbe
 }
 
 /**
+ * Eja kode penerbangan agar diartikulasikan satu-per-satu saat diucapkan TTS.
+ * Contoh: "GA121" -> "G A 1 2 1", "QG-423" -> "Q G 4 2 3", "ID6257" -> "I D 6 2 5 7".
+ * Pola: 2-3 huruf kapital + 1-4 angka (boleh ada strip/spasi & sufiks huruf, mis. "GA12A").
+ * Waktu (13:50), gate (A1), dan kata biasa tidak terpengaruh.
+ */
+function spellOutFlightCodes(text: string): string {
+    return text.replace(
+        /\b([A-Z]{2,3})[-\s]?(\d{1,4})([A-Z]?)\b/g,
+        (_m, letters: string, digits: string, suffix: string) => {
+            const parts = [
+                ...letters.split(''),
+                ...digits.split(''),
+                ...(suffix ? suffix.split('') : []),
+            ];
+            // Pisahkan tiap karakter dengan spasi agar dibaca terpisah (huruf & angka).
+            return parts.join(' ');
+        },
+    );
+}
+
+/**
  * Speak text using SpeechSynthesis with natural pacing:
  *  - Slower rate (0.85) for clarity
  *  - Slightly lower pitch for authority
@@ -99,9 +120,10 @@ export function speakText(
     const { lang = 'id-ID', rate = 0.85, pitch = 0.95, volume = 1.0 } = opts;
 
     // Pre-process text for more natural speech:
+    // - Eja kode penerbangan huruf-demi-huruf & angka-demi-angka
     // - Add slight pauses at commas and periods
     // - Clean up multiple spaces
-    const processedText = text
+    const processedText = spellOutFlightCodes(text)
         .replace(/\.\s*/g, '. ... ')      // longer pause at periods
         .replace(/,\s*/g, ', .. ')         // medium pause at commas
         .replace(/\s{2,}/g, ' ')           // clean multiple spaces
