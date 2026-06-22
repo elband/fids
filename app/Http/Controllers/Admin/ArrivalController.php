@@ -58,7 +58,7 @@ class ArrivalController extends Controller
             'airlines'        => Airline::all(),
             'airports'        => Airport::all(),
             'gates'           => Gate::all(),
-            'checkinCounters' => CheckinCounter::all(),
+            'checkinCounters' => CheckinCounter::orderByRaw('CAST(nomor_counter AS UNSIGNED), nomor_counter')->get(),
             'baggageClaims'   => BaggageClaim::all(),
             'routes'          => FlightRoute::with(['airportAsal', 'airportTujuan'])->where('jenis_rute', 'arrival')->get(),
             'airplanes'       => \App\Models\Airplane::with('airline')->get(),

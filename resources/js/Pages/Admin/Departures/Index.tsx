@@ -536,8 +536,13 @@ export default function Index({
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Check-in Counters</label>
-                                    <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 border rounded-md dark:border-gray-700 dark:bg-gray-900">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Check-in Counters
+                                        <span className="ml-1 text-xs font-normal text-gray-400">
+                                            ({data.checkin_counter_ids.length}/{checkinCounters.length} dipilih)
+                                        </span>
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 border rounded-md dark:border-gray-700 dark:bg-gray-900">
                                         {checkinCounters.map((a: any) => (
                                             <label key={a.id} className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-1 rounded">
                                                 <input 
