@@ -1,0 +1,7 @@
+@extends('errors.layout')
+@section('accent', '#fb923c')
+@section('status', 'Session Expired')
+@section('code', '419')
+@section('title', 'Sesi Kedaluwarsa')
+@section('subtitle', 'Page Expired')
+@section('message', 'Sesi Anda telah berakhir karena tidak aktif. Silakan muat ulang halaman dan coba lagi.')

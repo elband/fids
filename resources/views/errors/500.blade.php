@@ -1,0 +1,7 @@
+@extends('errors.layout')
+@section('accent', '#f5b301')
+@section('status', 'System Disruption')
+@section('code', '500')
+@section('title', 'Gangguan Sistem')
+@section('subtitle', 'Internal Server Error')
+@section('message', 'Menara kontrol sedang mengalami gangguan teknis. Tim kami sedang menanganinya. Silakan coba beberapa saat lagi.')

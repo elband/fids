@@ -1,0 +1,7 @@
+@extends('errors.layout')
+@section('accent', '#38bdf8')
+@section('status', 'Flight Not Found')
+@section('code', '404')
+@section('title', 'Halaman Tidak Ditemukan')
+@section('subtitle', 'Page Not Found')
+@section('message', 'Rute yang Anda tuju tidak terdaftar di papan informasi. Periksa kembali alamat atau kembali ke beranda.')

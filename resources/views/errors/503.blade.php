@@ -1,0 +1,7 @@
+@extends('errors.layout')
+@section('accent', '#f5b301')
+@section('status', 'Under Maintenance')
+@section('code', '503')
+@section('title', 'Sedang Pemeliharaan')
+@section('subtitle', 'Service Unavailable')
+@section('message', 'Sistem sedang dalam pemeliharaan terjadwal untuk meningkatkan layanan. Silakan kembali beberapa saat lagi.')

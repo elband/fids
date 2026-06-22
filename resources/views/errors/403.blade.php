@@ -1,0 +1,7 @@
+@extends('errors.layout')
+@section('accent', '#f43f5e')
+@section('status', 'Access Denied')
+@section('code', '403')
+@section('title', 'Akses Ditolak')
+@section('subtitle', 'Restricted Area')
+@section('message', 'Anda tidak memiliki izin untuk memasuki area ini. Hubungi petugas atau administrator jika Anda merasa ini sebuah kesalahan.')

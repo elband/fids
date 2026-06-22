@@ -1,0 +1,7 @@
+@extends('errors.layout')
+@section('accent', '#fb923c')
+@section('status', 'Too Many Requests')
+@section('code', '429')
+@section('title', 'Terlalu Banyak Permintaan')
+@section('subtitle', 'Slow Down')
+@section('message', 'Permintaan Anda terlalu sering dalam waktu singkat. Mohon tunggu sejenak sebelum mencoba kembali.')
