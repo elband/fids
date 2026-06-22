@@ -75,31 +75,71 @@ class TransaksiApiController extends Controller
 
     /**
      * Transformasi satu penerbangan menjadi baris transaksi.
+     * Struktur mengikuti API referensi (maskapai/gate/bandara/remark/reason bersarang;
+     * logo berada di dalam objek "maskapai").
      */
     private function transform(Flight $f): array
     {
-        return [
-            'id'                => $f->id,
-            'tanggal'           => optional($f->tanggal_penerbangan)->format('Y-m-d'),
-            'nomor_penerbangan' => $f->nomor_penerbangan,
-            'maskapai'          => $f->airline->nama_maskapai ?? null,
-            'kode_maskapai'     => $f->airline->kode_maskapai ?? null,
-            'asal'              => $f->airportAsal->kota ?? $f->airportAsal->nama_bandara ?? null,
-            'kode_asal'         => $f->airportAsal->kode_iata ?? null,
-            'tujuan'            => $f->airportTujuan->kota ?? $f->airportTujuan->nama_bandara ?? null,
-            'kode_tujuan'       => $f->airportTujuan->kode_iata ?? null,
-            'jam_jadwal'        => $f->jam_jadwal ? substr($f->jam_jadwal, 0, 5) : null,
-            'jam_estimasi'      => $f->jam_estimasi ? substr($f->jam_estimasi, 0, 5) : null,
-            'jam_aktual'        => $f->jam_aktual ? substr($f->jam_aktual, 0, 5) : null,
-            'jenis_penerbangan' => $f->jenis_penerbangan,
-            'tipe_layanan'      => $f->tipe_layanan,
-            'gate'              => $f->gate->kode_gate ?? null,
-            'checkin_counter'   => $f->checkinCounters && $f->checkinCounters->count() > 0
-                ? $f->checkinCounters->pluck('nomor_counter')->implode(', ')
-                : ($f->checkinCounter->nomor_counter ?? null),
-            'baggage_claim'     => $f->baggageClaim->nomor_belt ?? null,
-            'status'            => $f->status,
-            'catatan'           => $f->catatan,
+        $isDeparture = $f->jenis_penerbangan === 'departure';
+
+        // Objek maskapai (memuat logo) — sejajar dengan referensi.
+        $maskapai = $f->airline ? [
+            'id'         => $f->airline->id,
+            'nama'       => $f->airline->nama_maskapai,
+            'kode'       => $f->airline->kode_maskapai,
+            'logo'       => $f->airline->logo ? '/storage/' . $f->airline->logo : null,
+            'kode_warna' => $f->airline->warna_identitas,
+        ] : null;
+
+        $airportObj = function ($a) {
+            return $a ? [
+                'id'            => $a->id,
+                'nama'          => $a->nama_bandara,
+                'iata'          => $a->kode_iata,
+                'kota_provinsi' => $a->kota,
+            ] : null;
+        };
+
+        // Nomor counter pertama sebagai integer (sesuai referensi: "konter": 14)
+        $konterRaw = ($f->checkinCounters && $f->checkinCounters->count() > 0)
+            ? $f->checkinCounters->first()->nomor_counter
+            : ($f->checkinCounter->nomor_counter ?? null);
+
+        $base = [
+            'id'          => $f->id,
+            'tanggal'     => optional($f->tanggal_penerbangan)->format('Y-m-d'),
+            'maskapai_id' => $f->airline_id,
+            'pesawat_id'  => null,
+            'rute_id'     => null,
+            'bandara_id'  => $isDeparture ? $f->airport_tujuan_id : $f->airport_asal_id,
+            'jam'         => $f->jam_jadwal ? substr($f->jam_jadwal, 0, 5) : null,
+            'is_extra'    => 0,
+            'is_force'    => 0,
+            'keterangan'  => $f->catatan,
+            'remark_id'   => null,
+            'reason_id'   => 0,
+            'created_at'  => $f->created_at,
+            'updated_at'  => $f->updated_at,
+            'maskapai'    => $maskapai,
+            'pesawat'     => ['kode_penerbangan' => $f->nomor_penerbangan, 'jenis' => null, 'tipe' => null],
+            'remark'      => ['id' => null, 'status' => $f->status],
+            'reason'      => ['id' => 0, 'deskripsi' => '---'],
         ];
+
+        if ($isDeparture) {
+            return array_merge($base, [
+                'konter'         => $konterRaw !== null ? (int) $konterRaw : 0,
+                'konter2'        => 0,
+                'konter3'        => 0,
+                'gate_id'        => $f->gate_id,
+                'gate'           => $f->gate ? ['id' => $f->gate->id, 'nama' => $f->gate->kode_gate] : null,
+                'bandara_tujuan' => $airportObj($f->airportTujuan),
+            ]);
+        }
+
+        return array_merge($base, [
+            'conveyor'     => $f->baggageClaim->nomor_belt ?? null,
+            'bandara_asal' => $airportObj($f->airportAsal),
+        ]);
     }
 }
