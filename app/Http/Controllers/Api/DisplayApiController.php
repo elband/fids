@@ -13,32 +13,43 @@ use App\Http\Resources\WeatherResource;
 use App\Http\Resources\AnnouncementResource;
 use App\Models\NtpSetting;
 use App\Models\WorldClockSetting;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class DisplayApiController extends Controller
 {
+    /**
+     * TTL cache respons display (audit M-03). Layar polling ~10 dtk, jadi TTL
+     * pendek aman: N monitor runtuh menjadi ~1 kueri DB per TTL. Bekerja dengan
+     * cache driver apa pun (database saat ini; optimal dengan Redis).
+     */
+    private const TTL_LIST = 5;      // daftar penerbangan/counter (sering berubah)
+    private const TTL_SETTINGS = 15; // setting/cuaca/world-clock (jarang berubah)
+
     public function departures()
     {
-        $flights = Flight::with(['airline', 'airportTujuan', 'gate', 'checkinCounters'])
-            ->departure()
-            ->daily()
-            ->today()
-            ->orderBy('jam_jadwal', 'asc')
-            ->get();
-            
-        return FlightResource::collection($flights);
+        $data = Cache::remember('fids:api:departures', self::TTL_LIST, function () {
+            $flights = Flight::with(['airline', 'airportTujuan', 'gate', 'checkinCounters'])
+                ->departure()->daily()->today()
+                ->orderBy('jam_jadwal', 'asc')
+                ->get();
+            return FlightResource::collection($flights)->resolve();
+        });
+
+        return response()->json(['data' => $data]);
     }
 
     public function arrivals()
     {
-        $flights = Flight::with(['airline', 'airportAsal', 'baggageClaim'])
-            ->arrival()
-            ->daily()
-            ->today()
-            ->orderBy('jam_jadwal', 'asc')
-            ->get();
-            
-        return FlightResource::collection($flights);
+        $data = Cache::remember('fids:api:arrivals', self::TTL_LIST, function () {
+            $flights = Flight::with(['airline', 'airportAsal', 'baggageClaim'])
+                ->arrival()->daily()->today()
+                ->orderBy('jam_jadwal', 'asc')
+                ->get();
+            return FlightResource::collection($flights)->resolve();
+        });
+
+        return response()->json(['data' => $data]);
     }
 
     public function gate($gateCode)
@@ -151,55 +162,62 @@ class DisplayApiController extends Controller
 
     public function announcements()
     {
-        $now = Carbon::now();
-        $announcements = Announcement::where('status_aktif', true)
-            ->where('mulai_tayang', '<=', $now)
-            ->where(function($q) use ($now) {
-                $q->whereNull('selesai_tayang')
-                  ->orWhere('selesai_tayang', '>=', $now);
-            })
-            ->orderBy('prioritas', 'desc')
-            ->get();
-            
-        return AnnouncementResource::collection($announcements);
+        $data = Cache::remember('fids:api:announcements', self::TTL_LIST, function () {
+            $now = Carbon::now();
+            $announcements = Announcement::where('status_aktif', true)
+                ->where('mulai_tayang', '<=', $now)
+                ->where(function($q) use ($now) {
+                    $q->whereNull('selesai_tayang')
+                      ->orWhere('selesai_tayang', '>=', $now);
+                })
+                ->orderBy('prioritas', 'desc')
+                ->get();
+            return AnnouncementResource::collection($announcements)->resolve();
+        });
+
+        return response()->json(['data' => $data]);
     }
 
     public function weather()
     {
-        $weather = WeatherInfo::latest()->first();
-        if ($weather) {
-            return new WeatherResource($weather);
-        }
-        return response()->json(['data' => null]);
+        $data = Cache::remember('fids:api:weather', self::TTL_SETTINGS, function () {
+            $weather = WeatherInfo::latest()->first();
+            return $weather ? (new WeatherResource($weather))->resolve() : null;
+        });
+
+        return response()->json(['data' => $data]);
     }
 
     public function settings()
     {
-        $setting = DisplaySetting::first();
-        if ($setting) {
-            return new SettingResource($setting);
-        }
-        return response()->json(['data' => null]);
+        $data = Cache::remember('fids:api:settings', self::TTL_SETTINGS, function () {
+            $setting = DisplaySetting::first();
+            return $setting ? (new SettingResource($setting))->resolve() : null;
+        });
+
+        return response()->json(['data' => $data]);
     }
 
     public function allCheckinCounters()
     {
-        $counters = \App\Models\CheckinCounter::with(['airline', 'flights' => function($q) {
-            $q->daily()
-              ->today()
-              ->whereIn('status', ['Scheduled', 'Check-in Open', 'Check-in Closed', 'Delayed'])
-              ->with('checkinCounters')
-              ->orderBy('jam_jadwal', 'asc');
-        }])->orderBy('nomor_counter', 'asc')->get();
+        $data = Cache::remember('fids:api:checkin-counters', self::TTL_LIST, function () {
+            $counters = \App\Models\CheckinCounter::with(['airline', 'flights' => function($q) {
+                $q->daily()
+                  ->today()
+                  ->whereIn('status', ['Scheduled', 'Check-in Open', 'Check-in Closed', 'Delayed'])
+                  ->with('checkinCounters')
+                  ->orderBy('jam_jadwal', 'asc');
+            }])->orderBy('nomor_counter', 'asc')->get();
 
-        $data = $counters->map(function ($counter) {
-            $arr = $counter->toArray();
-            if ($counter->airline && $counter->airline->logo) {
-                $arr['airline']['logo'] = '/storage/' . $counter->airline->logo;
-            }
-            $arr['idle_image'] = $counter->idle_image ? '/storage/' . $counter->idle_image : null;
-            $arr['flights'] = FlightResource::collection($counter->flights)->resolve();
-            return $arr;
+            return $counters->map(function ($counter) {
+                $arr = $counter->toArray();
+                if ($counter->airline && $counter->airline->logo) {
+                    $arr['airline']['logo'] = '/storage/' . $counter->airline->logo;
+                }
+                $arr['idle_image'] = $counter->idle_image ? '/storage/' . $counter->idle_image : null;
+                $arr['flights'] = FlightResource::collection($counter->flights)->resolve();
+                return $arr;
+            })->all();
         });
 
         return response()->json(['data' => $data]);
@@ -207,19 +225,21 @@ class DisplayApiController extends Controller
 
     public function allGates()
     {
-        $gates = \App\Models\Gate::with(['flights' => function($q) {
-            $q->daily()
-              ->today()
-              ->where('jenis_penerbangan', 'departure')
-              ->whereIn('status', ['Scheduled', 'Check-in Open', 'Boarding', 'Gate Open', 'Final Call', 'Delayed', 'Departed'])
-              ->with('checkinCounters')
-              ->orderBy('jam_jadwal', 'asc');
-        }, 'flights.airline'])->orderBy('kode_gate', 'asc')->get();
+        $data = Cache::remember('fids:api:gates', self::TTL_LIST, function () {
+            $gates = \App\Models\Gate::with(['flights' => function($q) {
+                $q->daily()
+                  ->today()
+                  ->where('jenis_penerbangan', 'departure')
+                  ->whereIn('status', ['Scheduled', 'Check-in Open', 'Boarding', 'Gate Open', 'Final Call', 'Delayed', 'Departed'])
+                  ->with('checkinCounters')
+                  ->orderBy('jam_jadwal', 'asc');
+            }, 'flights.airline'])->orderBy('kode_gate', 'asc')->get();
 
-        $data = $gates->map(function ($gate) {
-            $arr = $gate->toArray();
-            $arr['flights'] = FlightResource::collection($gate->flights)->resolve();
-            return $arr;
+            return $gates->map(function ($gate) {
+                $arr = $gate->toArray();
+                $arr['flights'] = FlightResource::collection($gate->flights)->resolve();
+                return $arr;
+            })->all();
         });
 
         return response()->json(['data' => $data]);
@@ -227,18 +247,20 @@ class DisplayApiController extends Controller
 
     public function allBaggageClaims()
     {
-        $claims = \App\Models\BaggageClaim::with(['flights' => function($q) {
-            $q->daily()
-              ->today()
-              ->where('jenis_penerbangan', 'arrival')
-              ->whereIn('status', ['Scheduled', 'Landed', 'Arrived', 'Baggage Claim', 'Delayed'])
-              ->orderBy('jam_jadwal', 'asc');
-        }, 'flights.airline'])->orderBy('nomor_belt', 'asc')->get();
+        $data = Cache::remember('fids:api:baggage-claims', self::TTL_LIST, function () {
+            $claims = \App\Models\BaggageClaim::with(['flights' => function($q) {
+                $q->daily()
+                  ->today()
+                  ->where('jenis_penerbangan', 'arrival')
+                  ->whereIn('status', ['Scheduled', 'Landed', 'Arrived', 'Baggage Claim', 'Delayed'])
+                  ->orderBy('jam_jadwal', 'asc');
+            }, 'flights.airline'])->orderBy('nomor_belt', 'asc')->get();
 
-        $data = $claims->map(function ($claim) {
-            $arr = $claim->toArray();
-            $arr['flights'] = FlightResource::collection($claim->flights)->resolve();
-            return $arr;
+            return $claims->map(function ($claim) {
+                $arr = $claim->toArray();
+                $arr['flights'] = FlightResource::collection($claim->flights)->resolve();
+                return $arr;
+            })->all();
         });
 
         return response()->json(['data' => $data]);
