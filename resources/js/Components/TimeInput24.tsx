@@ -30,7 +30,7 @@ export default function TimeInput24({
     const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
     const selectCls =
-        'min-w-0 flex-1 bg-transparent text-center tabular-nums focus:outline-none dark:text-white cursor-pointer';
+        'min-w-0 flex-1 appearance-none border-0 bg-transparent text-center tabular-nums focus:outline-none dark:text-white cursor-pointer';
 
     return (
         <div
