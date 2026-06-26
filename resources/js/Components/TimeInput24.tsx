@@ -1,5 +1,3 @@
-import { Clock } from 'lucide-react';
-
 /**
  * Input waktu format 24 jam yang konsisten di semua perangkat/locale.
  * Tidak memakai <input type="time"> native (formatnya 12/24 jam mengikuti
@@ -32,15 +30,14 @@ export default function TimeInput24({
     const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
     const selectCls =
-        'bg-transparent text-center tabular-nums focus:outline-none dark:text-white px-1 py-1 cursor-pointer';
+        'min-w-0 flex-1 bg-transparent text-center tabular-nums focus:outline-none dark:text-white cursor-pointer';
 
     return (
         <div
-            className={`flex items-center gap-1 ${className}`}
+            className={`flex items-center justify-center gap-0.5 ${className}`}
             role="group"
             aria-label="Waktu 24 jam"
         >
-            <Clock size={15} className="text-gray-400 shrink-0" />
             <select
                 value={hh}
                 onChange={(e) => emit(e.target.value, mm)}
@@ -53,7 +50,7 @@ export default function TimeInput24({
                     <option key={h} value={h}>{h}</option>
                 ))}
             </select>
-            <span className="font-bold text-gray-400">:</span>
+            <span className="font-bold text-gray-400 shrink-0">:</span>
             <select
                 value={mm}
                 onChange={(e) => emit(hh, e.target.value)}
@@ -66,7 +63,6 @@ export default function TimeInput24({
                     <option key={m} value={m}>{m}</option>
                 ))}
             </select>
-            <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-gray-400 pr-1">24J</span>
         </div>
     );
 }
