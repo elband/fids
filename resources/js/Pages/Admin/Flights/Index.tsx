@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import TimeInput24 from '@/Components/TimeInput24';
 import { Head, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { Edit, Trash, Plus } from 'lucide-react';
@@ -236,15 +237,15 @@ export default function Index({ flights, airlines, airports, gates, checkinCount
                                 <div className="flex gap-2">
                                     <div className="w-1/3">
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Jadwal</label>
-                                        <input type="time" value={data.jam_jadwal} onChange={e => setData('jam_jadwal', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white" required />
+                                        <TimeInput24 value={data.jam_jadwal} onChange={v => setData('jam_jadwal', v)} className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1" required />
                                     </div>
                                     <div className="w-1/3">
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Estimasi</label>
-                                        <input type="time" value={data.jam_estimasi} onChange={e => setData('jam_estimasi', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+                                        <TimeInput24 value={data.jam_estimasi} onChange={v => setData('jam_estimasi', v)} className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1" />
                                     </div>
                                     <div className="w-1/3">
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Aktual</label>
-                                        <input type="time" value={data.jam_aktual} onChange={e => setData('jam_aktual', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+                                        <TimeInput24 value={data.jam_aktual} onChange={v => setData('jam_aktual', v)} className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1" />
                                     </div>
                                 </div>
                                 
