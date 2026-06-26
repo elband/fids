@@ -11,6 +11,20 @@ export function useAutoScroll(speed = 1, pauseTime = 3000, deps: any[] = []) {
         let isPaused = false;
         let pauseTimeoutId: any;
         let scrollAccumulator = 0;
+        // Posisi & ukuran di-cache di luar loop rAF supaya tidak memaksa
+        // reflow sinkron tiap frame (write lalu langsung read scrollTop/
+        // scrollHeight setiap frame bikin patah-patah di GPU/CPU lemah,
+        // misalnya chipset TV lawas).
+        let position = container.scrollTop;
+        let maxScroll = container.scrollHeight - container.clientHeight;
+
+        const remeasure = () => {
+            if (!container) return;
+            maxScroll = container.scrollHeight - container.clientHeight;
+        };
+
+        const resizeObserver = new ResizeObserver(remeasure);
+        resizeObserver.observe(container);
 
         const scroll = () => {
             if (!container) return;
@@ -21,24 +35,26 @@ export function useAutoScroll(speed = 1, pauseTime = 3000, deps: any[] = []) {
             }
 
             // Perform scroll based on speed
-            scrollAccumulator += (speed * 0.5); 
-            
+            scrollAccumulator += (speed * 0.5);
+
             if (scrollAccumulator >= 1) {
                 const scrollAmount = Math.floor(scrollAccumulator);
-                container.scrollTop += scrollAmount;
+                position += scrollAmount;
+                container.scrollTop = position;
                 scrollAccumulator -= scrollAmount;
 
                 // Check if reached bottom (with 5px buffer)
-                const isAtBottom = Math.ceil(container.scrollTop + container.clientHeight) >= container.scrollHeight - 5;
+                const isAtBottom = position >= maxScroll - 5;
 
-                if (isAtBottom && container.scrollHeight > container.clientHeight) {
+                if (isAtBottom && maxScroll > 0) {
                     isPaused = true;
-                    
+
                     pauseTimeoutId = setTimeout(() => {
                         if (container) {
                             container.scrollTo({ top: 0, behavior: 'smooth' });
+                            position = 0;
                         }
-                        
+
                         pauseTimeoutId = setTimeout(() => {
                             isPaused = false;
                         }, pauseTime);
@@ -50,10 +66,12 @@ export function useAutoScroll(speed = 1, pauseTime = 3000, deps: any[] = []) {
         };
 
         pauseTimeoutId = setTimeout(() => {
+            remeasure();
             animationFrameId = requestAnimationFrame(scroll);
         }, 2000);
 
         return () => {
+            resizeObserver.disconnect();
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             if (pauseTimeoutId) clearTimeout(pauseTimeoutId);
         };
