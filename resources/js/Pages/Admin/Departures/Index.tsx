@@ -493,16 +493,16 @@ export default function Index({
 
                             {/* Kanan */}
                             <div className="space-y-4">
-                                <div className="flex gap-2">
-                                    <div className="w-1/3">
+                                <div className="space-y-3">
+                                    <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Jadwal</label>
                                         <TimeInput24 value={data.jam_jadwal} onChange={v => setData('jam_jadwal', v)} className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1" required />
                                     </div>
-                                    <div className="w-1/3">
+                                    <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Estimasi</label>
                                         <TimeInput24 value={data.jam_estimasi} onChange={v => setData('jam_estimasi', v)} className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1" />
                                     </div>
-                                    <div className="w-1/3">
+                                    <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Aktual</label>
                                         <TimeInput24 value={data.jam_aktual} onChange={v => setData('jam_aktual', v)} className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1" />
                                     </div>
