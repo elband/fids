@@ -160,44 +160,44 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
                     )}
                 </div>
 
-                <div className="flex-1 flex flex-col p-12 mt-40">
-                    <div className="flex justify-between items-start mb-8">
+                <div className="flex-1 flex flex-col p-[3vw] mt-[12vw] min-h-0">
+                    <div className="flex justify-between items-start mb-[2vh]">
                         <div>
-                            <div className="text-3xl text-gray-400 tracking-[0.5em] font-medium uppercase mb-2">{t.baggageClaimBelt[lang]}</div>
-                            <div className="text-[12rem] leading-none font-black text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                            <div style={{ fontSize: '1.8vw' }} className="text-gray-400 tracking-[0.5em] font-medium uppercase mb-2">{t.baggageClaimBelt[lang]}</div>
+                            <div style={{ fontSize: '18vw', lineHeight: 1 }} className="font-black text-[#FFD700] drop-shadow-[0_0_15px_rgba(255,215,0,0.4)]">
                                 {belt.nomor_belt}
                             </div>
                         </div>
                         {flight?.airline?.logo && (
                             <div className="bg-white p-6 rounded-3xl shadow-2xl">
-                                <img src={flight.airline.logo} alt="Airline Logo" style={{ height: '20vw' }} className="object-contain" />
+                                <img src={flight.airline.logo} alt="Airline Logo" style={{ height: '14vw' }} className="object-contain" />
                             </div>
                         )}
                     </div>
 
-                    <div className="flex-1 flex flex-col justify-center">
+                    <div className="flex-1 flex flex-col justify-center min-h-0">
                         {belt.status_belt !== 'aktif' ? (
-                            <div className="text-[8rem] font-black text-gray-600 tracking-widest text-center mt-20">
+                            <div style={{ fontSize: '10vw' }} className="font-black text-gray-600 tracking-widest text-center mt-[5vh]">
                                 {t.closed[lang]}
                             </div>
                         ) : (
                             <>
                                 {flight ? (
-                                    <div className="space-y-6">
-                                        <div className="text-4xl text-yellow-400 tracking-widest font-bold">{t.flightLabel[lang]}</div>
-                                        <div className="text-[7rem] leading-none font-bold text-white drop-shadow-md">
+                                    <div className="space-y-[2vh]">
+                                        <div style={{ fontSize: '2.5vw' }} className="text-yellow-400 tracking-widest font-bold">{t.flightLabel[lang]}</div>
+                                        <div style={{ fontSize: '9vw', lineHeight: 1 }} className="font-bold text-[#FFD700] drop-shadow-md">
                                             {flight.nomor_penerbangan}
                                         </div>
 
-                                        <div className="h-12"></div>
+                                        <div className="h-[3vh]"></div>
 
-                                        <div className="text-4xl text-yellow-400 tracking-widest font-bold">{t.arrivingFromLabel[lang]}</div>
-                                        <div className="text-[8rem] leading-none font-black text-white truncate drop-shadow-lg uppercase">
+                                        <div style={{ fontSize: '2.5vw' }} className="text-yellow-400 tracking-widest font-bold">{t.arrivingFromLabel[lang]}</div>
+                                        <div style={{ fontSize: '10vw', lineHeight: 1 }} className="font-black text-[#FFD700] truncate drop-shadow-lg uppercase">
                                             {flight.asal}
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="text-[6rem] font-bold text-gray-400 tracking-widest text-center mt-20 leading-tight whitespace-pre-line">
+                                    <div style={{ fontSize: '8vw' }} className="font-bold text-gray-400 tracking-widest text-center mt-[5vh] leading-tight whitespace-pre-line">
                                         {t.awaitingBaggageBig[lang]}
                                     </div>
                                 )}
@@ -205,9 +205,9 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
                         )}
                     </div>
 
-                    <div className={`mt-auto h-32 rounded-2xl flex items-center justify-center border-4 ${borderColor} ${belt.status_belt === 'aktif' && flight ? 'bg-white/10' : 'bg-transparent border-transparent'}`}>
+                    <div style={{ height: '10vh' }} className={`mt-auto shrink-0 rounded-2xl flex items-center justify-center border-4 ${borderColor} ${belt.status_belt === 'aktif' && flight ? 'bg-white/10' : 'bg-transparent border-transparent'}`}>
                         {belt.status_belt === 'aktif' && flight && (
-                            <div className="text-6xl font-black tracking-widest text-yellow-300 uppercase animate-pulse">
+                            <div style={{ fontSize: '4vw' }} className="font-black tracking-widest text-yellow-300 uppercase animate-pulse">
                                 {t.collectLuggage[lang]}
                             </div>
                         )}

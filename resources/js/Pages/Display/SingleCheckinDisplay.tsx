@@ -199,7 +199,7 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
                     <div className="flex justify-between items-start mb-[2vh]">
                         <div>
                             <div style={{ fontSize: '1.8vw' }} className="text-gray-400 tracking-[0.5em] font-medium uppercase mb-2">{t.checkinCounterLabel[lang]}</div>
-                            <div style={{ fontSize: '18vw', lineHeight: 1 }} className="font-black text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                            <div style={{ fontSize: '18vw', lineHeight: 1 }} className="font-black text-[#FFD700] drop-shadow-[0_0_15px_rgba(255,215,0,0.4)]">
                                 {counter.nomor_counter}
                             </div>
                         </div>
@@ -220,14 +220,14 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
                                 {flight ? (
                                     <div className="space-y-[2vh]">
                                         <div style={{ fontSize: '2.5vw' }} className="text-yellow-400 tracking-widest font-bold">{t.flightLabel[lang]}</div>
-                                        <div style={{ fontSize: '9vw', lineHeight: 1 }} className="font-bold text-white drop-shadow-md">
+                                        <div style={{ fontSize: '9vw', lineHeight: 1 }} className="font-bold text-[#FFD700] drop-shadow-md">
                                             {flight.nomor_penerbangan}
                                         </div>
 
                                         <div className="h-[3vh]"></div>
 
                                         <div style={{ fontSize: '2.5vw' }} className="text-yellow-400 tracking-widest font-bold">{t.destinationLabel[lang]}</div>
-                                        <div style={{ fontSize: '10vw', lineHeight: 1 }} className="font-black text-white truncate drop-shadow-lg uppercase">
+                                        <div style={{ fontSize: '10vw', lineHeight: 1 }} className="font-black text-[#FFD700] truncate drop-shadow-lg uppercase">
                                             {flight.tujuan}
                                         </div>
                                     </div>
