@@ -17,6 +17,7 @@ type Flight = {
     gate?: { kode_gate?: string; terminal?: string } | null;
     baggage_claim?: { nomor_belt?: string | number } | null;
     checkin_counter?: { nomor_counter?: string | number } | null;
+    checkin_counters?: { id?: number; nomor_counter?: string | number }[] | null;
 };
 
 interface Props {
@@ -252,11 +253,18 @@ export default function FlightList({ flights, isDaily, formatTanggal, onEdit, on
                                                     Belt {flight.baggage_claim.nomor_belt}
                                                 </span>
                                             )}
-                                            {flight.checkin_counter?.nomor_counter && (
-                                                <span className="text-[10px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
-                                                    CT {flight.checkin_counter.nomor_counter}
-                                                </span>
-                                            )}
+                                            {(() => {
+                                                // Master menyimpan counter lewat relasi jamak (pivot).
+                                                // Fallback ke relasi tunggal bila ada (data lama).
+                                                const counters = (flight.checkin_counters && flight.checkin_counters.length > 0)
+                                                    ? flight.checkin_counters.map((c) => c.nomor_counter).filter(Boolean)
+                                                    : (flight.checkin_counter?.nomor_counter ? [flight.checkin_counter.nomor_counter] : []);
+                                                return counters.length > 0 ? (
+                                                    <span className="text-[10px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
+                                                        {counters.length > 1 ? 'CT' : 'Counter'} {counters.join(', ')}
+                                                    </span>
+                                                ) : null;
+                                            })()}
                                         </div>
                                     </div>
 
