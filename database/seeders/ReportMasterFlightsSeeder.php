@@ -44,17 +44,22 @@ class ReportMasterFlightsSeeder extends Seeder
         // [jenis, nomor, kode_maskapai, kode_bandara_lawan, jam, kode_gate|null, hari|null]
         //  - departure: kode_bandara_lawan = TUJUAN
         //  - arrival  : kode_bandara_lawan = ASAL
+        // PK-SNH (charter Smart Aviation) beroperasi hari Sabtu (sesuai report:
+        // hanya terlihat terbang 18 Jul 2026 = Sabtu). Ubah bila jadwal berbeda.
+        $hariCharter = ['Sabtu'];
+
         $rows = [
             ['departure', 'IW1472', 'IW',  'GHS', '09:00', 'A3', $semuaHari],
             ['departure', 'IU653',  'IU',  'SUB', '12:30', null, $semuaHari],
-            ['departure', 'PK-SNH', 'SMV', 'RTU', '07:30', null, null],
-            ['departure', 'PK-SNH', 'SMV', 'DTD', '10:30', null, null],
+            ['departure', 'PK-SNH', 'SMV', 'RTU', '07:30', null, $hariCharter],
+            ['departure', 'PK-SNH', 'SMV', 'DTD', '10:30', null, $hariCharter],
             ['arrival',   'IU652',  'IU',  'SUB', '11:50', null, $semuaHari],
-            ['arrival',   'PK-SNH', 'SMV', 'RTU', '10:10', null, null],
-            ['arrival',   'PK-SNH', 'SMV', 'DTD', '15:20', null, null],
+            ['arrival',   'PK-SNH', 'SMV', 'RTU', '10:10', null, $hariCharter],
+            ['arrival',   'PK-SNH', 'SMV', 'DTD', '15:20', null, $hariCharter],
         ];
 
         $created = 0;
+        $updated = 0;
         $skipped = 0;
 
         foreach ($rows as [$jenis, $nomor, $kodeAirline, $kodeLawan, $jam, $kodeGate, $hari]) {
@@ -95,11 +100,18 @@ class ReportMasterFlightsSeeder extends Seeder
                 $created++;
                 $this->command?->info("Tambah: {$jenis} {$nomor} {$jam}");
             } else {
-                $skipped++;
-                $this->command?->line("Lewati (sudah ada): {$jenis} {$nomor} {$jam}");
+                // Sudah ada: selaraskan hari_operasi bila berbeda (seeder = sumber kebenaran).
+                if ($flight->hari_operasi != $hari) {
+                    $flight->update(['hari_operasi' => $hari]);
+                    $updated++;
+                    $this->command?->info("Update hari: {$jenis} {$nomor} {$jam}");
+                } else {
+                    $skipped++;
+                    $this->command?->line("Lewati (sudah sesuai): {$jenis} {$nomor} {$jam}");
+                }
             }
         }
 
-        $this->command?->info("Selesai. Dibuat: {$created}, dilewati: {$skipped}.");
+        $this->command?->info("Selesai. Dibuat: {$created}, diupdate: {$updated}, dilewati: {$skipped}.");
     }
 }

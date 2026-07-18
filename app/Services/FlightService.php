@@ -159,10 +159,15 @@ class FlightService
             $todayNum = $targetDate->dayOfWeek; // 0=Sunday, 1=Monday...
             
             if (in_array($todayName, $hariOperasi) || in_array($todayNum, $hariOperasi)) {
+                // Sertakan jam_jadwal + tujuan pada kunci dedup. Satu pesawat charter
+                // (mis. PK-SNH) bisa punya beberapa rute/leg dengan nomor penerbangan
+                // SAMA di hari yang sama; tanpa ini hanya leg pertama yang ter-generate.
                 $exists = Flight::where('is_master', false)
                     ->whereDate('tanggal_penerbangan', $targetDate->toDateString())
                     ->where('nomor_penerbangan', $master->nomor_penerbangan)
                     ->where('jenis_penerbangan', $master->jenis_penerbangan)
+                    ->where('jam_jadwal', $master->jam_jadwal)
+                    ->where('airport_tujuan_id', $master->airport_tujuan_id)
                     ->exists();
                     
                 if (!$exists) {
