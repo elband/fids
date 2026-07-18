@@ -169,6 +169,33 @@ class DisplayApiController extends Controller
         ]);
     }
 
+    /** Sembunyikan penerbangan dari papan setelah N jam sejak berangkat/tiba. */
+    private const BOARD_HIDE_AFTER_HOURS = 3;
+
+    /**
+     * Buang penerbangan yang sudah "selesai" (berangkat/tiba) lebih dari
+     * BOARD_HIDE_AFTER_HOURS jam dari papan keberangkatan/kedatangan.
+     *
+     * @param  \Illuminate\Support\Collection  $flights
+     * @param  array  $doneStatuses  status yang dianggap selesai (mis. ['Departed'])
+     */
+    private function hideStaleFlights($flights, array $doneStatuses)
+    {
+        $now = Carbon::now(\App\Support\DisplayTimezone::get());
+        $limitMin = self::BOARD_HIDE_AFTER_HOURS * 60;
+
+        return $flights->reject(function ($f) use ($now, $doneStatuses, $limitMin) {
+            if (! in_array($f->status, $doneStatuses, true)) {
+                return false; // belum selesai → tetap tampil
+            }
+            $at = $this->flightArrivedAt($f); // jam_aktual (ATA/ATD) → fallback updated_at
+            if (! $at) {
+                return false; // tanpa waktu aktual → tetap tampil
+            }
+            return $at->diffInMinutes($now, false) >= $limitMin;
+        })->values();
+    }
+
     /** Kamera CCTV aktif yang terhubung ke sebuah belt (atau null). */
     private function beltCamera($belt): ?array
     {
@@ -195,6 +222,8 @@ class DisplayApiController extends Controller
                 ->departure()->daily()->today()
                 ->orderBy('jam_jadwal', 'asc')
                 ->get();
+            // Sembunyikan yang sudah berangkat lebih dari 3 jam.
+            $flights = $this->hideStaleFlights($flights, ['Departed']);
             return FlightResource::collection($flights)->resolve();
         });
 
@@ -208,6 +237,8 @@ class DisplayApiController extends Controller
                 ->arrival()->daily()->today()
                 ->orderBy('jam_jadwal', 'asc')
                 ->get();
+            // Sembunyikan yang sudah tiba lebih dari 3 jam.
+            $flights = $this->hideStaleFlights($flights, self::BAGGAGE_ARRIVED_STATUSES);
             return FlightResource::collection($flights)->resolve();
         });
 

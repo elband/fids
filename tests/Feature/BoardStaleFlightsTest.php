@@ -1,0 +1,82 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Airline;
+use App\Models\Airport;
+use App\Models\Flight;
+use App\Support\DisplayTimezone;
+use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+/**
+ * Regresi: penerbangan yang sudah berangkat/tiba > 3 jam tidak lagi tampil
+ * di papan keberangkatan/kedatangan.
+ */
+class BoardStaleFlightsTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private int $airlineId;
+    private int $aapId;
+    private int $subId;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Carbon::setTestNow(Carbon::parse('2026-07-19 15:00:00', DisplayTimezone::get()));
+        $this->airlineId = Airline::create(['kode_maskapai' => 'IU', 'nama_maskapai' => 'Super Air Jet'])->id;
+        $this->aapId = Airport::create(['kode_iata' => 'AAP', 'nama_bandara' => 'APT Pranoto', 'kota' => 'Samarinda', 'negara' => 'Indonesia'])->id;
+        $this->subId = Airport::create(['kode_iata' => 'SUB', 'nama_bandara' => 'Juanda', 'kota' => 'Surabaya', 'negara' => 'Indonesia'])->id;
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
+
+    private function make(string $jenis, string $nomor, string $jamJadwal, string $status, ?string $jamAktual): void
+    {
+        Flight::create([
+            'is_master' => false,
+            'tanggal_penerbangan' => Carbon::now()->toDateString(),
+            'nomor_penerbangan' => $nomor,
+            'airline_id' => $this->airlineId,
+            'airport_asal_id' => $jenis === 'departure' ? $this->aapId : $this->subId,
+            'airport_tujuan_id' => $jenis === 'departure' ? $this->subId : $this->aapId,
+            'jenis_penerbangan' => $jenis,
+            'tipe_layanan' => 'domestik',
+            'jam_jadwal' => $jamJadwal,
+            'jam_aktual' => $jamAktual,
+            'status' => $status,
+        ]);
+    }
+
+    public function test_departures_hide_departed_after_3_hours(): void
+    {
+        $this->make('departure', 'IU100', '11:00:00', 'Departed', '11:00:00'); // 4 jam lalu → hilang
+        $this->make('departure', 'IU200', '13:00:00', 'Departed', '13:00:00'); // 2 jam lalu → tampil
+        $this->make('departure', 'IU300', '16:00:00', 'Scheduled', null);      // belum → tampil
+
+        $nomors = collect($this->getJson('/api/fids/departures')->assertOk()->json('data'))
+            ->pluck('nomor_penerbangan')->all();
+
+        $this->assertNotContains('IU100', $nomors);
+        $this->assertContains('IU200', $nomors);
+        $this->assertContains('IU300', $nomors);
+    }
+
+    public function test_arrivals_hide_arrived_after_3_hours(): void
+    {
+        $this->make('arrival', 'IU640', '11:00:00', 'Arrived', '11:00:00'); // 4 jam lalu → hilang
+        $this->make('arrival', 'IU652', '14:00:00', 'Arrived', '14:00:00'); // 1 jam lalu → tampil
+
+        $nomors = collect($this->getJson('/api/fids/arrivals')->assertOk()->json('data'))
+            ->pluck('nomor_penerbangan')->all();
+
+        $this->assertNotContains('IU640', $nomors);
+        $this->assertContains('IU652', $nomors);
+    }
+}
