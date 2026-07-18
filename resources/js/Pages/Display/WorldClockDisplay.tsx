@@ -200,47 +200,35 @@ function HeroClock({ zone, now, settings, lang }: { zone: ZoneConfig; now: Date;
     const { hour, minute, second, secondNum } = getTimeParts(now, zone.timezone, settings.format_waktu);
     const dateStr = settings.show_date ? formatDateLong(now, zone.timezone, lang) : null;
     const C = zone.color;
-    const R = 96;
-    const circ = 2 * Math.PI * R;
 
     return (
         <div className="relative flex items-center justify-center" style={{ width: '56vh', height: '56vh' }}>
-            {/* Outer ring + ticks + progress */}
-            <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full overflow-visible">
-                {/* Base track */}
-                <circle cx="100" cy="100" r={R} fill="none" stroke={`${C}22`} strokeWidth="2" />
-                {/* Uniform subtle ticks */}
-                {Array.from({ length: 60 }, (_, i) => {
-                    const angle = (i / 60) * 360 - 90;
-                    const rad = (angle * Math.PI) / 180;
-                    const isMajor = i % 5 === 0;
-                    const innerR = isMajor ? 84 : 88;
-                    return (
-                        <line key={i}
-                            x1={100 + innerR * Math.cos(rad)} y1={100 + innerR * Math.sin(rad)}
-                            x2={100 + 92 * Math.cos(rad)} y2={100 + 92 * Math.sin(rad)}
-                            stroke={C} strokeWidth={isMajor ? 2.2 : 0.9} strokeLinecap="round"
-                            opacity={isMajor ? 0.5 : 0.22} />
-                    );
-                })}
-                {/* Smooth progress arc for current second */}
-                <circle cx="100" cy="100" r={R} fill="none" stroke={C} strokeWidth="2.5" strokeLinecap="round"
-                    strokeDasharray={`${(secondNum / 60) * circ} ${circ}`} transform="rotate(-90 100 100)"
-                    style={{ filter: `drop-shadow(0 0 4px ${C}cc)` }} />
-                {/* Seconds indicator dot */}
-                <circle
-                    cx={100 + R * Math.cos(((secondNum / 60 * 360 - 90) * Math.PI) / 180)}
-                    cy={100 + R * Math.sin(((secondNum / 60 * 360 - 90) * Math.PI) / 180)}
-                    r="3" fill={C} style={{ filter: `drop-shadow(0 0 5px ${C})` }}>
-                    <animate attributeName="r" values="2.5;4;2.5" dur="1s" repeatCount="indefinite" />
-                </circle>
-            </svg>
+            {/* Square frame + glow */}
+            <div className="absolute inset-0 rounded-[3vh]"
+                 style={{ border: `2px solid ${C}55`, boxShadow: `0 0 40px ${C}22` }} />
+
+            {/* Corner accents (tech-box look) */}
+            {[
+                'top-[2%] left-[2%] border-t-[3px] border-l-[3px] rounded-tl-[2.4vh]',
+                'top-[2%] right-[2%] border-t-[3px] border-r-[3px] rounded-tr-[2.4vh]',
+                'bottom-[2%] left-[2%] border-b-[3px] border-l-[3px] rounded-bl-[2.4vh]',
+                'bottom-[2%] right-[2%] border-b-[3px] border-r-[3px] rounded-br-[2.4vh]',
+            ].map((c, i) => (
+                <div key={i} className={`absolute w-[5vh] h-[5vh] ${c}`}
+                     style={{ borderColor: C, filter: `drop-shadow(0 0 6px ${C}aa)` }} />
+            ))}
 
             {/* Inner face */}
-            <div className="absolute rounded-full"
-                 style={{ width: '86%', height: '86%',
+            <div className="absolute rounded-[2.5vh]"
+                 style={{ inset: '4.5%',
                           background: `radial-gradient(circle at 50% 38%, rgba(10,16,30,0.92) 55%, ${C}1a 100%)`,
                           border: `1px solid ${C}33`, boxShadow: `inset 0 0 60px rgba(0,0,0,0.7), 0 0 40px ${C}22` }} />
+
+            {/* Seconds progress bar (bottom edge) */}
+            <div className="absolute left-[10%] right-[10%] bottom-[6.5%] h-[0.55vh] rounded-full overflow-hidden z-[15]" style={{ background: `${C}22` }}>
+                <div className="h-full rounded-full"
+                     style={{ width: `${(secondNum / 60) * 100}%`, background: C, filter: `drop-shadow(0 0 5px ${C})` }} />
+            </div>
 
             {/* Content */}
             <div className="relative z-10 flex flex-col items-center justify-center text-center" style={{ width: '78%' }}>
