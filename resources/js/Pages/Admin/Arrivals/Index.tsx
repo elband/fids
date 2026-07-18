@@ -139,7 +139,9 @@ export default function Index({
             const matchingAirplane = airplanes.find((a: any) => a.nomor_registrasi === flight.nomor_penerbangan);
             setSelectedAirplaneId(matchingAirplane ? matchingAirplane.id.toString() : '');
             setData({
-                tanggal_penerbangan: formatTanggal(flight.tanggal_penerbangan),
+                // Nilai form = tanggal mentah (YYYY-MM-DD) atau kosong utk master.
+                // JANGAN pakai formatTanggal() yg mengembalikan '-' saat null → gagal validasi date.
+                tanggal_penerbangan: flight.tanggal_penerbangan ? String(flight.tanggal_penerbangan).substring(0, 10) : '',
                 nomor_penerbangan: flight.nomor_penerbangan,
                 airline_id: flight.airline_id,
                 airport_asal_id: flight.airport_asal_id,

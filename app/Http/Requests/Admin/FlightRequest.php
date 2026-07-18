@@ -43,7 +43,8 @@ class FlightRequest extends FormRequest
             'baggage_claim_id'    => $emptyToNull($this->baggage_claim_id),
             'jam_estimasi'        => $this->jam_estimasi !== '' ? $this->jam_estimasi : null,
             'jam_aktual'          => $this->jam_aktual !== '' ? $this->jam_aktual : null,
-            'tanggal_penerbangan' => $this->tanggal_penerbangan !== '' ? $this->tanggal_penerbangan : null,
+            // '', '-', 'null' → null (master tanpa tanggal). Cegah gagal validasi date.
+            'tanggal_penerbangan' => in_array((string) $this->tanggal_penerbangan, ['', '-', 'null'], true) ? null : $this->tanggal_penerbangan,
             'hari_operasi'        => $hari,
         ]);
     }
