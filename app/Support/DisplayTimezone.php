@@ -26,4 +26,22 @@ class DisplayTimezone
         $cached = $tz ?: (string) config('app.timezone', 'UTC');
         return $cached;
     }
+
+    /**
+     * Waktu sekarang pada zona waktu tampilan FIDS.
+     * Gunakan ini (bukan Carbon::now()) di scheduler & query "hari ini"
+     * agar batas tengah malam konsisten dengan yang dilihat layar.
+     */
+    public static function now(): \Carbon\Carbon
+    {
+        return \Carbon\Carbon::now(self::get());
+    }
+
+    /**
+     * Tanggal "hari ini" (Y-m-d) menurut zona waktu tampilan FIDS.
+     */
+    public static function today(): \Carbon\Carbon
+    {
+        return self::now()->startOfDay();
+    }
 }

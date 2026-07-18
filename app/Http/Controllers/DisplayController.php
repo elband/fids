@@ -91,8 +91,10 @@ class DisplayController extends Controller
         $pendingAnnouncements = Announcement::where('status_aktif', true)
             ->where('broadcast_count', '<', \DB::raw('max_broadcasts'))
             ->where(function($q) {
+                // COALESCE: interval NULL sebelumnya membuat DATE_SUB(...NULL) = NULL,
+                // sehingga pengumuman tak pernah diputar ulang. Default 1 menit.
                 $q->whereNull('last_broadcast_at')
-                  ->orWhereRaw('last_broadcast_at <= DATE_SUB(NOW(), INTERVAL interval_pemutaran MINUTE)');
+                  ->orWhereRaw('last_broadcast_at <= DATE_SUB(NOW(), INTERVAL COALESCE(interval_pemutaran, 1) MINUTE)');
             })
             ->latest()
             ->get();
@@ -408,8 +410,10 @@ class DisplayController extends Controller
         $pending = Announcement::where('status_aktif', true)
             ->where('broadcast_count', '<', \DB::raw('max_broadcasts'))
             ->where(function($q) {
+                // COALESCE: interval NULL sebelumnya membuat DATE_SUB(...NULL) = NULL,
+                // sehingga pengumuman tak pernah diputar ulang. Default 1 menit.
                 $q->whereNull('last_broadcast_at')
-                  ->orWhereRaw('last_broadcast_at <= DATE_SUB(NOW(), INTERVAL interval_pemutaran MINUTE)');
+                  ->orWhereRaw('last_broadcast_at <= DATE_SUB(NOW(), INTERVAL COALESCE(interval_pemutaran, 1) MINUTE)');
             })
             ->latest()
             ->get();

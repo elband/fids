@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState, useCallback } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
 import { Clock, Sun, Thermometer } from 'lucide-react';
-import { t, type Lang } from '@/lib/fids';
+import { hexToRgba, t, type Lang } from '@/lib/fids';
 import { useNtpClock } from '@/hooks/useNtpClock';
 
 interface Flight {
@@ -78,12 +78,15 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
 
     const flight = counter?.flights && counter?.flights.length > 0 ? counter.flights[0] : null;
 
+    // Warna maskapai adalah nilai runtime → kelas Tailwind dinamis (bg-[#..]) tidak
+    // pernah di-generate JIT saat build. Terapkan via inline style; kelas hanya fallback.
+    const airlineColor = counter?.status_counter === 'buka' ? (flight?.airline?.warna ?? null) : null;
     let bgColor = 'bg-black';
     let borderColor = 'border-gray-800';
 
     if (counter?.status_counter === 'buka') {
-        bgColor = flight?.airline?.warna ? `bg-[${flight.airline.warna}] bg-opacity-20` : 'bg-blue-900/40';
-        borderColor = flight?.airline?.warna ? `border-[${flight.airline.warna}]` : 'border-blue-500';
+        bgColor = airlineColor ? '' : 'bg-blue-900/40';
+        borderColor = airlineColor ? '' : 'border-blue-500';
     }
 
     if (error) {
@@ -150,7 +153,7 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
                     backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)), url(${bgImage})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
-                } : {}}
+                } : (airlineColor ? { backgroundColor: hexToRgba(airlineColor, 0.2) } : {})}
             >
                 <div className="absolute top-[2vw] left-[2vw] right-[2vw] z-50 flex items-start justify-between pointer-events-none">
                     <div className="flex items-center gap-[1vw] bg-black/40 backdrop-blur-xl px-[2vw] py-[1vw] rounded-2xl border border-white/10 shadow-2xl pointer-events-auto">
@@ -240,7 +243,7 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
                         )}
                     </div>
 
-                    <div style={{ height: '10vh' }} className={`mt-auto shrink-0 rounded-2xl flex items-center justify-center border-4 ${borderColor} ${counter.status_counter === 'buka' && flight ? 'bg-white/10' : 'bg-transparent border-transparent'}`}>
+                    <div style={{ height: '10vh', ...(airlineColor ? { borderColor: airlineColor } : {}) }} className={`mt-auto shrink-0 rounded-2xl flex items-center justify-center border-4 ${borderColor} ${counter.status_counter === 'buka' && flight ? 'bg-white/10' : 'bg-transparent border-transparent'}`}>
                         {counter.status_counter === 'buka' && flight && (
                             <div style={{ fontSize: 'min(4vw, 5.5vh)' }} className="font-black tracking-widest text-yellow-300 uppercase animate-pulse">
                                 {t.proceedToCounter[lang]} {counter.nomor_counter}

@@ -22,7 +22,7 @@ class FlightResource extends JsonResource
 
         return [
             'id' => $this->id,
-            'waktu' => substr($this->jam_jadwal, 0, 5),
+            'waktu' => $this->jam_jadwal ? substr($this->jam_jadwal, 0, 5) : null,
             'jam_jadwal' => $this->jam_jadwal, // Backward compatibility
             'nomor_penerbangan' => $this->nomor_penerbangan,
             'jenis_penerbangan' => $this->jenis_penerbangan,

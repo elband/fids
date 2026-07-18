@@ -14,6 +14,7 @@ use App\Http\Resources\AnnouncementResource;
 use App\Models\NtpSetting;
 use App\Models\WorldClockSetting;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class DisplayApiController extends Controller
@@ -26,10 +27,31 @@ class DisplayApiController extends Controller
     private const TTL_LIST = 5;      // daftar penerbangan/counter (sering berubah)
     private const TTL_SETTINGS = 15; // setting/cuaca/world-clock (jarang berubah)
 
+    /**
+     * Semua relasi yang dibaca FlightResource. Wajib di-eager-load di setiap
+     * endpoint agar tidak terjadi N+1 (audit: 6 kueri lazy per flight).
+     */
+    private const FLIGHT_RELATIONS = [
+        'airline', 'airportAsal', 'airportTujuan',
+        'gate', 'checkinCounter', 'checkinCounters', 'baggageClaim',
+    ];
+
+    /** Versi cache flight saat ini; di-bump oleh Flight::booted() setiap data flight berubah. */
+    private function flightCacheVersion(): int
+    {
+        return (int) Cache::get('fids:api:flight-ver', 0);
+    }
+
+    /** Relasi FlightResource dengan prefiks untuk eager-load bersarang (mis. flights.airline). */
+    private static function nestedFlightRelations(string $prefix = 'flights'): array
+    {
+        return array_map(fn ($r) => "{$prefix}.{$r}", self::FLIGHT_RELATIONS);
+    }
+
     public function departures()
     {
         $data = Cache::remember('fids:api:departures', self::TTL_LIST, function () {
-            $flights = Flight::with(['airline', 'airportTujuan', 'gate', 'checkinCounters'])
+            $flights = Flight::with(self::FLIGHT_RELATIONS)
                 ->departure()->daily()->today()
                 ->orderBy('jam_jadwal', 'asc')
                 ->get();
@@ -42,7 +64,7 @@ class DisplayApiController extends Controller
     public function arrivals()
     {
         $data = Cache::remember('fids:api:arrivals', self::TTL_LIST, function () {
-            $flights = Flight::with(['airline', 'airportAsal', 'baggageClaim'])
+            $flights = Flight::with(self::FLIGHT_RELATIONS)
                 ->arrival()->daily()->today()
                 ->orderBy('jam_jadwal', 'asc')
                 ->get();
@@ -54,82 +76,99 @@ class DisplayApiController extends Controller
 
     public function gate($gateCode)
     {
-        $gate = \App\Models\Gate::with(['flights' => function($q) {
-            $q->daily()
-              ->today()
-              ->whereIn('status', ['Scheduled', 'Boarding', 'Gate Open', 'Final Call', 'Delayed'])
-              ->orderBy('jam_jadwal', 'asc');
-        }, 'flights.airline', 'flights.airportTujuan'])
-        ->where(function ($q) use ($gateCode) {
-            $q->where('kode_gate', $gateCode);
-            // Numeric-aware fallback: "1" cocok dengan "01" di DB.
-            if (ctype_digit((string) $gateCode)) {
-                $q->orWhereRaw('CAST(kode_gate AS UNSIGNED) = ?', [(int) $gateCode]);
-            }
-        })
-        ->first();
-            
-        if (!$gate) return response()->json(['message' => 'Not found'], 404);
+        $key = "fids:api:gate:{$gateCode}:v{$this->flightCacheVersion()}";
+        $data = Cache::remember($key, self::TTL_LIST, function () use ($gateCode) {
+            $gate = \App\Models\Gate::with(['flights' => function($q) {
+                $q->daily()
+                  ->today()
+                  ->whereIn('status', ['Scheduled', 'Boarding', 'Gate Open', 'Final Call', 'Delayed'])
+                  ->orderBy('jam_jadwal', 'asc');
+            }, ...self::nestedFlightRelations()])
+            ->where(function ($q) use ($gateCode) {
+                $q->where('kode_gate', $gateCode);
+                // Numeric-aware fallback: "1" cocok dengan "01" di DB.
+                if (ctype_digit((string) $gateCode)) {
+                    $q->orWhereRaw('CAST(kode_gate AS UNSIGNED) = ?', [(int) $gateCode]);
+                }
+            })
+            ->first();
 
-        $arr = $gate->toArray();
-        $arr['flights'] = FlightResource::collection($gate->flights)->resolve();
+            if (!$gate) return null;
 
-        return response()->json(['data' => $arr]);
+            $arr = $gate->toArray();
+            $arr['flights'] = FlightResource::collection($gate->flights)->resolve();
+            return $arr;
+        });
+
+        if ($data === null) return response()->json(['message' => 'Not found'], 404);
+
+        return response()->json(['data' => $data]);
     }
 
     public function checkin($counterNumber)
     {
-        $counter = \App\Models\CheckinCounter::with(['airline', 'flights' => function($q) {
-            $q->daily()
-              ->today()
-              ->whereIn('status', ['Scheduled', 'Check-in Open', 'Check-in Closed', 'Delayed'])
-              ->with('checkinCounters')
-              ->orderBy('jam_jadwal', 'asc');
-        }, 'flights.airline', 'flights.airportTujuan'])
-        ->where(function ($q) use ($counterNumber) {
-            $q->where('nomor_counter', $counterNumber);
-            if (ctype_digit((string) $counterNumber)) {
-                $q->orWhereRaw('CAST(nomor_counter AS UNSIGNED) = ?', [(int) $counterNumber]);
+        $key = "fids:api:checkin:{$counterNumber}:v{$this->flightCacheVersion()}";
+        $data = Cache::remember($key, self::TTL_LIST, function () use ($counterNumber) {
+            $counter = \App\Models\CheckinCounter::with(['airline', 'flights' => function($q) {
+                $q->daily()
+                  ->today()
+                  ->whereIn('status', ['Scheduled', 'Check-in Open', 'Check-in Closed', 'Delayed'])
+                  ->orderBy('jam_jadwal', 'asc');
+            }, ...self::nestedFlightRelations()])
+            ->where(function ($q) use ($counterNumber) {
+                $q->where('nomor_counter', $counterNumber);
+                if (ctype_digit((string) $counterNumber)) {
+                    $q->orWhereRaw('CAST(nomor_counter AS UNSIGNED) = ?', [(int) $counterNumber]);
+                }
+            })
+            ->first();
+
+            if (!$counter) return null;
+
+            $arr = $counter->toArray();
+            $arr['flights'] = FlightResource::collection($counter->flights)->resolve();
+
+            if ($counter->airline && $counter->airline->logo) {
+                $arr['airline']['logo'] = '/storage/' . $counter->airline->logo;
             }
-        })
-        ->first();
-            
-        if (!$counter) return response()->json(['message' => 'Not found'], 404);
 
-        $arr = $counter->toArray();
-        $arr['flights'] = FlightResource::collection($counter->flights)->resolve();
+            $arr['idle_image'] = $counter->idle_image ? '/storage/' . $counter->idle_image : null;
+            return $arr;
+        });
 
-        if ($counter->airline && $counter->airline->logo) {
-            $arr['airline']['logo'] = '/storage/' . $counter->airline->logo;
-        }
+        if ($data === null) return response()->json(['message' => 'Not found'], 404);
 
-        $arr['idle_image'] = $counter->idle_image ? '/storage/' . $counter->idle_image : null;
-
-        return response()->json(['data' => $arr]);
+        return response()->json(['data' => $data]);
     }
 
     public function baggage($beltNumber)
     {
-        $belt = \App\Models\BaggageClaim::with(['flights' => function($q) {
-            $q->daily()
-              ->today()
-              ->whereIn('status', ['Scheduled', 'Landed', 'Arrived', 'Baggage Claim', 'Delayed'])
-              ->orderBy('jam_jadwal', 'asc');
-        }, 'flights.airline', 'flights.airportAsal'])
-        ->where(function ($q) use ($beltNumber) {
-            $q->where('nomor_belt', $beltNumber);
-            if (ctype_digit((string) $beltNumber)) {
-                $q->orWhereRaw('CAST(nomor_belt AS UNSIGNED) = ?', [(int) $beltNumber]);
-            }
-        })
-        ->first();
-            
-        if (!$belt) return response()->json(['message' => 'Not found'], 404);
+        $key = "fids:api:baggage:{$beltNumber}:v{$this->flightCacheVersion()}";
+        $data = Cache::remember($key, self::TTL_LIST, function () use ($beltNumber) {
+            $belt = \App\Models\BaggageClaim::with(['flights' => function($q) {
+                $q->daily()
+                  ->today()
+                  ->whereIn('status', ['Scheduled', 'Landed', 'Arrived', 'Baggage Claim', 'Delayed'])
+                  ->orderBy('jam_jadwal', 'asc');
+            }, ...self::nestedFlightRelations()])
+            ->where(function ($q) use ($beltNumber) {
+                $q->where('nomor_belt', $beltNumber);
+                if (ctype_digit((string) $beltNumber)) {
+                    $q->orWhereRaw('CAST(nomor_belt AS UNSIGNED) = ?', [(int) $beltNumber]);
+                }
+            })
+            ->first();
 
-        $arr = $belt->toArray();
-        $arr['flights'] = FlightResource::collection($belt->flights)->resolve();
+            if (!$belt) return null;
 
-        return response()->json(['data' => $arr]);
+            $arr = $belt->toArray();
+            $arr['flights'] = FlightResource::collection($belt->flights)->resolve();
+            return $arr;
+        });
+
+        if ($data === null) return response()->json(['message' => 'Not found'], 404);
+
+        return response()->json(['data' => $data]);
     }
 
     /**
@@ -139,7 +178,23 @@ class DisplayApiController extends Controller
      */
     public function markAnnouncementPlayed(Announcement $announcement)
     {
-        $announcement->increment('broadcast_count');
+        // Debounce lintas-layar: dengan N monitor yang semuanya melapor selesai memutar,
+        // hitungan naik N kali per siklus (bug audit). UPDATE atomik dengan syarat
+        // last_broadcast_at di luar jendela ini membuat laporan hampir-bersamaan dari
+        // banyak layar hanya dihitung SEKALI — sekaligus menghilangkan race read-modify-write.
+        $debounceSeconds = 30;
+
+        $incremented = Announcement::where('id', $announcement->id)
+            ->where(function ($q) use ($debounceSeconds) {
+                $q->whereNull('last_broadcast_at')
+                  ->orWhere('last_broadcast_at', '<=', now()->subSeconds($debounceSeconds));
+            })
+            ->update([
+                'broadcast_count'   => DB::raw('broadcast_count + 1'),
+                'last_broadcast_at' => now(),
+            ]);
+
+        $announcement->refresh();
 
         // Audit C-03: endpoint publik ini TIDAK menghapus data secara permanen.
         // Saat mencapai batas, pengumuman hanya dinonaktifkan (status_aktif=false) agar
@@ -147,14 +202,19 @@ class DisplayApiController extends Controller
         // terotentikasi di Admin (PublicAnnouncementController@index).
         $reachedLimit = $announcement->broadcast_count >= $announcement->max_broadcasts;
 
-        $announcement->update([
-            'last_broadcast_at' => now(),
-            'status_aktif'      => $reachedLimit ? false : $announcement->status_aktif,
-        ]);
+        if ($incremented && $reachedLimit && $announcement->status_aktif) {
+            $announcement->update(['status_aktif' => false]);
+        }
+
+        // Bust cache daftar pengumuman agar layar tidak memutar ulang yang sudah selesai.
+        if ($incremented) {
+            Cache::forget('fids:api:announcements');
+        }
 
         return response()->json([
             'success'         => true,
             'finished'        => $reachedLimit,
+            'counted'         => (bool) $incremented,
             'broadcast_count' => $announcement->broadcast_count,
             'max_broadcasts'  => $announcement->max_broadcasts,
         ]);
@@ -205,9 +265,8 @@ class DisplayApiController extends Controller
                 $q->daily()
                   ->today()
                   ->whereIn('status', ['Scheduled', 'Check-in Open', 'Check-in Closed', 'Delayed'])
-                  ->with('checkinCounters')
                   ->orderBy('jam_jadwal', 'asc');
-            }])->orderBy('nomor_counter', 'asc')->get();
+            }, ...self::nestedFlightRelations()])->orderBy('nomor_counter', 'asc')->get();
 
             return $counters->map(function ($counter) {
                 $arr = $counter->toArray();
@@ -231,9 +290,8 @@ class DisplayApiController extends Controller
                   ->today()
                   ->where('jenis_penerbangan', 'departure')
                   ->whereIn('status', ['Scheduled', 'Check-in Open', 'Boarding', 'Gate Open', 'Final Call', 'Delayed', 'Departed'])
-                  ->with('checkinCounters')
                   ->orderBy('jam_jadwal', 'asc');
-            }, 'flights.airline'])->orderBy('kode_gate', 'asc')->get();
+            }, ...self::nestedFlightRelations()])->orderBy('kode_gate', 'asc')->get();
 
             return $gates->map(function ($gate) {
                 $arr = $gate->toArray();
@@ -254,7 +312,7 @@ class DisplayApiController extends Controller
                   ->where('jenis_penerbangan', 'arrival')
                   ->whereIn('status', ['Scheduled', 'Landed', 'Arrived', 'Baggage Claim', 'Delayed'])
                   ->orderBy('jam_jadwal', 'asc');
-            }, 'flights.airline'])->orderBy('nomor_belt', 'asc')->get();
+            }, ...self::nestedFlightRelations()])->orderBy('nomor_belt', 'asc')->get();
 
             return $claims->map(function ($claim) {
                 $arr = $claim->toArray();
@@ -272,40 +330,46 @@ class DisplayApiController extends Controller
      */
     public function time()
     {
-        $ntpSetting = NtpSetting::first();
-        $displaySetting = DisplaySetting::first();
-        $timezone = $displaySetting?->timezone ?? config('app.timezone', 'UTC');
+        // Cache HANYA bagian yang berasal dari DB (setting NTP + display). Timestamp
+        // TIDAK boleh di-cache — dihitung fresh tiap request agar jam tetap akurat.
+        $meta = Cache::remember('fids:api:time-meta', self::TTL_LIST, function () {
+            $ntpSetting = NtpSetting::first();
+            $displaySetting = DisplaySetting::first();
 
-        // Waktu server saat ini (UTC)
-        $serverUtcNow = Carbon::now('UTC');
+            $offsetMs = 0.0;
+            $ntpStatus = 'unavailable';
+            $ntpServer = null;
 
-        // Jika ada NTP offset, koreksi waktu server
-        $offsetMs = 0;
-        $ntpStatus = 'unavailable';
-        $ntpServer = null;
+            if ($ntpSetting && $ntpSetting->last_sync_status === 'success' && $ntpSetting->last_offset_ms !== null) {
+                $offsetMs = (float) $ntpSetting->last_offset_ms;
+                $ntpStatus = 'synced';
+                $ntpServer = $ntpSetting->last_server_used;
+            }
 
-        if ($ntpSetting && $ntpSetting->last_sync_status === 'success' && $ntpSetting->last_offset_ms !== null) {
-            $offsetMs = (float) $ntpSetting->last_offset_ms;
-            $ntpStatus = 'synced';
-            $ntpServer = $ntpSetting->last_server_used;
+            return [
+                'timezone'      => $displaySetting?->timezone ?? config('app.timezone', 'UTC'),
+                'bahasa'        => $displaySetting?->bahasa ?? 'id',
+                'ntp_offset_ms' => $offsetMs,
+                'ntp_status'    => $ntpStatus,
+                'ntp_server'    => $ntpServer,
+                'last_sync_at'  => $ntpSetting?->last_sync_at?->toIso8601String(),
+            ];
+        });
 
-            // Terapkan offset NTP ke waktu server
-            $serverUtcNow = $serverUtcNow->addMilliseconds((int) round($offsetMs));
-        }
-
-        // Konversi ke timezone display
-        $displayTime = $serverUtcNow->copy()->setTimezone($timezone);
+        // Waktu server saat ini (UTC), dikoreksi offset NTP — dihitung setiap request.
+        $serverUtcNow = Carbon::now('UTC')->addMilliseconds((int) round($meta['ntp_offset_ms']));
+        $displayTime = $serverUtcNow->copy()->setTimezone($meta['timezone']);
 
         return response()->json([
             'data' => [
-                'utc_now' => $serverUtcNow->toIso8601String(),
-                'display_time' => $displayTime->toIso8601String(),
-                'timezone' => $timezone,
-                'bahasa' => $displaySetting?->bahasa ?? 'id',
-                'ntp_offset_ms' => $offsetMs,
-                'ntp_status' => $ntpStatus,
-                'ntp_server' => $ntpServer,
-                'last_sync_at' => $ntpSetting?->last_sync_at?->toIso8601String(),
+                'utc_now'       => $serverUtcNow->toIso8601String(),
+                'display_time'  => $displayTime->toIso8601String(),
+                'timezone'      => $meta['timezone'],
+                'bahasa'        => $meta['bahasa'],
+                'ntp_offset_ms' => $meta['ntp_offset_ms'],
+                'ntp_status'    => $meta['ntp_status'],
+                'ntp_server'    => $meta['ntp_server'],
+                'last_sync_at'  => $meta['last_sync_at'],
             ],
         ]);
     }

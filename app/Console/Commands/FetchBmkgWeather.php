@@ -34,15 +34,20 @@ class FetchBmkgWeather extends Command
                 ])->get($url);
             
             if (!$response->successful()) {
-                // If blocked, try a very simple fallback to at least not crash
-                $this->error("Access blocked by BMKG (403/401).");
+                // Gagal diam-diam sebelumnya (hanya ke konsol). Sekarang dicatat ke log
+                // agar admin bisa tahu cuaca berhenti update, bukan menyangka data OK.
+                $msg = "BMKG request gagal (HTTP {$response->status()}) untuk adm4={$kodeBmkg}.";
+                $this->error($msg);
+                Log::warning("FIDS weather: {$msg}");
                 return 1;
             }
 
             $data = $response->json();
-            
+
             if (!$data || !isset($data['data'][0]['cuaca'])) {
-                $this->error("Invalid JSON structure.");
+                $msg = "Struktur JSON BMKG tidak valid untuk adm4={$kodeBmkg}.";
+                $this->error($msg);
+                Log::warning("FIDS weather: {$msg}");
                 return 1;
             }
 
@@ -53,14 +58,30 @@ class FetchBmkgWeather extends Command
                 }
             }
 
-            $now = Carbon::now('Asia/Makassar');
+            // Nama lokasi diambil dari respons BMKG sesuai kode adm4 yang dikonfigurasi,
+            // bukan hardcode 'Samarinda' (yang jadi salah begitu kode_bmkg diubah).
+            $lokasiData = $data['data'][0]['lokasi'] ?? [];
+            $lokasi = $lokasiData['desa']
+                ?? $lokasiData['kecamatan']
+                ?? $lokasiData['kotkab']
+                ?? 'BMKG';
+
+            // Bandingkan dalam UTC pakai field 'datetime' (UTC) bila ada; hindari asumsi
+            // zona waktu stasiun. Fallback ke local_datetime pada zona waktu tampilan FIDS.
+            $now = Carbon::now('UTC');
             $currentForecast = null;
-            $minDiff = 9999999;
+            $minDiff = PHP_INT_MAX;
 
             foreach ($allForecasts as $f) {
-                $forecastTime = Carbon::parse($f['local_datetime'], 'Asia/Makassar');
-                $diff = abs($now->diffInMinutes($forecastTime));
-                
+                if (!empty($f['datetime'])) {
+                    $forecastTime = Carbon::parse($f['datetime'], 'UTC');
+                } elseif (!empty($f['local_datetime'])) {
+                    $forecastTime = Carbon::parse($f['local_datetime'], \App\Support\DisplayTimezone::get())->setTimezone('UTC');
+                } else {
+                    continue;
+                }
+                $diff = abs((int) $now->diffInMinutes($forecastTime));
+
                 if ($diff < $minDiff) {
                     $minDiff = $diff;
                     $currentForecast = $f;
@@ -69,7 +90,7 @@ class FetchBmkgWeather extends Command
 
             if ($currentForecast) {
                 WeatherInfo::updateOrCreate(
-                    ['lokasi' => 'Samarinda'],
+                    ['lokasi' => $lokasi],
                     [
                         'suhu' => (float)$currentForecast['t'],
                         'kondisi_cuaca' => $currentForecast['weather_desc'],
@@ -82,8 +103,9 @@ class FetchBmkgWeather extends Command
                 $this->info("Successfully updated weather: {$currentForecast['weather_desc']}, {$currentForecast['t']}°C");
             }
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->error("Error: " . $e->getMessage());
+            Log::error("FIDS weather: gagal mengambil data BMKG - " . $e->getMessage());
             return 1;
         }
 

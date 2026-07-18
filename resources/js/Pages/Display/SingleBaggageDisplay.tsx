@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState, useCallback } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
 import { Clock, Sun, Thermometer } from 'lucide-react';
-import { t, type Lang } from '@/lib/fids';
+import { hexToRgba, t, type Lang } from '@/lib/fids';
 import { useNtpClock } from '@/hooks/useNtpClock';
 
 interface Flight {
@@ -77,12 +77,15 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
 
     const flight = belt?.flights && belt?.flights.length > 0 ? belt.flights[0] : null;
 
+    // Warna maskapai adalah nilai runtime → kelas Tailwind dinamis (bg-[#..]) tidak
+    // pernah di-generate JIT saat build. Terapkan via inline style; kelas hanya fallback.
+    const airlineColor = belt?.status_belt === 'aktif' ? (flight?.airline?.warna ?? null) : null;
     let bgColor = 'bg-black';
     let borderColor = 'border-gray-800';
 
     if (belt?.status_belt === 'aktif') {
-        bgColor = flight?.airline?.warna ? `bg-[${flight.airline.warna}] bg-opacity-20` : 'bg-purple-900/40';
-        borderColor = flight?.airline?.warna ? `border-[${flight.airline.warna}]` : 'border-purple-500';
+        bgColor = airlineColor ? '' : 'bg-purple-900/40';
+        borderColor = airlineColor ? '' : 'border-purple-500';
     }
 
     if (error) {
@@ -115,7 +118,7 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
                     backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)), url(${bgImage})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
-                } : {}}
+                } : (airlineColor ? { backgroundColor: hexToRgba(airlineColor, 0.2) } : {})}
             >
                 <div className="absolute top-8 left-8 right-8 z-50 flex items-start justify-between pointer-events-none">
                     <div className="flex items-center gap-4 bg-black/40 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 shadow-2xl pointer-events-auto">
@@ -205,7 +208,7 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
                         )}
                     </div>
 
-                    <div style={{ height: '10vh' }} className={`mt-auto shrink-0 rounded-2xl flex items-center justify-center border-4 ${borderColor} ${belt.status_belt === 'aktif' && flight ? 'bg-white/10' : 'bg-transparent border-transparent'}`}>
+                    <div style={{ height: '10vh', ...(airlineColor ? { borderColor: airlineColor } : {}) }} className={`mt-auto shrink-0 rounded-2xl flex items-center justify-center border-4 ${borderColor} ${belt.status_belt === 'aktif' && flight ? 'bg-white/10' : 'bg-transparent border-transparent'}`}>
                         {belt.status_belt === 'aktif' && flight && (
                             <div style={{ fontSize: 'min(4vw, 5.5vh)' }} className="font-black tracking-widest text-yellow-300 uppercase animate-pulse">
                                 {t.collectLuggage[lang]}

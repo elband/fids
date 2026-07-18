@@ -58,4 +58,34 @@ class DisplayApiTest extends TestCase
         // ...namun dinonaktifkan.
         $this->assertFalse((bool) $ann->fresh()->status_aktif);
     }
+
+    /**
+     * Debounce lintas-layar: banyak layar melapor "played" hampir bersamaan hanya
+     * boleh menaikkan broadcast_count SEKALI (bukan sekali per layar).
+     */
+    public function test_played_endpoint_debounces_multiple_screens(): void
+    {
+        $ann = Announcement::create([
+            'judul'           => 'Uji Debounce',
+            'isi_pengumuman'  => 'Tes',
+            'bahasa'          => 'Indonesia',
+            'target'          => 'All Public Displays',
+            'mode'            => 'Automatic',
+            'tipe'            => 'pas',
+            'kategori'        => 'PAS',
+            'mulai_tayang'    => now(),
+            'status_aktif'    => true,
+            'broadcast_count' => 0,
+            'max_broadcasts'  => 3,
+        ]);
+
+        // Tiga layar melapor dalam jendela debounce yang sama.
+        for ($i = 0; $i < 3; $i++) {
+            $this->postJson("/api/fids/announcements/{$ann->id}/played")->assertOk();
+        }
+
+        // Hanya dihitung sekali, dan pengumuman masih aktif (belum capai batas 3).
+        $this->assertSame(1, (int) $ann->fresh()->broadcast_count);
+        $this->assertTrue((bool) $ann->fresh()->status_aktif);
+    }
 }

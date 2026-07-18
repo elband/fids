@@ -33,6 +33,17 @@ export default function AdSlide({
     const [phase, setPhase] = useState<'in' | 'out'>('in');
     const [renderIndex, setRenderIndex] = useState(0);
     const videoRef = useRef<HTMLVideoElement>(null);
+    // Timer transisi + salinan terkini ads/index untuk menghindari:
+    //  - setState pada komponen yang sudah unmount (Inertia page swap saat transisi),
+    //  - perhitungan `next` dari closure `ads`/`index` yang basi.
+    const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const adsRef = useRef(ads);
+    const indexRef = useRef(0);
+    useEffect(() => { adsRef.current = ads; }, [ads]);
+    useEffect(() => { indexRef.current = index; }, [index]);
+    useEffect(() => () => {
+        if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+    }, []);
 
     // Pick a transition for the current ad (random if 'auto')
     const activeTransition = useMemo(() => {
@@ -42,12 +53,15 @@ export default function AdSlide({
     }, [transition, renderIndex, ads]);
 
     const advance = () => {
-        if (ads.length === 0) return;
+        const list = adsRef.current;
+        if (list.length === 0) return;
         // play exit
         setPhase('out');
-        // after transition, swap index and trigger entrance
-        setTimeout(() => {
-            const next = (index + 1) % ads.length;
+        // after transition, swap index and trigger entrance.
+        // Timer disimpan di ref agar bisa dibersihkan saat unmount / dijadwal ulang.
+        if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+        advanceTimerRef.current = setTimeout(() => {
+            const next = (indexRef.current + 1) % list.length;
             setIndex(next);
             setRenderIndex(next);
             setPhase('in');

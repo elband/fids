@@ -150,6 +150,24 @@ export function setLocale(bahasa: string): void {
 }
 
 /**
+ * Cache instance Intl.DateTimeFormat. Konstruksi formatter mahal; tanpa cache,
+ * halaman jam (WorldClock tick 200ms) membangun ~20 formatter/detik terus-menerus
+ * → tekanan CPU/GC di SoC TV lemah (audit MEDIUM). Kombinasi locale+tz+opsi sedikit,
+ * jadi cache tetap kecil.
+ */
+const formatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function getFormatter(locale: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+    const key = locale + '|' + JSON.stringify(options);
+    let fmt = formatterCache.get(key);
+    if (!fmt) {
+        fmt = new Intl.DateTimeFormat(locale, options);
+        formatterCache.set(key, fmt);
+    }
+    return fmt;
+}
+
+/**
  * Format jam berdasarkan timezone yang dikonfigurasi.
  * Menggunakan waktu terkoreksi NTP.
  */
@@ -157,14 +175,14 @@ export function formatClockByTimezone(date: Date, timezone?: string) {
     const tz = timezone || currentTimezone;
     const locale = currentLocale;
 
-    const dateText = new Intl.DateTimeFormat(locale, {
+    const dateText = getFormatter(locale, {
         timeZone: tz,
         weekday: 'short',
         month: 'short',
         day: 'numeric',
     }).format(date);
 
-    const timeText = new Intl.DateTimeFormat(locale, {
+    const timeText = getFormatter(locale, {
         timeZone: tz,
         hour: 'numeric',
         minute: '2-digit',
@@ -179,7 +197,7 @@ export function formatClockByTimezone(date: Date, timezone?: string) {
  */
 export function formatTime24h(date: Date, timezone?: string): string {
     const tz = timezone || currentTimezone;
-    return new Intl.DateTimeFormat('en-GB', {
+    return getFormatter('en-GB', {
         timeZone: tz,
         hour: '2-digit',
         minute: '2-digit',
@@ -193,7 +211,7 @@ export function formatTime24h(date: Date, timezone?: string): string {
  */
 export function formatDateId(date: Date, timezone?: string): string {
     const tz = timezone || currentTimezone;
-    return new Intl.DateTimeFormat('id-ID', {
+    return getFormatter('id-ID', {
         timeZone: tz,
         weekday: 'long',
         day: 'numeric',

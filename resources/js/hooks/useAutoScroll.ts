@@ -3,6 +3,15 @@ import { useEffect, useRef } from 'react';
 export function useAutoScroll(speed = 1, pauseTime = 3000, deps: any[] = []) {
     const scrollRef = useRef<HTMLDivElement>(null);
 
+    // Pemanggil biasanya mengoper array segar tiap polling (mis. [flights]), yang
+    // membuat referensinya berubah tiap ~10-15 dtk sehingga efek ini di-teardown &
+    // di-restart terus (timeout 2 dtk + siklus pause-di-bawah ikut ter-reset, list
+    // nyaris tak menggulir). Perubahan ukuran konten sudah ditangani ResizeObserver,
+    // jadi efek cukup re-init saat JUMLAH item berubah — bukan tiap referensi baru.
+    const depSignature = deps
+        .map((d) => (Array.isArray(d) ? d.length : d))
+        .join('|');
+
     useEffect(() => {
         const container = scrollRef.current;
         if (!container || speed <= 0) return;
@@ -75,7 +84,8 @@ export function useAutoScroll(speed = 1, pauseTime = 3000, deps: any[] = []) {
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             if (pauseTimeoutId) clearTimeout(pauseTimeoutId);
         };
-    }, [speed, pauseTime, ...deps]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [speed, pauseTime, depSignature]);
 
     return scrollRef;
 }

@@ -3,9 +3,22 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class DisplaySetting extends Model
 {
+    protected static function booted(): void
+    {
+        // Ubah ticker/logo/timezone/bahasa → langsung bust cache API terkait,
+        // supaya perubahan tidak menunggu TTL_SETTINGS (sebelumnya lag ≤15 dtk).
+        $flush = function () {
+            Cache::forget('fids:api:settings');
+            Cache::forget('fids:api:time-meta');
+        };
+        static::saved($flush);
+        static::deleted($flush);
+    }
+
     protected $fillable = [
         'nama_bandara', 
         'logo_bandara', 

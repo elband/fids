@@ -135,7 +135,7 @@ class FlightService
      */
     public function generateDailyFlights(?Carbon $date = null): int
     {
-        $targetDate = $date ?? Carbon::today();
+        $targetDate = $date ?? \App\Support\DisplayTimezone::today();
         
         $dayNames = [
             0 => 'Minggu', 1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu',
@@ -160,7 +160,7 @@ class FlightService
             
             if (in_array($todayName, $hariOperasi) || in_array($todayNum, $hariOperasi)) {
                 $exists = Flight::where('is_master', false)
-                    ->where('tanggal_penerbangan', $targetDate)
+                    ->whereDate('tanggal_penerbangan', $targetDate->toDateString())
                     ->where('nomor_penerbangan', $master->nomor_penerbangan)
                     ->where('jenis_penerbangan', $master->jenis_penerbangan)
                     ->exists();

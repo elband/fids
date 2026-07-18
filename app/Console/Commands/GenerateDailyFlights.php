@@ -29,7 +29,9 @@ class GenerateDailyFlights extends Command
      */
     public function handle(FlightService $flightService)
     {
-        $today = Carbon::today();
+        // Pakai zona waktu tampilan FIDS, bukan zona server, agar "hari ini"
+        // sama dengan yang difilter layar publik (scopeToday()).
+        $today = \App\Support\DisplayTimezone::today();
         $this->info("Generating flights for {$today->toDateString()}...");
         
         $generatedCount = $flightService->generateDailyFlights($today);

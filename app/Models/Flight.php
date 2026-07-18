@@ -27,6 +27,11 @@ class Flight extends Model
             foreach (self::FLIGHT_DEPENDENT_CACHE_KEYS as $key) {
                 Cache::forget($key);
             }
+            // Cache endpoint detail (per gate/counter/belt) memakai key ber-versi.
+            // Bump versi = seluruh cache detail lama otomatis tak terpakai (instan),
+            // tanpa perlu menghapus tiap key per-parameter satu-satu.
+            Cache::add('fids:api:flight-ver', 0);
+            Cache::increment('fids:api:flight-ver');
         };
         static::saved($flush);
         static::deleted($flush);

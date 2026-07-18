@@ -90,7 +90,9 @@ class ArrivalController extends Controller
         $validated['jenis_penerbangan'] = 'arrival';
         $validated['status'] = 'Scheduled';
 
-        $this->flightService->updateStatus($arrival, $validated['status'], $validated['catatan'] ?? null);
+        // Ini edit master template: cukup satu update. Jangan panggil updateStatus()
+        // yang menulis FlightStatusLog + auto-announcement (tidak relevan untuk template
+        // dan sebelumnya menyebabkan double-save + double cache-flush).
         $arrival->update($validated);
         $this->flightService->syncCounters($arrival, $request->checkin_counter_ids);
 

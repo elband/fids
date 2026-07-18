@@ -27,9 +27,24 @@ function emit(online: boolean) {
     window.dispatchEvent(new CustomEvent<NetDetail>('fids:net', { detail: { online, lastOnlineAt } }));
 }
 
+function isSameOrigin(url: string): boolean {
+    try {
+        return new URL(url, window.location.href).origin === window.location.origin;
+    } catch {
+        return false;
+    }
+}
+
 function isCacheableApiGet(method: string, url: string): boolean {
     if (method.toUpperCase() !== 'GET') return false;
-    // Hanya endpoint data API (read), abaikan aset/Inertia/mutasi.
+    // JANGAN cache endpoint waktu. Menyajikan timestamp lama akan menggeser jam
+    // seluruh layar ke masa lalu, dan badge tetap "synced" walau waktu salah
+    // (audit HIGH: offline-cache meracuni jam NTP). Termasuk API waktu eksternal.
+    if (/\/time(\?|$)/.test(url) || /worldtimeapi|timeapi\.io|time\.google|worldclockapi/i.test(url)) {
+        return false;
+    }
+    // Hanya cache API data same-origin (abaikan cross-origin, aset/Inertia/mutasi).
+    if (!isSameOrigin(url)) return false;
     return /\/api\//.test(url) && !/\/played(\?|$)/.test(url);
 }
 

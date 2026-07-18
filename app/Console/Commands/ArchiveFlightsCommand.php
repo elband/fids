@@ -21,11 +21,16 @@ class ArchiveFlightsCommand extends Command
     public function handle()
     {
         $days = (int) $this->option('days');
-        $cutoffDate = Carbon::today()->subDays($days);
-        
+        // Zona waktu tampilan FIDS agar batas tengah malam konsisten dengan layar.
+        $cutoffDate = \App\Support\DisplayTimezone::today()->subDays($days);
+
         $this->info("Mengarsipkan penerbangan sebelum {$cutoffDate->toDateString()}...");
 
-        $flights = Flight::where('tanggal_penerbangan', '<', $cutoffDate)->get();
+        // Jangan pernah arsipkan/hapus master template, walau sempat punya tanggal.
+        $flights = Flight::where('is_master', false)
+            ->whereNotNull('tanggal_penerbangan')
+            ->whereDate('tanggal_penerbangan', '<', $cutoffDate->toDateString())
+            ->get();
 
         if ($flights->isEmpty()) {
             $this->info('Tidak ada penerbangan yang perlu diarsipkan.');
@@ -38,6 +43,7 @@ class ArchiveFlightsCommand extends Command
         try {
             foreach ($flights as $flight) {
                 ArchivedFlight::create([
+                    'original_flight_id' => $flight->id,
                     'nomor_penerbangan' => $flight->nomor_penerbangan,
                     'airline_id' => $flight->airline_id,
                     'airport_asal_id' => $flight->airport_asal_id,
@@ -53,7 +59,6 @@ class ArchiveFlightsCommand extends Command
                     'checkin_counter_id' => $flight->checkin_counter_id,
                     'baggage_claim_id' => $flight->baggage_claim_id,
                     'catatan' => $flight->catatan,
-                    'created_by' => $flight->created_by,
                     'archived_at' => Carbon::now(),
                 ]);
 

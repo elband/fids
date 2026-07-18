@@ -156,10 +156,27 @@ export function speakText(
                 }
             }, 10000);
 
+            // Watchdog: Chromium kadang TIDAK PERNAH memicu onend/onerror, membuat
+            // utterance macet — keepAlive bocor selamanya DAN promise tak pernah settle,
+            // sehingga di pemanggil isPlayingRef tak pernah reset → seluruh PA mati
+            // permanen (audit HIGH). Paksa cleanup + resolve setelah durasi maksimum
+            // wajar (perkiraan durasi bicara + margin, dibatasi 120 dtk).
+            const maxMs = Math.min(120000, 15000 + processedText.length * 120);
+            let watchdog: number | null = window.setTimeout(() => {
+                watchdog = null;
+                try { synth.cancel(); } catch { /* ignore */ }
+                cleanup();
+                resolve();
+            }, maxMs);
+
             const cleanup = () => {
                 if (keepAlive) {
                     window.clearInterval(keepAlive);
                     keepAlive = null;
+                }
+                if (watchdog) {
+                    window.clearTimeout(watchdog);
+                    watchdog = null;
                 }
             };
 
