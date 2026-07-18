@@ -48,6 +48,58 @@ class DisplayApiController extends Controller
         return array_map(fn ($r) => "{$prefix}.{$r}", self::FLIGHT_RELATIONS);
     }
 
+    /** Menit tampil boarding gate SEBELUM jam jadwal. */
+    private const GATE_LEAD_MINUTES = 60;
+    /** Menit penerbangan tetap tampil SETELAH berangkat. */
+    private const GATE_LINGER_MINUTES = 5;
+
+    /**
+     * Tentukan penerbangan yang sedang "memakai" sebuah gate menurut aturan operasional:
+     *  - Muncul mulai 1 jam sebelum jam jadwal (GATE_LEAD_MINUTES).
+     *  - Hanya SATU penerbangan memakai gate pada satu waktu (yang paling awal jadwalnya);
+     *    gate baru bisa dipakai penerbangan berikutnya setelah penghuni sebelumnya hilang.
+     *  - Hilang 5 menit setelah statusnya "Departed" (GATE_LINGER_MINUTES).
+     *
+     * @param  \Illuminate\Support\Collection  $flights  penerbangan hari ini untuk satu gate
+     * @return \Illuminate\Support\Collection             berisi 0 atau 1 penerbangan
+     */
+    private function gateOccupant($flights)
+    {
+        $tz = \App\Support\DisplayTimezone::get();
+        $now = Carbon::now($tz);
+        $today = $now->toDateString();
+
+        $eligible = $flights->filter(function ($f) use ($now, $today, $tz) {
+            if (empty($f->jam_jadwal)) {
+                return false;
+            }
+            if ($f->status === 'Cancelled') {
+                return false;
+            }
+
+            $sched = Carbon::parse("{$today} {$f->jam_jadwal}", $tz);
+
+            if ($f->status === 'Departed') {
+                // Sudah berangkat: tampil hanya sampai 5 menit setelah waktu berangkat.
+                $departedAt = ! empty($f->jam_aktual)
+                    ? Carbon::parse("{$today} {$f->jam_aktual}", $tz)
+                    : ($f->updated_at ? $f->updated_at->copy()->setTimezone($tz) : $sched);
+
+                return $now->lte($departedAt->copy()->addMinutes(self::GATE_LINGER_MINUTES));
+            }
+
+            // Belum berangkat: tampil mulai 1 jam sebelum jam jadwal.
+            return $now->gte($sched->copy()->subMinutes(self::GATE_LEAD_MINUTES));
+        });
+
+        if ($eligible->isEmpty()) {
+            return $eligible;
+        }
+
+        // Satu gate hanya dipakai satu penerbangan: penghuni saat ini = jadwal paling awal.
+        return collect([$eligible->sortBy('jam_jadwal')->first()]);
+    }
+
     public function departures()
     {
         $data = Cache::remember('fids:api:departures', self::TTL_LIST, function () {
@@ -81,7 +133,7 @@ class DisplayApiController extends Controller
             $gate = \App\Models\Gate::with(['flights' => function($q) {
                 $q->daily()
                   ->today()
-                  ->whereIn('status', ['Scheduled', 'Boarding', 'Gate Open', 'Final Call', 'Delayed'])
+                  ->whereIn('status', ['Scheduled', 'Check-in Open', 'Boarding', 'Gate Open', 'Final Call', 'Delayed', 'Departed'])
                   ->orderBy('jam_jadwal', 'asc');
             }, ...self::nestedFlightRelations()])
             ->where(function ($q) use ($gateCode) {
@@ -95,8 +147,12 @@ class DisplayApiController extends Controller
 
             if (!$gate) return null;
 
+            // Aturan operasional: 1 jam sebelum jadwal, satu penerbangan per gate,
+            // hilang 5 menit setelah berangkat.
+            $occupant = $this->gateOccupant($gate->flights);
+
             $arr = $gate->toArray();
-            $arr['flights'] = FlightResource::collection($gate->flights)->resolve();
+            $arr['flights'] = FlightResource::collection($occupant)->resolve();
             return $arr;
         });
 
@@ -294,8 +350,11 @@ class DisplayApiController extends Controller
             }, ...self::nestedFlightRelations()])->orderBy('kode_gate', 'asc')->get();
 
             return $gates->map(function ($gate) {
+                // Aturan operasional: 1 jam sebelum jadwal, satu penerbangan per gate,
+                // hilang 5 menit setelah berangkat.
+                $occupant = $this->gateOccupant($gate->flights);
                 $arr = $gate->toArray();
-                $arr['flights'] = FlightResource::collection($gate->flights)->resolve();
+                $arr['flights'] = FlightResource::collection($occupant)->resolve();
                 return $arr;
             })->all();
         });
