@@ -100,6 +100,23 @@ class DisplayApiController extends Controller
         return collect([$eligible->sortBy('jam_jadwal')->first()]);
     }
 
+    /**
+     * Penerbangan yang sedang memakai sebuah check-in counter:
+     *  - HANYA tampil bila status penerbangan = "Check-in Open".
+     *  - Satu counter dipakai satu penerbangan (jadwal paling awal).
+     *
+     * @param  \Illuminate\Support\Collection  $flights
+     * @return \Illuminate\Support\Collection   berisi 0 atau 1 penerbangan
+     */
+    private function checkinOccupant($flights)
+    {
+        $open = $flights->filter(fn ($f) => $f->status === 'Check-in Open');
+        if ($open->isEmpty()) {
+            return $open;
+        }
+        return collect([$open->sortBy('jam_jadwal')->first()]);
+    }
+
     public function departures()
     {
         $data = Cache::remember('fids:api:departures', self::TTL_LIST, function () {
@@ -168,7 +185,7 @@ class DisplayApiController extends Controller
             $counter = \App\Models\CheckinCounter::with(['airline', 'flights' => function($q) {
                 $q->daily()
                   ->today()
-                  ->whereIn('status', ['Scheduled', 'Check-in Open', 'Check-in Closed', 'Delayed'])
+                  ->where('status', 'Check-in Open')
                   ->orderBy('jam_jadwal', 'asc');
             }, ...self::nestedFlightRelations()])
             ->where(function ($q) use ($counterNumber) {
@@ -181,8 +198,14 @@ class DisplayApiController extends Controller
 
             if (!$counter) return null;
 
+            // Aturan: counter hanya menampilkan data bila ada penerbangan berstatus
+            // "Check-in Open" (satu counter = satu penerbangan). Status counter untuk
+            // tampilan ikut ditentukan oleh ada/tidaknya penerbangan open check-in.
+            $occupant = $this->checkinOccupant($counter->flights);
+
             $arr = $counter->toArray();
-            $arr['flights'] = FlightResource::collection($counter->flights)->resolve();
+            $arr['status_counter'] = $occupant->isNotEmpty() ? 'buka' : 'tutup';
+            $arr['flights'] = FlightResource::collection($occupant)->resolve();
 
             if ($counter->airline && $counter->airline->logo) {
                 $arr['airline']['logo'] = '/storage/' . $counter->airline->logo;
@@ -320,17 +343,20 @@ class DisplayApiController extends Controller
             $counters = \App\Models\CheckinCounter::with(['airline', 'flights' => function($q) {
                 $q->daily()
                   ->today()
-                  ->whereIn('status', ['Scheduled', 'Check-in Open', 'Check-in Closed', 'Delayed'])
+                  ->where('status', 'Check-in Open')
                   ->orderBy('jam_jadwal', 'asc');
             }, ...self::nestedFlightRelations()])->orderBy('nomor_counter', 'asc')->get();
 
             return $counters->map(function ($counter) {
+                // Counter tampil "buka" + data hanya bila ada penerbangan open check-in.
+                $occupant = $this->checkinOccupant($counter->flights);
                 $arr = $counter->toArray();
+                $arr['status_counter'] = $occupant->isNotEmpty() ? 'buka' : 'tutup';
                 if ($counter->airline && $counter->airline->logo) {
                     $arr['airline']['logo'] = '/storage/' . $counter->airline->logo;
                 }
                 $arr['idle_image'] = $counter->idle_image ? '/storage/' . $counter->idle_image : null;
-                $arr['flights'] = FlightResource::collection($counter->flights)->resolve();
+                $arr['flights'] = FlightResource::collection($occupant)->resolve();
                 return $arr;
             })->all();
         });
