@@ -128,6 +128,7 @@ Route::middleware(['auth', 'verified', 'role:Super Admin|Admin Operasional'])->p
     
     Route::get('display-settings', [DisplaySettingController::class, 'index'])->name('display-settings.index');
     Route::post('display-settings', [DisplaySettingController::class, 'update'])->name('display-settings.update');
+    Route::post('display-settings/force-reload', [DisplaySettingController::class, 'forceReload'])->name('display-settings.force-reload');
     Route::get('public-screen-settings', [DisplaySettingController::class, 'publicScreenSettings'])->name('public-screen-settings.index');
     Route::post('public-screen-settings', [DisplaySettingController::class, 'updatePublicScreenSettings'])->name('public-screen-settings.update');
     Route::get('public-screen/editor', [DisplayController::class, 'publicScreenEditor'])->name('public-screen.editor');

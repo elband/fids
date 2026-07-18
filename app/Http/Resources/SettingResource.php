@@ -27,6 +27,8 @@ class SettingResource extends JsonResource
             'kode_bmkg' => $this->kode_bmkg,
             'lokasi_google_maps' => $this->lokasi_google_maps,
             'bahasa' => $this->bahasa ?? 'id',
+            // Sinyal "segarkan semua layar TV" (epoch detik; null jika belum pernah).
+            'force_reload_at' => optional($this->force_reload_at)->timestamp,
         ];
     }
 }

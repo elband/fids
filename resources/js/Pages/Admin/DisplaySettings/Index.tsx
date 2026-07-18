@@ -1,4 +1,5 @@
-import { useForm, Head } from '@inertiajs/react';
+import { useState } from 'react';
+import { useForm, Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PageProps } from '@/types';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -49,6 +50,20 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
         e.preventDefault();
         post(route('admin.display-settings.update'), {
             preserveScroll: true,
+        });
+    };
+
+    const [reloadState, setReloadState] = useState<'idle' | 'sending' | 'sent'>('idle');
+    const forceReloadAll = () => {
+        if (!window.confirm('Segarkan SEMUA layar TV monitor sekarang?\n\nSetiap monitor akan memuat ulang tampilan dalam beberapa detik.')) return;
+        router.post(route('admin.display-settings.force-reload'), {}, {
+            preserveScroll: true,
+            onStart: () => setReloadState('sending'),
+            onSuccess: () => {
+                setReloadState('sent');
+                window.setTimeout(() => setReloadState('idle'), 8000);
+            },
+            onError: () => setReloadState('idle'),
         });
     };
 
@@ -232,6 +247,38 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
                                     <PrimaryButton disabled={processing}>Simpan Pengaturan</PrimaryButton>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+
+                    {/* Kontrol jarak jauh: segarkan semua layar TV */}
+                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
+                        <div className="p-6 text-gray-900">
+                            <h3 className="text-lg font-medium text-gray-900 mb-1">Kontrol Layar TV</h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Kirim perintah <span className="font-semibold">segarkan (hard refresh)</span> ke seluruh monitor TV sekaligus.
+                                Berguna setelah memperbarui tampilan atau bila ada layar yang macet/masih memuat versi lama.
+                                Setiap monitor akan memuat ulang otomatis dalam ±10&ndash;15 detik tanpa perlu menyentuh TV-nya.
+                            </p>
+
+                            <div className="flex items-center gap-4">
+                                <button
+                                    type="button"
+                                    onClick={forceReloadAll}
+                                    disabled={reloadState === 'sending'}
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-amber-500 text-black font-semibold text-sm shadow-sm transition hover:bg-amber-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                                    </svg>
+                                    {reloadState === 'sending' ? 'Mengirim…' : 'Segarkan Semua Layar TV'}
+                                </button>
+
+                                {reloadState === 'sent' && (
+                                    <span className="text-sm font-medium text-green-600">
+                                        ✓ Perintah terkirim. Semua layar akan memuat ulang sebentar lagi.
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

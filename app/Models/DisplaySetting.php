@@ -25,6 +25,7 @@ class DisplaySetting extends Model
         'kode_bmkg',
         'bahasa',
         'timezone',
+        'force_reload_at',
     ];
 
     protected $casts = [
@@ -33,5 +34,6 @@ class DisplaySetting extends Model
         'show_departures' => 'boolean',
         'show_arrivals' => 'boolean',
         'show_advertisement' => 'boolean',
+        'force_reload_at' => 'datetime',
     ];
 }

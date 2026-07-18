@@ -8,6 +8,7 @@ use App\Models\DisplaySetting;
 use App\Models\Advertisement;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 
 class DisplaySettingController extends Controller
 {
@@ -17,6 +18,26 @@ class DisplaySettingController extends Controller
         return Inertia::render('Admin/DisplaySettings/Index', [
             'setting' => $setting
         ]);
+    }
+
+    /**
+     * Kirim sinyal "segarkan semua layar TV". Memperbarui force_reload_at;
+     * tiap layar publik akan me-reload dirinya pada polling berikutnya.
+     */
+    public function forceReload()
+    {
+        $setting = DisplaySetting::first();
+        if (! $setting) {
+            return back()->with('error', 'Pengaturan layar belum ada.');
+        }
+
+        $setting->force_reload_at = now();
+        $setting->save();
+
+        // Buang cache API settings agar sinyal langsung terlihat layar.
+        Cache::forget('fids:api:settings');
+
+        return back()->with('success', 'Perintah segarkan dikirim. Semua layar TV akan memuat ulang dalam beberapa detik.');
     }
 
     public function publicScreenSettings()

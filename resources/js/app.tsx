@@ -6,6 +6,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { ConfirmProvider } from '@/Components/ConfirmDialog';
 import OfflineIndicator from '@/Components/OfflineIndicator';
+import ReloadWatcher from '@/Components/ReloadWatcher';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -23,6 +24,7 @@ createInertiaApp({
             <ConfirmProvider>
                 <App {...props} />
                 <OfflineIndicator />
+                <ReloadWatcher />
             </ConfirmProvider>,
         );
     },
