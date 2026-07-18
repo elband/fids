@@ -39,6 +39,9 @@ class DisplaySetting extends Model
         'bahasa',
         'timezone',
         'force_reload_at',
+        'bagasi_durasi_status_menit',
+        'bagasi_kamera_mulai_menit',
+        'bagasi_kamera_selesai_menit',
     ];
 
     protected $casts = [
@@ -48,5 +51,8 @@ class DisplaySetting extends Model
         'show_arrivals' => 'boolean',
         'show_advertisement' => 'boolean',
         'force_reload_at' => 'datetime',
+        'bagasi_durasi_status_menit' => 'integer',
+        'bagasi_kamera_mulai_menit' => 'integer',
+        'bagasi_kamera_selesai_menit' => 'integer',
     ];
 }

@@ -27,6 +27,10 @@ class SettingResource extends JsonResource
             'kode_bmkg' => $this->kode_bmkg,
             'lokasi_google_maps' => $this->lokasi_google_maps,
             'bahasa' => $this->bahasa ?? 'id',
+            // Pengaturan timing baggage claim (menit).
+            'bagasi_durasi_status_menit' => (int) ($this->bagasi_durasi_status_menit ?? 30),
+            'bagasi_kamera_mulai_menit' => (int) ($this->bagasi_kamera_mulai_menit ?? 10),
+            'bagasi_kamera_selesai_menit' => (int) ($this->bagasi_kamera_selesai_menit ?? 20),
             // Sinyal "segarkan semua layar TV" (epoch detik; null jika belum pernah).
             'force_reload_at' => optional($this->force_reload_at)->timestamp,
         ];

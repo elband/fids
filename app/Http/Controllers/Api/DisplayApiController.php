@@ -117,6 +117,77 @@ class DisplayApiController extends Controller
         return collect([$open->sortBy('jam_jadwal')->first()]);
     }
 
+    /** Status penerbangan yang berarti pesawat sudah tiba (memicu tampil di baggage claim). */
+    private const BAGGAGE_ARRIVED_STATUSES = ['Arrived', 'On Time', 'Landed', 'Baggage Claim'];
+
+    /**
+     * Waktu tiba penerbangan sebagai Carbon (zona tampilan).
+     * Utamakan jam_aktual (ATA) + tanggal; fallback ke updated_at.
+     */
+    private function flightArrivedAt($flight): ?Carbon
+    {
+        $tz = \App\Support\DisplayTimezone::get();
+        if (! empty($flight->jam_aktual)) {
+            $date = $flight->tanggal_penerbangan
+                ? Carbon::parse($flight->tanggal_penerbangan)->toDateString()
+                : Carbon::now($tz)->toDateString();
+            return Carbon::parse("{$date} {$flight->jam_aktual}", $tz);
+        }
+        return $flight->updated_at ? $flight->updated_at->copy()->setTimezone($tz) : null;
+    }
+
+    /**
+     * Penerbangan yang sedang memakai sebuah belt baggage claim:
+     *  - Status harus "sudah tiba" (BAGGAGE_ARRIVED_STATUSES).
+     *  - Masih dalam jendela waktu ($windowMin menit sejak tiba).
+     *  - Satu belt = satu penerbangan (kedatangan paling baru).
+     *
+     * @return \Illuminate\Support\Collection  berisi 0 atau 1 penerbangan
+     */
+    private function baggageOccupant($flights, int $windowMin)
+    {
+        $now = Carbon::now(\App\Support\DisplayTimezone::get());
+
+        $eligible = $flights->filter(function ($f) use ($now, $windowMin) {
+            if (! in_array($f->status, self::BAGGAGE_ARRIVED_STATUSES, true)) {
+                return false;
+            }
+            $at = $this->flightArrivedAt($f);
+            if (! $at) {
+                return true; // sudah tiba tapi tanpa waktu → tetap tampil
+            }
+            return $at->diffInMinutes($now, false) < $windowMin; // menit sejak tiba
+        });
+
+        if ($eligible->isEmpty()) {
+            return $eligible;
+        }
+
+        // Bagasi yang sedang keluar = kedatangan paling baru.
+        return collect([
+            $eligible->sortByDesc(fn ($f) => optional($this->flightArrivedAt($f))->timestamp ?? 0)->first(),
+        ]);
+    }
+
+    /** Kamera CCTV aktif yang terhubung ke sebuah belt (atau null). */
+    private function beltCamera($belt): ?array
+    {
+        $cam = \App\Models\CctvCamera::where('baggage_claim_id', $belt->id)
+            ->where('aktif', true)
+            ->orderBy('urutan')
+            ->first();
+
+        if (! $cam) {
+            return null;
+        }
+
+        return [
+            'nama'         => $cam->nama,
+            'jenis_stream' => $cam->jenis_stream,
+            'url_stream'   => $cam->url_stream,
+        ];
+    }
+
     public function departures()
     {
         $data = Cache::remember('fids:api:departures', self::TTL_LIST, function () {
@@ -224,10 +295,16 @@ class DisplayApiController extends Controller
     {
         $key = "fids:api:baggage:{$beltNumber}:v{$this->flightCacheVersion()}";
         $data = Cache::remember($key, self::TTL_LIST, function () use ($beltNumber) {
+            $settings = DisplaySetting::first();
+            $statusMin = (int) ($settings->bagasi_durasi_status_menit ?? 30);
+            $camEndMin = (int) ($settings->bagasi_kamera_selesai_menit ?? 20);
+            // Belt tetap "aktif" selama teks status ATAU kamera masih relevan.
+            $windowMin = max($statusMin, $camEndMin);
+
             $belt = \App\Models\BaggageClaim::with(['flights' => function($q) {
                 $q->daily()
                   ->today()
-                  ->whereIn('status', ['Scheduled', 'Landed', 'Arrived', 'Baggage Claim', 'Delayed'])
+                  ->whereIn('status', self::BAGGAGE_ARRIVED_STATUSES)
                   ->orderBy('jam_jadwal', 'asc');
             }, ...self::nestedFlightRelations()])
             ->where(function ($q) use ($beltNumber) {
@@ -240,8 +317,17 @@ class DisplayApiController extends Controller
 
             if (!$belt) return null;
 
+            $occupant = $this->baggageOccupant($belt->flights, $windowMin);
+            $flightsArr = FlightResource::collection($occupant)->resolve();
+            if ($occupant->isNotEmpty()) {
+                // arrived_at dipakai frontend untuk menghitung menit sejak tiba
+                // (kapan teks hilang & kapan kamera muncul/hilang).
+                $flightsArr[0]['arrived_at'] = optional($this->flightArrivedAt($occupant->first()))->toIso8601String();
+            }
+
             $arr = $belt->toArray();
-            $arr['flights'] = FlightResource::collection($belt->flights)->resolve();
+            $arr['flights'] = $flightsArr;
+            $arr['camera'] = $this->beltCamera($belt);
             return $arr;
         });
 
@@ -391,17 +477,26 @@ class DisplayApiController extends Controller
     public function allBaggageClaims()
     {
         $data = Cache::remember('fids:api:baggage-claims', self::TTL_LIST, function () {
+            $settings = DisplaySetting::first();
+            $statusMin = (int) ($settings->bagasi_durasi_status_menit ?? 30);
+
             $claims = \App\Models\BaggageClaim::with(['flights' => function($q) {
                 $q->daily()
                   ->today()
                   ->where('jenis_penerbangan', 'arrival')
-                  ->whereIn('status', ['Scheduled', 'Landed', 'Arrived', 'Baggage Claim', 'Delayed'])
+                  ->whereIn('status', self::BAGGAGE_ARRIVED_STATUSES)
                   ->orderBy('jam_jadwal', 'asc');
             }, ...self::nestedFlightRelations()])->orderBy('nomor_belt', 'asc')->get();
 
-            return $claims->map(function ($claim) {
+            return $claims->map(function ($claim) use ($statusMin) {
+                // Grid baggage: hanya teks status, jendela = durasi status.
+                $occupant = $this->baggageOccupant($claim->flights, $statusMin);
+                $flightsArr = FlightResource::collection($occupant)->resolve();
+                if ($occupant->isNotEmpty()) {
+                    $flightsArr[0]['arrived_at'] = optional($this->flightArrivedAt($occupant->first()))->toIso8601String();
+                }
                 $arr = $claim->toArray();
-                $arr['flights'] = FlightResource::collection($claim->flights)->resolve();
+                $arr['flights'] = $flightsArr;
                 return $arr;
             })->all();
         });

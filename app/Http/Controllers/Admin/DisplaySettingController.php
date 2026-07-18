@@ -116,6 +116,9 @@ class DisplaySettingController extends Controller
             'kode_bmkg'         => 'nullable|string',
             'bahasa'            => 'required|string|in:id,en',
             'timezone'          => 'nullable|string|max:64',
+            'bagasi_durasi_status_menit'  => 'nullable|integer|min:1|max:240',
+            'bagasi_kamera_mulai_menit'   => 'nullable|integer|min:0|max:240',
+            'bagasi_kamera_selesai_menit' => 'nullable|integer|min:1|max:240',
         ]);
 
         $setting->nama_bandara     = $validated['nama_bandara'];
@@ -125,6 +128,16 @@ class DisplaySettingController extends Controller
         $setting->kode_bmkg        = $validated['kode_bmkg'] ?? null;
         $setting->bahasa           = $validated['bahasa'];
         $setting->timezone         = $validated['timezone'] ?? null;
+
+        if (isset($validated['bagasi_durasi_status_menit'])) {
+            $setting->bagasi_durasi_status_menit = (int) $validated['bagasi_durasi_status_menit'];
+        }
+        if (isset($validated['bagasi_kamera_mulai_menit'])) {
+            $setting->bagasi_kamera_mulai_menit = (int) $validated['bagasi_kamera_mulai_menit'];
+        }
+        if (isset($validated['bagasi_kamera_selesai_menit'])) {
+            $setting->bagasi_kamera_selesai_menit = (int) $validated['bagasi_kamera_selesai_menit'];
+        }
 
         if ($request->hasFile('logo_bandara')) {
             if ($setting->logo_bandara) {
