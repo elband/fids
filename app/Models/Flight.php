@@ -3,9 +3,35 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class Flight extends Model
 {
+    /**
+     * Cache API layar publik yang bergantung pada data flight.
+     * Di-forget setiap kali flight berubah agar layar tidak menunggu TTL.
+     */
+    private const FLIGHT_DEPENDENT_CACHE_KEYS = [
+        'fids:api:departures',
+        'fids:api:arrivals',
+        'fids:api:checkin-counters',
+        'fids:api:gates',
+        'fids:api:baggage-claims',
+    ];
+
+    protected static function booted(): void
+    {
+        // Bersihkan cache saat flight dibuat/diubah/dihapus, dari controller manapun,
+        // sehingga perubahan status/gate langsung tampil di layar pada polling berikutnya.
+        $flush = function () {
+            foreach (self::FLIGHT_DEPENDENT_CACHE_KEYS as $key) {
+                Cache::forget($key);
+            }
+        };
+        static::saved($flush);
+        static::deleted($flush);
+    }
+
     protected $fillable = [
         'is_master', 'hari_operasi', 'frekuensi_per_minggu',
         'tanggal_penerbangan', 'nomor_penerbangan', 'airline_id', 'airport_asal_id',
