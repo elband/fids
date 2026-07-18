@@ -27,14 +27,14 @@ class MasterArrivalSeeder extends Seeder
         $flights = [
             ['ID6672',  '08:10', 'ID', 'CGK', []],
             ['IU640',   '08:45', 'IU', 'SUB', $semuaHari],
-            ['QG460',   '09:50', 'QG', 'SUB', $semuaHari],
-            ['GA580',   '11:00', 'GA', 'CGK', $semuaHari],
-            ['IW1485',  '11:30', 'IW', 'BEJ', $semuaHari],
+            ['QG460',   '10:30', 'QG', 'SUB', $semuaHari],
+            ['GA580',   '11:20', 'GA', 'CGK', $semuaHari],
+            ['IW1485',  '13:35', 'IW', 'BEJ', $semuaHari],
             ['IU658',   '12:50', 'IU', 'YIA', []],
-            ['ID6256',  '13:10', 'ID', 'CGK', $semuaHari],
+            ['ID6256',  '12:20', 'ID', 'CGK', $semuaHari],
             ['IU642',   '13:20', 'IU', 'SUB', []],
-            ['QG422',   '15:10', 'QG', 'CGK', $semuaHari],
-            ['ID6676',  '17:40', 'ID', 'CGK', $semuaHari],
+            ['QG422',   '14:30', 'QG', 'CGK', $semuaHari],
+            ['ID6676',  '16:55', 'ID', 'CGK', $semuaHari],
         ];
 
         foreach ($flights as $row) {

@@ -115,12 +115,20 @@ class ReportMasterFlightsSeeder extends Seeder
         // 3) Sinkronisasi jam master keberangkatan yang SUDAH ADA dengan jam operasi
         //    terbaru dari report 18 Jul 2026. Match by nomor+jenis (unik untuk ini).
         $timeUpdates = [
+            // Keberangkatan (report 18 Jul 2026)
             ['departure', 'QG461',  '11:00'],
             ['departure', 'GA581',  '12:20'],
             ['departure', 'ID6257', '13:00'],
             ['departure', 'IW1484', '14:05'],
             ['departure', 'QG423',  '15:00'],
             ['departure', 'ID6677', '17:35'],
+            // Kedatangan (report 18 Jul 2026)
+            ['arrival',   'QG460',  '10:30'],
+            ['arrival',   'GA580',  '11:20'],
+            ['arrival',   'ID6256', '12:20'],
+            ['arrival',   'IW1485', '13:35'],
+            ['arrival',   'QG422',  '14:30'],
+            ['arrival',   'ID6676', '16:55'],
         ];
         $timeChanged = 0;
         foreach ($timeUpdates as [$jenis, $nomor, $jam]) {
