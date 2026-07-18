@@ -149,6 +149,18 @@ class ReportMasterFlightsSeeder extends Seeder
             }
         }
 
-        $this->command?->info("Selesai. Dibuat: {$created}, diupdate hari: {$updated}, jam disinkron: {$timeChanged}, dilewati: {$skipped}.");
+        // 4) Aktifkan semua master yang hari_operasi-nya kosong menjadi operasi 7 hari
+        //    (permintaan: "aktifkan semua = 7 hari"). Master ini sebelumnya tersimpan
+        //    tapi tidak pernah muncul di jadwal harian karena tanpa hari operasi.
+        $activated = 0;
+        foreach (Flight::where('is_master', true)->get() as $m) {
+            if (empty($m->hari_operasi)) {
+                $m->update(['hari_operasi' => $semuaHari]);
+                $activated++;
+                $this->command?->info("Aktifkan 7 hari: {$m->jenis_penerbangan} {$m->nomor_penerbangan} " . substr((string) $m->jam_jadwal, 0, 5));
+            }
+        }
+
+        $this->command?->info("Selesai. Dibuat: {$created}, diupdate hari: {$updated}, jam disinkron: {$timeChanged}, diaktifkan: {$activated}, dilewati: {$skipped}.");
     }
 }

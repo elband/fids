@@ -28,17 +28,17 @@ class MasterDepartureSeeder extends Seeder
 
         // [nomor_penerbangan, jam, kode_maskapai, kode_iata_tujuan, [cc_numbers], kode_gate, hari_operasi]
         $flights = [
-            ['PKSNT',  '08:00', 'SNT', 'M-HU', [16],     'B1', []],
-            ['PKSNT',  '08:50', 'SNT', 'LPU',  [16],     'B1', []],
-            ['PKSNT',  '09:20', 'SNT', 'RTU',  [16],     'B1', []],
+            ['PKSNT',  '08:00', 'SNT', 'M-HU', [16],     'B1', $semuaHari],
+            ['PKSNT',  '08:50', 'SNT', 'LPU',  [16],     'B1', $semuaHari],
+            ['PKSNT',  '09:20', 'SNT', 'RTU',  [16],     'B1', $semuaHari],
             ['IU641',  '09:25', 'IU',  'SUB',  [14],     'A2', $semuaHari],
             ['QG461',  '11:00', 'QG',  'SUB',  [3],      'B1', $semuaHari],
             ['IW1484', '14:05', 'IW',  'BEJ',  [12],     'A3', $semuaHari],
             ['GA581',  '12:20', 'GA',  'CGK',  [5],      'B1', $semuaHari],
-            ['IU659',  '13:30', 'IU',  'YIA',  [13],     'A2', []],
-            ['PKSNT',  '13:30', 'SNT', 'DTD',  [16],     'B1', []],
+            ['IU659',  '13:30', 'IU',  'YIA',  [13],     'A2', $semuaHari],
+            ['PKSNT',  '13:30', 'SNT', 'DTD',  [16],     'B1', $semuaHari],
             ['ID6257', '13:00', 'ID',  'CGK',  [11, 12], 'A1', $semuaHari],
-            ['IU643',  '14:00', 'IU',  'SUB',  [14],     'A2', []],
+            ['IU643',  '14:00', 'IU',  'SUB',  [14],     'A2', $semuaHari],
             ['QG423',  '15:00', 'QG',  'CGK',  [2, 3],   'B1', $semuaHari],
             ['ID6677', '17:35', 'ID',  'CGK',  [1],      'A1', $semuaHari],
         ];
