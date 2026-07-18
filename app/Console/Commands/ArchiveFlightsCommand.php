@@ -48,7 +48,7 @@ class ArchiveFlightsCommand extends Command
                     'jam_aktual' => $flight->jam_aktual,
                     'jenis_penerbangan' => $flight->jenis_penerbangan,
                     'tipe_layanan' => $flight->tipe_layanan,
-                    'status_akhir' => $flight->status,
+                    'status' => $flight->status,
                     'gate_id' => $flight->gate_id,
                     'checkin_counter_id' => $flight->checkin_counter_id,
                     'baggage_claim_id' => $flight->baggage_claim_id,
