@@ -112,6 +112,35 @@ class ReportMasterFlightsSeeder extends Seeder
             }
         }
 
-        $this->command?->info("Selesai. Dibuat: {$created}, diupdate: {$updated}, dilewati: {$skipped}.");
+        // 3) Sinkronisasi jam master keberangkatan yang SUDAH ADA dengan jam operasi
+        //    terbaru dari report 18 Jul 2026. Match by nomor+jenis (unik untuk ini).
+        $timeUpdates = [
+            ['departure', 'QG461',  '11:00'],
+            ['departure', 'GA581',  '12:20'],
+            ['departure', 'ID6257', '13:00'],
+            ['departure', 'IW1484', '14:05'],
+            ['departure', 'QG423',  '15:00'],
+            ['departure', 'ID6677', '17:35'],
+        ];
+        $timeChanged = 0;
+        foreach ($timeUpdates as [$jenis, $nomor, $jam]) {
+            $q = Flight::where('is_master', true)
+                ->where('jenis_penerbangan', $jenis)
+                ->where('nomor_penerbangan', $nomor);
+
+            // Amankan: hanya update bila tepat SATU master (hindari menyentuh
+            // charter multi-leg yang bernomor sama).
+            if ($q->count() !== 1) {
+                continue;
+            }
+            $m = $q->first();
+            if (substr((string) $m->jam_jadwal, 0, 5) !== $jam) {
+                $m->update(['jam_jadwal' => $jam]);
+                $timeChanged++;
+                $this->command?->info("Sinkron jam: {$jenis} {$nomor} -> {$jam}");
+            }
+        }
+
+        $this->command?->info("Selesai. Dibuat: {$created}, diupdate hari: {$updated}, jam disinkron: {$timeChanged}, dilewati: {$skipped}.");
     }
 }

@@ -32,15 +32,15 @@ class MasterDepartureSeeder extends Seeder
             ['PKSNT',  '08:50', 'SNT', 'LPU',  [16],     'B1', []],
             ['PKSNT',  '09:20', 'SNT', 'RTU',  [16],     'B1', []],
             ['IU641',  '09:25', 'IU',  'SUB',  [14],     'A2', $semuaHari],
-            ['QG461',  '10:40', 'QG',  'SUB',  [3],      'B1', $semuaHari],
-            ['IW1484', '11:50', 'IW',  'BEJ',  [12],     'A3', $semuaHari],
-            ['GA581',  '12:05', 'GA',  'CGK',  [5],      'B1', $semuaHari],
+            ['QG461',  '11:00', 'QG',  'SUB',  [3],      'B1', $semuaHari],
+            ['IW1484', '14:05', 'IW',  'BEJ',  [12],     'A3', $semuaHari],
+            ['GA581',  '12:20', 'GA',  'CGK',  [5],      'B1', $semuaHari],
             ['IU659',  '13:30', 'IU',  'YIA',  [13],     'A2', []],
             ['PKSNT',  '13:30', 'SNT', 'DTD',  [16],     'B1', []],
-            ['ID6257', '13:50', 'ID',  'CGK',  [11, 12], 'A1', $semuaHari],
+            ['ID6257', '13:00', 'ID',  'CGK',  [11, 12], 'A1', $semuaHari],
             ['IU643',  '14:00', 'IU',  'SUB',  [14],     'A2', []],
-            ['QG423',  '15:40', 'QG',  'CGK',  [2, 3],   'B1', $semuaHari],
-            ['ID6677', '18:30', 'ID',  'CGK',  [1],      'A1', $semuaHari],
+            ['QG423',  '15:00', 'QG',  'CGK',  [2, 3],   'B1', $semuaHari],
+            ['ID6677', '17:35', 'ID',  'CGK',  [1],      'A1', $semuaHari],
         ];
 
         foreach ($flights as $row) {
