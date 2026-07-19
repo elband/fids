@@ -153,7 +153,7 @@ export default function BaggageClaimDisplay() {
                                                                     {t.from[lang]}{flight.asal}
                                                                 </div>
                                                                 <div className="text-2xl font-bold tracking-wider">
-                                                                    {flight.jam_jadwal.substring(0, 5)}
+                                                                    {flight.jam_jadwal?.substring(0, 5) ?? '--:--'}
                                                                 </div>
                                                             </div>
                                                         </>

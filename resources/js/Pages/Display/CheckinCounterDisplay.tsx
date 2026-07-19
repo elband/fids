@@ -167,7 +167,7 @@ export default function CheckinCounterDisplay() {
                                                                 {counter.flights[0].tujuan}
                                                             </div>
                                                             <div className="text-2xl font-bold tracking-wider">
-                                                                {counter.flights[0].jam_jadwal.substring(0, 5)}
+                                                                {counter.flights[0].jam_jadwal?.substring(0, 5) ?? '--:--'}
                                                             </div>
                                                         </div>
                                                     ) : (

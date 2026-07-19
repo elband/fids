@@ -45,6 +45,20 @@ export default function AdSlide({
         if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
     }, []);
 
+    // Saat daftar iklan menyusut (admin menghapus iklan) sementara index menunjuk
+    // slide yang sudah tidak ada, scheduler berhenti & layar blank permanen.
+    // Kembalikan index ke rentang valid agar rotasi pulih sendiri.
+    useEffect(() => {
+        if (ads.length === 0) return;
+        if (index >= ads.length || renderIndex >= ads.length) {
+            const clamped = index % ads.length;
+            indexRef.current = clamped;
+            setIndex(clamped);
+            setRenderIndex(clamped);
+            setPhase('in');
+        }
+    }, [ads.length, index, renderIndex]);
+
     // Pick a transition for the current ad (random if 'auto')
     const activeTransition = useMemo(() => {
         if (transition !== 'auto') return transition;

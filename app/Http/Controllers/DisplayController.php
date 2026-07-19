@@ -73,17 +73,19 @@ class DisplayController extends Controller
 
     public function publicScreen()
     {
-        $settings = DisplaySetting::first();
+        // Fresh install / tabel kosong: pakai model default agar halaman tetap tampil
+        // alih-alih fatal "toArray() on null".
+        $settings = DisplaySetting::first() ?? new DisplaySetting();
 
         $departures = Flight::with(['airline', 'airportTujuan'])
             ->where('jenis_penerbangan', 'departure')
-            ->whereDate('tanggal_penerbangan', now())
+            ->whereDate('tanggal_penerbangan', \App\Support\DisplayTimezone::now()->toDateString())
             ->orderBy('jam_jadwal')
             ->get();
 
         $arrivals = Flight::with(['airline', 'airportAsal'])
             ->where('jenis_penerbangan', 'arrival')
-            ->whereDate('tanggal_penerbangan', now())
+            ->whereDate('tanggal_penerbangan', \App\Support\DisplayTimezone::now()->toDateString())
             ->orderBy('jam_jadwal')
             ->get();
 
@@ -134,7 +136,7 @@ class DisplayController extends Controller
         $settings = DisplaySetting::first();
         $departures = Flight::with(['airline', 'airportTujuan', 'gate'])
             ->where('jenis_penerbangan', 'departure')
-            ->whereDate('tanggal_penerbangan', now())
+            ->whereDate('tanggal_penerbangan', \App\Support\DisplayTimezone::now()->toDateString())
             ->orderBy('jam_jadwal')
             ->get();
 
@@ -149,7 +151,7 @@ class DisplayController extends Controller
         $settings = DisplaySetting::first();
         $arrivals = Flight::with(['airline', 'airportAsal', 'baggageClaim'])
             ->where('jenis_penerbangan', 'arrival')
-            ->whereDate('tanggal_penerbangan', now())
+            ->whereDate('tanggal_penerbangan', \App\Support\DisplayTimezone::now()->toDateString())
             ->orderBy('jam_jadwal')
             ->get();
 
@@ -259,7 +261,7 @@ class DisplayController extends Controller
             if ($cam->baggage_claim_id) {
                 $activeFlight = Flight::with(['airline:id,kode_maskapai,nama_maskapai,logo,warna_identitas', 'airportAsal:id,kota,kode_iata,nama_bandara'])
                     ->where('jenis_penerbangan', 'arrival')
-                    ->whereDate('tanggal_penerbangan', now())
+                    ->whereDate('tanggal_penerbangan', \App\Support\DisplayTimezone::now()->toDateString())
                     ->where('baggage_claim_id', $cam->baggage_claim_id)
                     ->whereIn('status', $activeStatuses)
                     ->orderByRaw("FIELD(status, 'Baggage Claim', 'Arrived', 'Landed')")
@@ -322,7 +324,7 @@ class DisplayController extends Controller
         if ($camera && $camera->baggage_claim_id) {
             $activeFlight = Flight::with(['airline:id,kode_maskapai,nama_maskapai,logo,warna_identitas', 'airportAsal:id,kota,kode_iata,nama_bandara'])
                 ->where('jenis_penerbangan', 'arrival')
-                ->whereDate('tanggal_penerbangan', now())
+                ->whereDate('tanggal_penerbangan', \App\Support\DisplayTimezone::now()->toDateString())
                 ->where('baggage_claim_id', $camera->baggage_claim_id)
                 ->whereIn('status', $activeStatuses)
                 ->orderByRaw("FIELD(status, 'Baggage Claim', 'Arrived', 'Landed')")

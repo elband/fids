@@ -1,6 +1,5 @@
 ﻿import { useEffect, useState, useCallback, useRef } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
-import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { PlaneTakeoff } from 'lucide-react';
 import { t, type Lang } from '@/lib/fids';
 import { useNtpClock } from '@/hooks/useNtpClock';
@@ -42,8 +41,10 @@ export default function Departures() {
     const { dateText, timeText } = useNtpClock();
     const [loading, setLoading] = useState(true);
     const [bgImage, setBgImage] = useState<string | null>(null);
+    // Papan keberangkatan memakai rotasi baris (offset), bukan auto-scroll.
+    // scrollSpeed tetap dibaca dari Pengaturan Layar untuk kompatibilitas data.
     const [scrollSpeed, setScrollSpeed] = useState(1);
-    const scrollRef = useAutoScroll(scrollSpeed, 4000, [flights]);
+    void scrollSpeed;
     const [weather, setWeather] = useState<{ suhu: string; kondisi_cuaca: string } | null>(null);
 
     const [tickerText, setTickerText] = useState('');
@@ -351,10 +352,13 @@ export default function Departures() {
  * ScoreChars â€” animasi papan score badminton.
  * Setiap karakter dalam kotak kecil, muncul slide dari bawah ke atas secara berurutan.
  */
-function ScoreChars({ text, baseDelay = 0 }: { text: string; baseDelay?: number }) {
+function ScoreChars({ text, baseDelay = 0 }: { text?: string | null; baseDelay?: number }) {
+    // Field bisa null/undefined dari API (mis. status/waktu kosong) — jangan sampai
+    // `.split()` melempar dan menjatuhkan seluruh papan keberangkatan.
+    const safeText = text ?? '';
     return (
         <>
-            {text.split('').map((char, i) => (
+            {safeText.split('').map((char, i) => (
                 <span key={i} className="score-char">
                     <span style={{ animationDelay: `${baseDelay + i * 40}ms` }}>
                         {char === ' ' ? '\u00A0' : char}

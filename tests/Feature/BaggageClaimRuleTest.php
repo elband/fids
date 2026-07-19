@@ -89,6 +89,13 @@ class BaggageClaimRuleTest extends TestCase
         $this->assertCount(0, $this->beltData()['flights']);
     }
 
+    public function test_hides_on_time_flight_not_yet_landed(): void
+    {
+        // "On Time" = pra-kedatangan, pesawat belum mendarat → belt tidak boleh menampilkannya.
+        $this->makeFlight('IU652', 'On Time', null);
+        $this->assertCount(0, $this->beltData()['flights']);
+    }
+
     public function test_hides_flight_after_window(): void
     {
         // Tiba 40 menit lalu > jendela max(durasi status 30, kamera selesai 20).

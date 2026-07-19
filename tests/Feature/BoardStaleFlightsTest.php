@@ -79,4 +79,29 @@ class BoardStaleFlightsTest extends TestCase
         $this->assertNotContains('IU640', $nomors);
         $this->assertContains('IU652', $nomors);
     }
+
+    public function test_arrivals_keep_on_time_flight_even_if_edited_long_ago(): void
+    {
+        // "On Time" bukan status tiba → tidak boleh dianggap stale walau updated_at lama.
+        $f = Flight::create([
+            'is_master' => false,
+            'tanggal_penerbangan' => Carbon::now()->toDateString(),
+            'nomor_penerbangan' => 'IU700',
+            'airline_id' => $this->airlineId,
+            'airport_asal_id' => $this->subId,
+            'airport_tujuan_id' => $this->aapId,
+            'jenis_penerbangan' => 'arrival',
+            'tipe_layanan' => 'domestik',
+            'jam_jadwal' => '18:00:00', // masih akan tiba nanti sore
+            'jam_aktual' => null,
+            'status' => 'On Time',
+        ]);
+        // Paksa updated_at jauh di masa lalu (mensimulasikan diedit pagi hari).
+        Flight::where('id', $f->id)->update(['updated_at' => Carbon::now()->subHours(6)]);
+
+        $nomors = collect($this->getJson('/api/fids/arrivals')->assertOk()->json('data'))
+            ->pluck('nomor_penerbangan')->all();
+
+        $this->assertContains('IU700', $nomors);
+    }
 }

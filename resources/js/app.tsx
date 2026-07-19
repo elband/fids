@@ -5,6 +5,7 @@ import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { ConfirmProvider } from '@/Components/ConfirmDialog';
+import ErrorBoundary from '@/Components/ErrorBoundary';
 import OfflineIndicator from '@/Components/OfflineIndicator';
 import ReloadWatcher from '@/Components/ReloadWatcher';
 
@@ -22,7 +23,11 @@ createInertiaApp({
 
         root.render(
             <ConfirmProvider>
-                <App {...props} />
+                <ErrorBoundary>
+                    <App {...props} />
+                </ErrorBoundary>
+                {/* Di luar boundary: tetap hidup walau <App> crash, agar layar publik
+                    bisa memantau sinyal reload & status offline. */}
                 <OfflineIndicator />
                 <ReloadWatcher />
             </ConfirmProvider>,

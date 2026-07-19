@@ -61,8 +61,10 @@ export default function BoardingGateDisplay() {
 
             // Lacak waktu "Departed" untuk setiap flight
             const now = Date.now();
+            const presentIds = new Set<number>();
             newGates.forEach(gate => {
                 (gate.flights ?? []).forEach(flight => {
+                    presentIds.add(flight.id);
                     if (flight.status === 'Departed') {
                         if (!departedAtRef.current[flight.id]) {
                             departedAtRef.current[flight.id] = now;
@@ -72,6 +74,14 @@ export default function BoardingGateDisplay() {
                         delete departedAtRef.current[flight.id];
                     }
                 });
+            });
+
+            // Pangkas flight yang sudah hilang total dari respons (mis. akhir hari)
+            // agar map tidak menumpuk selama kiosk menyala 24/7.
+            Object.keys(departedAtRef.current).forEach(idStr => {
+                if (!presentIds.has(Number(idStr))) {
+                    delete departedAtRef.current[Number(idStr)];
+                }
             });
 
             // Sembunyikan flight yang sudah departed > 5 menit
@@ -249,7 +259,7 @@ export default function BoardingGateDisplay() {
                                                                     {fl.tujuan}
                                                                 </div>
                                                                 <div className="text-2xl font-bold tracking-wider">
-                                                                    {fl.jam_jadwal.substring(0, 5)}
+                                                                    {fl.jam_jadwal?.substring(0, 5) ?? '--:--'}
                                                                 </div>
                                                             </div>
                                                             {isCO && (
@@ -303,7 +313,7 @@ export default function BoardingGateDisplay() {
                                                                         {fl.tujuan}
                                                                     </span>
                                                                     <span className="text-lg font-bold tracking-wider shrink-0">
-                                                                        {fl.jam_jadwal.substring(0, 5)}
+                                                                        {fl.jam_jadwal?.substring(0, 5) ?? '--:--'}
                                                                     </span>
                                                                 </div>
                                                                 {isCO && (

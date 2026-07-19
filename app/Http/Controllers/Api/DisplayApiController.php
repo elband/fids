@@ -117,8 +117,12 @@ class DisplayApiController extends Controller
         return collect([$open->sortBy('jam_jadwal')->first()]);
     }
 
-    /** Status penerbangan yang berarti pesawat sudah tiba (memicu tampil di baggage claim). */
-    private const BAGGAGE_ARRIVED_STATUSES = ['Arrived', 'On Time', 'Landed', 'Baggage Claim'];
+    /**
+     * Status penerbangan yang berarti pesawat sudah tiba (memicu tampil di baggage claim).
+     * CATATAN: "On Time" TIDAK termasuk — itu status pra-kedatangan (sejajar Scheduled/Delayed),
+     * bukan pertanda pesawat sudah mendarat. Samakan dengan set CCTV di DisplayController.
+     */
+    private const BAGGAGE_ARRIVED_STATUSES = ['Arrived', 'Landed', 'Baggage Claim'];
 
     /**
      * Waktu tiba penerbangan sebagai Carbon (zona tampilan).
