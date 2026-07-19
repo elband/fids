@@ -2,6 +2,7 @@
 import FidsLayout from '@/Layouts/FidsLayout';
 import { PlaneTakeoff } from 'lucide-react';
 import { t, type Lang } from '@/lib/fids';
+import { themeGradient } from '@/lib/theme';
 import { useNtpClock } from '@/hooks/useNtpClock';
 
 interface Flight {
@@ -41,6 +42,11 @@ export default function Departures() {
     const { dateText, timeText } = useNtpClock();
     const [loading, setLoading] = useState(true);
     const [bgImage, setBgImage] = useState<string | null>(null);
+    // Warna tema latar dari Pengaturan Layar (default navy). Diterapkan ke seluruh papan.
+    const [themeColor, setThemeColor] = useState<string>('#0f172a');
+    // Warna teks papan (Pengaturan Layar): utama = jam/no.pnb/gate, aksen = judul/header/tujuan.
+    const [textColor, setTextColor] = useState<string>('#ffffff');
+    const [accentColor, setAccentColor] = useState<string>('#fbbf24');
     // Papan keberangkatan memakai rotasi baris (offset), bukan auto-scroll.
     // scrollSpeed tetap dibaca dari Pengaturan Layar untuk kompatibilitas data.
     const [scrollSpeed, setScrollSpeed] = useState(1);
@@ -79,6 +85,9 @@ export default function Departures() {
                 setWeather(jsonWeather.data);
             }
             if (jsonSettings.data?.background_header) setBgImage(jsonSettings.data.background_header);
+            if (jsonSettings.data?.tema_warna) setThemeColor(jsonSettings.data.tema_warna);
+            if (jsonSettings.data?.warna_utama) setTextColor(jsonSettings.data.warna_utama);
+            if (jsonSettings.data?.warna_aksen) setAccentColor(jsonSettings.data.warna_aksen);
             if (jsonSettings.data?.kecepatan_scroll !== undefined) setScrollSpeed(jsonSettings.data.kecepatan_scroll);
 
             if (jsonSettings.data?.teks_ticker) setTickerText(jsonSettings.data.teks_ticker);
@@ -187,7 +196,7 @@ export default function Departures() {
                     animation: score-slide-up 0.4s cubic-bezier(0.16, 0.84, 0.44, 1) both;
                 }
             `}</style>
-            <div className="h-screen text-white font-sans select-none overflow-hidden flex flex-col" style={{ background: 'linear-gradient(135deg, rgba(5,8,23,0.92), rgba(11,6,35,0.92))' }}>
+            <div className="h-screen text-white font-sans select-none overflow-hidden flex flex-col" style={{ background: themeGradient(themeColor) }}>
 
                 <header
                     className="relative w-full flex items-center justify-between bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 overflow-hidden shadow-lg border-b-4 border-black bg-cover bg-center"
@@ -201,8 +210,8 @@ export default function Departures() {
                     <div className="absolute inset-0 bg-black/30"></div>
 
                     <div className="relative z-10 flex items-center gap-[1vw] min-w-0 w-[30%]">
-                        <PlaneTakeoff style={{ width: '3.5vw', height: '3.5vw', flexShrink: 0 }} className="text-yellow-400 drop-shadow" />
-                        <h1 style={{ fontSize: '3.5vw' }} className="font-extrabold tracking-tighter text-white drop-shadow-lg leading-none whitespace-nowrap">
+                        <PlaneTakeoff style={{ width: '3.5vw', height: '3.5vw', flexShrink: 0, color: accentColor }} className="drop-shadow" />
+                        <h1 style={{ fontSize: '3.5vw', color: textColor }} className="font-extrabold tracking-tighter drop-shadow-lg leading-none whitespace-nowrap">
                             {t.departures[lang]}
                         </h1>
                     </div>
@@ -211,11 +220,11 @@ export default function Departures() {
 
                     <div className="relative z-10 text-right w-[30%]">
                         {weather && (
-                            <div style={{ fontSize: '1.3vw' }} className="font-medium text-yellow-400 drop-shadow whitespace-nowrap">
+                            <div style={{ fontSize: '1.3vw', color: accentColor }} className="font-medium drop-shadow whitespace-nowrap">
                                 {weather.suhu}°C <span className="mx-1">•</span> {weather.kondisi_cuaca}
                             </div>
                         )}
-                        <div style={{ fontSize: '1.6vw' }} className="font-bold tracking-wide mt-1 drop-shadow whitespace-nowrap font-mono">
+                        <div style={{ fontSize: '1.6vw', color: textColor }} className="font-bold tracking-wide mt-1 drop-shadow whitespace-nowrap font-mono">
                             <ScoreChars text={`${dateText} | ${timeText}`} baseDelay={0} />
                         </div>
                     </div>
@@ -224,22 +233,22 @@ export default function Departures() {
                 {/* Header kolom */}
                 <div className="w-full bg-gradient-to-b from-gray-900 to-black border-b border-yellow-500/30">
                     <div className="grid grid-cols-12 gap-4" style={{ paddingLeft: '2.5vw', paddingRight: '2.5vw', paddingTop: '1vh', paddingBottom: '1vh' }}>
-                        <div style={{ fontSize: '0.9vw' }} className="col-span-2 font-black text-yellow-500 tracking-[0.3em] uppercase header-col-wrap">
+                        <div style={{ fontSize: '0.9vw', color: accentColor }} className="col-span-2 font-black text-yellow-500 tracking-[0.3em] uppercase header-col-wrap">
                             <span key={`airline-${headerKey}`} className="header-col-text">{t.colAirline[headerLang]}</span>
                         </div>
-                        <div style={{ fontSize: '0.9vw' }} className="col-span-1 font-black text-yellow-500 tracking-[0.3em] uppercase header-col-wrap">
+                        <div style={{ fontSize: '0.9vw', color: accentColor }} className="col-span-1 font-black text-yellow-500 tracking-[0.3em] uppercase header-col-wrap">
                             <span key={`sched-${headerKey}`} className="header-col-text" style={{ animationDelay: '40ms' }}>{t.colScheduled[headerLang]}</span>
                         </div>
-                        <div style={{ fontSize: '0.9vw' }} className="col-span-2 font-black text-yellow-500 tracking-[0.3em] uppercase header-col-wrap">
+                        <div style={{ fontSize: '0.9vw', color: accentColor }} className="col-span-2 font-black text-yellow-500 tracking-[0.3em] uppercase header-col-wrap">
                             <span key={`flight-${headerKey}`} className="header-col-text" style={{ animationDelay: '80ms' }}>{t.colFlight[headerLang]}</span>
                         </div>
-                        <div style={{ fontSize: '0.9vw' }} className="col-span-4 font-black text-yellow-500 tracking-[0.3em] uppercase header-col-wrap">
+                        <div style={{ fontSize: '0.9vw', color: accentColor }} className="col-span-4 font-black text-yellow-500 tracking-[0.3em] uppercase header-col-wrap">
                             <span key={`dest-${headerKey}`} className="header-col-text" style={{ animationDelay: '120ms' }}>{t.colDestination[headerLang]}</span>
                         </div>
-                        <div style={{ fontSize: '0.9vw' }} className="col-span-1 font-black text-yellow-500 tracking-[0.3em] uppercase text-center header-col-wrap">
+                        <div style={{ fontSize: '0.9vw', color: accentColor }} className="col-span-1 font-black text-yellow-500 tracking-[0.3em] uppercase text-center header-col-wrap">
                             <span key={`gate-${headerKey}`} className="header-col-text" style={{ animationDelay: '160ms' }}>{t.colGate[headerLang]}</span>
                         </div>
-                        <div style={{ fontSize: '0.9vw' }} className="col-span-2 font-black text-yellow-500 tracking-[0.3em] uppercase text-right header-col-wrap">
+                        <div style={{ fontSize: '0.9vw', color: accentColor }} className="col-span-2 font-black text-yellow-500 tracking-[0.3em] uppercase text-right header-col-wrap">
                             <span key={`status-${headerKey}`} className="header-col-text" style={{ animationDelay: '200ms' }}>{t.colStatus[headerLang]}</span>
                         </div>
                     </div>
@@ -287,22 +296,22 @@ export default function Departures() {
                                     </div>
 
                                     {/* Waktu â€” scoreboard chars */}
-                                    <div style={{ fontSize: '1.8vw' }} className="col-span-1 font-black text-white tracking-tight font-mono">
+                                    <div style={{ fontSize: '1.8vw', color: textColor }} className="col-span-1 font-black tracking-tight font-mono">
                                         <ScoreChars text={flight.waktu} baseDelay={idx * 100 + 100} />
                                     </div>
 
                                     {/* Nomor penerbangan */}
-                                    <div style={{ fontSize: '1.5vw' }} className="col-span-2 font-bold text-white/80 tracking-tight">
+                                    <div style={{ fontSize: '1.5vw', color: textColor, opacity: 0.85 }} className="col-span-2 font-bold tracking-tight">
                                         <ScoreChars text={flight.nomor_penerbangan} baseDelay={idx * 100 + 200} />
                                     </div>
 
                                     {/* Tujuan */}
-                                    <div style={{ fontSize: '2.2vw' }} className="col-span-4 font-black text-amber-400 tracking-tight truncate pr-4 drop-shadow-sm uppercase">
+                                    <div style={{ fontSize: '2.2vw', color: accentColor }} className="col-span-4 font-black tracking-tight truncate pr-4 drop-shadow-sm uppercase">
                                         <ScoreChars text={flight.tujuan} baseDelay={idx * 100 + 150} />
                                     </div>
 
                                     {/* Gate */}
-                                    <div style={{ fontSize: '1.4vw' }} className="col-span-1 font-black text-white text-center">
+                                    <div style={{ fontSize: '1.4vw', color: textColor }} className="col-span-1 font-black text-center">
                                         <ScoreChars text={flight.gate || '-'} baseDelay={idx * 100 + 300} />
                                     </div>
 
@@ -337,7 +346,7 @@ export default function Departures() {
                         {t.info[lang]}
                     </div>
                     <div className="w-full relative h-full flex items-center">
-                        <div style={{ fontSize: '1.2vw' }} className="whitespace-nowrap absolute font-semibold text-white tracking-widest animate-[ticker_25s_linear_infinite]">
+                        <div style={{ fontSize: '1.2vw', color: textColor }} className="whitespace-nowrap absolute font-semibold tracking-widest animate-[ticker_25s_linear_infinite]">
                             {tickerText}
                         </div>
                     </div>

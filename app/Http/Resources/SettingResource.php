@@ -19,11 +19,15 @@ class SettingResource extends JsonResource
             'nama_bandara' => $this->nama_bandara,
             'logo_bandara' => $this->logo_bandara ? asset('storage/' . $this->logo_bandara) : null,
             'background_header' => $this->background_header ? asset('storage/' . $this->background_header) : null,
+            // Warna tema latar layar TV (hex, mis. "#0f172a"; nilai lawas "navy" dll.
+            // dinormalisasi di frontend). Dipakai papan keberangkatan & kedatangan.
+            'tema_warna' => $this->tema_warna,
             'teks_ticker' => $this->teks_ticker,
             'kecepatan_scroll' => $this->kecepatan_scroll,
             'durasi_tampilan' => $this->durasi_tampilan,
-            'warna_utama' => $this->warna_utama,
-            'warna_aksen' => $this->warna_aksen,
+            // Warna teks papan: utama (jam/no.pnb/gate) & aksen (judul/header/tujuan).
+            'warna_utama' => $this->warna_utama ?: '#ffffff',
+            'warna_aksen' => $this->warna_aksen ?: '#fbbf24',
             'kode_bmkg' => $this->kode_bmkg,
             'lokasi_google_maps' => $this->lokasi_google_maps,
             'bahasa' => $this->bahasa ?? 'id',

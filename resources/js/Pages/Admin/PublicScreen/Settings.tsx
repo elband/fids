@@ -15,6 +15,8 @@ interface DisplaySetting {
     id: number;
     mode_default: 'single' | '2-column' | '3-column';
     tema_warna: string;
+    warna_utama: string;
+    warna_aksen: string;
     show_departures: boolean;
     show_arrivals: boolean;
     tampilkan_cuaca: boolean;
@@ -42,6 +44,17 @@ const THEME_COLORS = [
     { value: '#0b1320', label: 'Slate' },
 ];
 
+const TEXT_COLORS = [
+    { value: '#ffffff', label: 'Putih' },
+    { value: '#fbbf24', label: 'Emas' },
+    { value: '#facc15', label: 'Kuning' },
+    { value: '#38bdf8', label: 'Biru' },
+    { value: '#4ade80', label: 'Hijau' },
+    { value: '#f87171', label: 'Merah' },
+    { value: '#e2e8f0', label: 'Abu' },
+    { value: '#000000', label: 'Hitam' },
+];
+
 const SECTIONS: Array<{
     key: 'show_departures' | 'show_arrivals' | 'tampilkan_cuaca' | 'show_advertisement';
     label: string;
@@ -59,6 +72,8 @@ export default function Settings({ setting, adCount = 0 }: PageProps<{ setting: 
     const { data, setData, post, processing, errors, recentlySuccessful } = useForm({
         mode_default:       setting?.mode_default       || '2-column',
         tema_warna:         setting?.tema_warna         || '#0f172a',
+        warna_utama:        setting?.warna_utama        || '#ffffff',
+        warna_aksen:        setting?.warna_aksen        || '#fbbf24',
         show_departures:    setting?.show_departures    ?? true,
         show_arrivals:      setting?.show_arrivals      ?? true,
         tampilkan_cuaca:    setting?.tampilkan_cuaca    ?? true,
@@ -420,6 +435,67 @@ export default function Settings({ setting, adCount = 0 }: PageProps<{ setting: 
                                     />
                                 </div>
                                 <InputError message={errors.tema_warna} className="mt-2" />
+                            </SectionCard>
+
+                            {/* Warna Teks */}
+                            <SectionCard
+                                icon={<Type size={18} />}
+                                title="Warna Teks"
+                                subtitle="Warna font papan keberangkatan & kedatangan"
+                                accentClass="bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300"
+                            >
+                                {([
+                                    { field: 'warna_utama' as const, label: 'Teks Utama', hint: 'Jam, no. penerbangan, gate', fallback: '#ffffff' },
+                                    { field: 'warna_aksen' as const, label: 'Aksen', hint: 'Judul, header kolom, kota tujuan', fallback: '#fbbf24' },
+                                ]).map(({ field, label, hint, fallback }) => (
+                                    <div key={field} className="mb-5 last:mb-0">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div>
+                                                <div className="text-sm font-semibold text-gray-700 dark:text-gray-200">{label}</div>
+                                                <div className="text-xs text-gray-400">{hint}</div>
+                                            </div>
+                                            <span
+                                                className="text-xs font-mono px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700"
+                                                style={{ color: data[field] || fallback }}
+                                            >
+                                                {(data[field] || fallback).toUpperCase()}
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                                            {TEXT_COLORS.map(({ value, label: swatchLabel }) => {
+                                                const active = (data[field] || '').toLowerCase() === value.toLowerCase();
+                                                return (
+                                                    <button
+                                                        key={value}
+                                                        type="button"
+                                                        onClick={() => setData(field, value)}
+                                                        title={swatchLabel}
+                                                        className={`aspect-square rounded-lg ring-2 transition-all ${
+                                                            active ? 'ring-cyan-500 scale-105' : 'ring-gray-200 dark:ring-gray-700 hover:ring-gray-400'
+                                                        }`}
+                                                        style={{ backgroundColor: value }}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="mt-3 flex items-center gap-3 p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
+                                            <input
+                                                type="color"
+                                                value={data[field] || fallback}
+                                                onChange={(e) => setData(field, e.target.value)}
+                                                className="w-9 h-9 rounded-lg cursor-pointer border-0 bg-transparent"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={data[field]}
+                                                onChange={(e) => setData(field, e.target.value)}
+                                                className="flex-1 rounded-lg border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 text-sm font-mono uppercase"
+                                                placeholder={fallback}
+                                            />
+                                        </div>
+                                        <InputError message={errors[field]} className="mt-2" />
+                                    </div>
+                                ))}
                             </SectionCard>
 
                             {/* Background Image */}

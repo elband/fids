@@ -22,8 +22,10 @@ class DisplaySetting extends Model
     protected $fillable = [
         'nama_bandara', 
         'logo_bandara', 
-        'background_header', 
-        'tema_warna', 
+        'background_header',
+        'tema_warna',
+        'warna_utama',
+        'warna_aksen',
         'interval_refresh', 
         'kecepatan_running_text', 
         'kecepatan_scroll', 

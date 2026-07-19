@@ -57,6 +57,8 @@ class DisplaySettingController extends Controller
         $validated = $request->validate([
             'mode_default'       => 'required|string|in:single,2-column,3-column',
             'tema_warna'         => 'required|string',
+            'warna_utama'        => 'nullable|string|max:32',
+            'warna_aksen'        => 'nullable|string|max:32',
             'show_departures'    => 'boolean',
             'show_arrivals'      => 'boolean',
             'tampilkan_cuaca'    => 'boolean',
@@ -73,6 +75,8 @@ class DisplaySettingController extends Controller
         }
         $setting->mode_default       = $validated['mode_default'];
         $setting->tema_warna         = $validated['tema_warna'];
+        $setting->warna_utama        = $validated['warna_utama'] ?? '#ffffff';
+        $setting->warna_aksen        = $validated['warna_aksen'] ?? '#fbbf24';
         $setting->show_departures    = (bool) ($validated['show_departures']    ?? false);
         $setting->show_arrivals      = (bool) ($validated['show_arrivals']      ?? false);
         $setting->tampilkan_cuaca    = (bool) ($validated['tampilkan_cuaca']    ?? false);
