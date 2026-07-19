@@ -114,6 +114,7 @@ class DisplaySettingController extends Controller
             'bagasi_kamera_selesai_menit' => 'nullable|integer|min:1|max:240',
             'board_hide_after_menit'      => 'nullable|integer|min:0|max:1440',
             'auto_reload_jam'             => 'nullable|integer|min:0|max:168',
+            'mode_hemat'                  => 'nullable|boolean',
         ]);
 
         $setting->nama_bandara     = $validated['nama_bandara'];
@@ -139,6 +140,7 @@ class DisplaySettingController extends Controller
         if (array_key_exists('auto_reload_jam', $validated) && $validated['auto_reload_jam'] !== null) {
             $setting->auto_reload_jam = (int) $validated['auto_reload_jam'];
         }
+        $setting->mode_hemat = (bool) ($validated['mode_hemat'] ?? false);
 
         if ($request->hasFile('logo_bandara')) {
             if ($setting->logo_bandara) {

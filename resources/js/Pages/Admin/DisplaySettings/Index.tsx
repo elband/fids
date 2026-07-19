@@ -25,6 +25,7 @@ interface DisplaySetting {
     bagasi_kamera_selesai_menit?: number | null;
     board_hide_after_menit?: number | null;
     auto_reload_jam?: number | null;
+    mode_hemat?: boolean | null;
 }
 
 const TIMEZONE_OPTIONS = [
@@ -53,6 +54,7 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
         bagasi_kamera_selesai_menit: setting?.bagasi_kamera_selesai_menit ?? 20,
         board_hide_after_menit: setting?.board_hide_after_menit ?? 180,
         auto_reload_jam: setting?.auto_reload_jam ?? 6,
+        mode_hemat: setting?.mode_hemat ?? true,
         _method: 'POST',
     });
 
@@ -337,6 +339,24 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
                                             <InputError message={errors.auto_reload_jam} className="mt-2" />
                                         </div>
                                     </div>
+
+                                    <label className="mt-5 flex items-start gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            checked={!!data.mode_hemat}
+                                            onChange={(e) => setData('mode_hemat', e.target.checked)}
+                                        />
+                                        <span>
+                                            <span className="block text-sm font-semibold text-gray-800">Mode Hemat (Raspberry Pi / perangkat lemah)</span>
+                                            <span className="block text-xs text-gray-500 mt-0.5">
+                                                Matikan efek berat (bayangan ubin, gradient, drop-shadow/blur, animasi flip)
+                                                agar tampilan mulus di Raspberry Pi. Layout & data tetap sama.
+                                                Nonaktifkan hanya bila PC layar cukup kuat dan ingin animasi penuh.
+                                            </span>
+                                        </span>
+                                    </label>
+
                                     <p className="text-xs text-gray-400 mt-3">
                                         Selain itu, tiap layar otomatis memuat ulang bila koneksi ke server terputus &gt; 5 menit
                                         (pulih sendiri saat server kembali). Data biasa tetap diperbarui tiap 15 detik tanpa reload.

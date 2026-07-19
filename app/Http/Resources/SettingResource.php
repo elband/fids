@@ -39,6 +39,8 @@ class SettingResource extends JsonResource
             'force_reload_at' => optional($this->force_reload_at)->timestamp,
             // Interval auto-reload penuh tiap layar (jam; 0 = nonaktif).
             'auto_reload_jam' => (int) ($this->auto_reload_jam ?? 6),
+            // Mode hemat (Raspberry Pi): matikan efek/animasi berat.
+            'mode_hemat' => (bool) ($this->mode_hemat ?? true),
         ];
     }
 }

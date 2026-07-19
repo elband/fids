@@ -37,6 +37,10 @@ export default function ReloadWatcher() {
         const pageLoadedAt = Date.now();
         let lastOkAt = Date.now(); // anggap sehat saat halaman baru dimuat
 
+        // Optimistis: mulai dalam mode hemat (default) supaya Raspberry Pi tidak
+        // sempat merender efek berat di frame awal; fetch akan mengoreksi bila off.
+        document.documentElement.classList.add('perf-lite');
+
         const clearAppCaches = async () => {
             try {
                 Object.keys(localStorage)
@@ -58,6 +62,10 @@ export default function ReloadWatcher() {
                 if (!res.ok) throw new Error(`http ${res.status}`);
                 const json = await res.json();
                 lastOkAt = Date.now(); // koneksi & server sehat
+
+                // (0) Mode Hemat (Raspberry Pi): pasang/lepas kelas perf-lite di <html>.
+                const hemat = json?.data?.mode_hemat !== false; // default aktif bila tak ada
+                document.documentElement.classList.toggle('perf-lite', hemat);
 
                 // (1) Sinyal reload manual dari admin (force_reload_at).
                 const token = json?.data?.force_reload_at;

@@ -46,6 +46,7 @@ class DisplaySetting extends Model
         'bagasi_kamera_selesai_menit',
         'board_hide_after_menit',
         'auto_reload_jam',
+        'mode_hemat',
     ];
 
     protected $casts = [
@@ -60,5 +61,6 @@ class DisplaySetting extends Model
         'bagasi_kamera_selesai_menit' => 'integer',
         'board_hide_after_menit' => 'integer',
         'auto_reload_jam' => 'integer',
+        'mode_hemat' => 'boolean',
     ];
 }
