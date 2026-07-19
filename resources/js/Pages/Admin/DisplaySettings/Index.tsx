@@ -24,6 +24,7 @@ interface DisplaySetting {
     bagasi_kamera_mulai_menit?: number | null;
     bagasi_kamera_selesai_menit?: number | null;
     board_hide_after_menit?: number | null;
+    auto_reload_jam?: number | null;
 }
 
 const TIMEZONE_OPTIONS = [
@@ -51,6 +52,7 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
         bagasi_kamera_mulai_menit: setting?.bagasi_kamera_mulai_menit ?? 10,
         bagasi_kamera_selesai_menit: setting?.bagasi_kamera_selesai_menit ?? 20,
         board_hide_after_menit: setting?.board_hide_after_menit ?? 180,
+        auto_reload_jam: setting?.auto_reload_jam ?? 6,
         _method: 'POST',
     });
 
@@ -317,7 +319,28 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
                                             </p>
                                             <InputError message={errors.board_hide_after_menit} className="mt-2" />
                                         </div>
+                                        <div>
+                                            <InputLabel htmlFor="auto_reload_jam" value="Auto-muat ulang layar (jam)" />
+                                            <input
+                                                id="auto_reload_jam"
+                                                type="number" min={0} max={168}
+                                                className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                                value={data.auto_reload_jam}
+                                                onChange={(e) => setData('auto_reload_jam', parseInt(e.target.value) || 0)}
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Tiap layar memuat ulang penuh secara berkala (jaring pengaman kiosk 24/7).
+                                                {' '}{data.auto_reload_jam > 0
+                                                    ? `Tiap ${data.auto_reload_jam} jam.`
+                                                    : 'Isi 0 = nonaktif (andalkan polling + tombol "Segarkan Semua Layar TV").'}
+                                            </p>
+                                            <InputError message={errors.auto_reload_jam} className="mt-2" />
+                                        </div>
                                     </div>
+                                    <p className="text-xs text-gray-400 mt-3">
+                                        Selain itu, tiap layar otomatis memuat ulang bila koneksi ke server terputus &gt; 5 menit
+                                        (pulih sendiri saat server kembali). Data biasa tetap diperbarui tiap 15 detik tanpa reload.
+                                    </p>
                                 </div>
 
                                 <div className="flex items-center gap-4">

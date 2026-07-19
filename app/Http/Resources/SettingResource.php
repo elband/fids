@@ -37,6 +37,8 @@ class SettingResource extends JsonResource
             'bagasi_kamera_selesai_menit' => (int) ($this->bagasi_kamera_selesai_menit ?? 20),
             // Sinyal "segarkan semua layar TV" (epoch detik; null jika belum pernah).
             'force_reload_at' => optional($this->force_reload_at)->timestamp,
+            // Interval auto-reload penuh tiap layar (jam; 0 = nonaktif).
+            'auto_reload_jam' => (int) ($this->auto_reload_jam ?? 6),
         ];
     }
 }
