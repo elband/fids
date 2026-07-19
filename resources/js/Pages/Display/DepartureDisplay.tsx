@@ -170,28 +170,46 @@ export default function Departures() {
                     animation: score-row-in 0.6s cubic-bezier(0.16, 0.84, 0.44, 1) both;
                     transform-origin: bottom center;
                 }
+                /* Ubin split-flap (Solari): ubin gelap, belahan atas/bawah, seam melintang. */
                 .score-char {
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
                     overflow: hidden;
-                    min-width: 0.55em;
-                    height: 1.2em;
-                    margin: 0 0.5px;
-                    background: var(--score-slot-bg, rgba(255,255,255,0.06));
-                    border-radius: 3px;
-                    border: 1px solid var(--score-slot-border, rgba(255,255,255,0.08));
+                    min-width: 0.62em;
+                    height: 1.3em;
+                    margin: 0 0.75px;
+                    background: var(--score-slot-bg, rgba(0,0,0,0.28));
+                    border-radius: 2px;
+                    border: 1px solid var(--score-slot-border, rgba(0,0,0,0.55));
+                    box-shadow: 0 1px 1px rgba(0,0,0,0.25);
                     position: relative;
+                }
+                .score-char::before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(to bottom,
+                        var(--flap-top, rgba(255,255,255,0.06)) 0%,
+                        var(--flap-top, rgba(255,255,255,0.06)) 49.3%,
+                        var(--flap-bottom, rgba(0,0,0,0.3)) 50.7%,
+                        var(--flap-bottom, rgba(0,0,0,0.3)) 100%);
+                    pointer-events: none;
+                    z-index: 0;
                 }
                 .score-char::after {
                     content: '';
                     position: absolute;
                     left: 0; right: 0;
-                    top: 49%;
+                    top: 50%;
                     height: 1px;
-                    background: var(--score-seam, rgba(0,0,0,0.4));
+                    transform: translateY(-0.5px);
+                    background: var(--score-seam, rgba(0,0,0,0.7));
+                    z-index: 2;
                 }
                 .score-char > span {
+                    position: relative;
+                    z-index: 1;
                     display: inline-block;
                     animation: score-slide-up 0.4s cubic-bezier(0.16, 0.84, 0.44, 1) both;
                 }

@@ -85,9 +85,13 @@ export function isLightColor(input?: string | null): boolean {
 export function scoreboardVars(themeInput?: string | null): Record<string, string> {
     const light = isLightColor(themeInput);
     return {
-        '--score-slot-bg': light ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)',
-        '--score-slot-border': light ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.08)',
-        '--score-seam': light ? 'rgba(0,0,0,0.14)' : 'rgba(0,0,0,0.40)',
+        // Ubin split-flap: gelap (di bawah teks) agar mirip papan Solari mekanis.
+        '--score-slot-bg': light ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.28)',
+        '--score-slot-border': light ? 'rgba(0,0,0,0.14)' : 'rgba(0,0,0,0.55)',
+        '--score-seam': light ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.7)',
+        // Belahan atas (sedikit terang) & bawah (lebih gelap) tiap ubin flip.
+        '--flap-top': light ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.06)',
+        '--flap-bottom': light ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.3)',
         '--row-divider': light ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)',
     };
 }
