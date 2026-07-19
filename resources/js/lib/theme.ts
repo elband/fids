@@ -68,3 +68,26 @@ export function themeGradient(input?: string | null): string {
     const bottom = shade(rgb, -0.4);
     return `linear-gradient(160deg, ${top} 0%, ${mid} 50%, ${bottom} 100%)`;
 }
+
+/** Apakah warna tergolong terang (butuh dekorasi/garis gelap agar kontras). */
+export function isLightColor(input?: string | null): boolean {
+    const [r, g, b] = hexToRgb(normalizeThemeColor(input));
+    // Luminансi relatif (persepsi mata) 0..1.
+    const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    return lum > 0.55;
+}
+
+/**
+ * Variabel CSS dekorasi "flip board" (ScoreChars) yang menyesuaikan latar:
+ * di latar terang pakai garis/slot gelap, di latar gelap pakai yang terang —
+ * agar angka tidak tampak seperti dicoret dan slot tetap terlihat halus.
+ */
+export function scoreboardVars(themeInput?: string | null): Record<string, string> {
+    const light = isLightColor(themeInput);
+    return {
+        '--score-slot-bg': light ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)',
+        '--score-slot-border': light ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.08)',
+        '--score-seam': light ? 'rgba(0,0,0,0.14)' : 'rgba(0,0,0,0.40)',
+        '--row-divider': light ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)',
+    };
+}

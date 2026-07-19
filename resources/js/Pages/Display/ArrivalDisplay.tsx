@@ -2,7 +2,7 @@
 import FidsLayout from '@/Layouts/FidsLayout';
 import { PlaneLanding } from 'lucide-react';
 import { t, type Lang } from '@/lib/fids';
-import { themeGradient } from '@/lib/theme';
+import { themeGradient, scoreboardVars } from '@/lib/theme';
 import { useNtpClock } from '@/hooks/useNtpClock';
 
 interface Flight {
@@ -148,9 +148,9 @@ export default function Arrivals() {
                     min-width: 0.55em;
                     height: 1.2em;
                     margin: 0 0.5px;
-                    background: rgba(255,255,255,0.06);
+                    background: var(--score-slot-bg, rgba(255,255,255,0.06));
                     border-radius: 3px;
-                    border: 1px solid rgba(255,255,255,0.08);
+                    border: 1px solid var(--score-slot-border, rgba(255,255,255,0.08));
                     position: relative;
                 }
                 .score-char::after {
@@ -159,7 +159,7 @@ export default function Arrivals() {
                     left: 0; right: 0;
                     top: 49%;
                     height: 1px;
-                    background: rgba(0,0,0,0.4);
+                    background: var(--score-seam, rgba(0,0,0,0.4));
                 }
                 .score-char > span {
                     display: inline-block;
@@ -180,7 +180,7 @@ export default function Arrivals() {
                     animation: header-col-in 0.55s cubic-bezier(0.16, 0.84, 0.44, 1) both;
                 }
             `}</style>
-            <div className="h-screen text-white font-sans select-none overflow-hidden flex flex-col" style={{ background: themeGradient(themeColor) }}>
+            <div className="h-screen text-white font-sans select-none overflow-hidden flex flex-col" style={{ background: themeGradient(themeColor), ...scoreboardVars(themeColor) }}>
 
                 <header
                     className="relative w-full flex items-center justify-between bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 overflow-hidden shadow-lg border-b-4 border-black bg-cover bg-center"
@@ -253,10 +253,18 @@ export default function Arrivals() {
                     ) : (
                         rotatedFlights.map((flight, idx) => {
                             const style = getStatusStyle(flight.status);
+                            // Warna status semantik (tetap); status lain ikut warna teks utama
+                            // agar terbaca di latar terang/gelap.
+                            const semanticStatusClass =
+                                (flight.status === 'Landed' || flight.status === 'Baggage Claim') ? 'text-emerald-400'
+                                : flight.status === 'Arrived' ? 'text-emerald-300'
+                                : flight.status === 'Delayed' ? 'text-orange-400'
+                                : flight.status === 'Cancelled' ? 'text-red-400'
+                                : '';
                             return (
                                 <div
                                     key={`${flight.id}-${flipKey}`}
-                                    className={`score-row grid grid-cols-12 gap-4 items-center border-b border-white/[0.06] group ${
+                                    className={`score-row grid grid-cols-12 gap-4 items-center border-b group ${
                                         idx % 2 === 0 ? 'bg-white/[0.02]' : 'bg-transparent'
                                     }`}
                                     style={{
@@ -265,6 +273,7 @@ export default function Arrivals() {
                                         paddingTop: '1vh',
                                         paddingBottom: '1vh',
                                         animationDelay: `${idx * 100}ms`,
+                                        borderBottomColor: 'var(--row-divider, rgba(255,255,255,0.06))',
                                     }}
                                 >
                                     {/* Maskapai logo */}
@@ -302,18 +311,13 @@ export default function Arrivals() {
                                     {/* Status */}
                                     <div className="col-span-2 flex justify-end">
                                         <span
-                                            style={{ fontSize: '0.85vw', padding: '0.6vh 0.5vw' }}
-                                            className={`font-black tracking-[0.15em] uppercase ${
-                                                flight.status === 'Landed' || flight.status === 'Baggage Claim'
-                                                    ? 'text-emerald-400'
-                                                    : flight.status === 'Arrived'
-                                                        ? 'text-emerald-300'
-                                                        : flight.status === 'Delayed'
-                                                            ? 'text-orange-400'
-                                                            : flight.status === 'Cancelled'
-                                                                ? 'text-red-400'
-                                                                : 'text-white/60'
-                                            } ${style.glow}`}
+                                            style={{
+                                                fontSize: '0.85vw',
+                                                padding: '0.6vh 0.5vw',
+                                                color: semanticStatusClass ? undefined : textColor,
+                                                opacity: semanticStatusClass ? undefined : 0.75,
+                                            }}
+                                            className={`font-black tracking-[0.15em] uppercase ${semanticStatusClass} ${style.glow}`}
                                         >
                                             <ScoreChars text={flight.status} baseDelay={idx * 100 + 350} />
                                         </span>
