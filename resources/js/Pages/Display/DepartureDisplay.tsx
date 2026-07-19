@@ -195,6 +195,11 @@ export default function Departures() {
                     display: inline-block;
                     animation: score-slide-up 0.4s cubic-bezier(0.16, 0.84, 0.44, 1) both;
                 }
+                /* Font monospace gaya papan bandara (Solari/split-flap) untuk isi tabel. */
+                .board-font, .board-font * {
+                    font-family: ui-monospace, 'Cascadia Mono', 'Consolas', 'DejaVu Sans Mono', 'Menlo', 'Courier New', monospace;
+                    letter-spacing: 0.02em;
+                }
             `}</style>
             <div className="h-screen text-white font-sans select-none overflow-hidden flex flex-col" style={{ background: themeGradient(themeColor), ...scoreboardVars(themeColor) }}>
 
@@ -231,7 +236,7 @@ export default function Departures() {
                 </header>
 
                 {/* Header kolom */}
-                <div className="w-full bg-gradient-to-b from-gray-900 to-black border-b border-yellow-500/30">
+                <div className="board-font w-full bg-gradient-to-b from-gray-900 to-black border-b border-yellow-500/30">
                     <div className="grid grid-cols-12 gap-4" style={{ paddingLeft: '2.5vw', paddingRight: '2.5vw', paddingTop: '1vh', paddingBottom: '1vh' }}>
                         <div style={{ fontSize: '0.9vw', color: accentColor }} className="col-span-2 font-black text-yellow-500 tracking-[0.3em] uppercase header-col-wrap">
                             <span key={`airline-${headerKey}`} className="header-col-text">{t.colAirline[headerLang]}</span>
@@ -255,7 +260,7 @@ export default function Departures() {
                 </div>
 
                 {/* Baris penerbangan â€” animasi scoreboard badminton */}
-                <div className="flex-1 overflow-hidden relative">
+                <div className="board-font flex-1 overflow-hidden relative">
                     {loading ? (
                         <div className="flex items-center justify-center py-20">
                             <div style={{ fontSize: '1.5vw' }} className="text-yellow-500 font-bold animate-pulse tracking-widest">
