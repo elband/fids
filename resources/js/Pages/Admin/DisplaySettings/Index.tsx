@@ -23,6 +23,7 @@ interface DisplaySetting {
     bagasi_durasi_status_menit?: number | null;
     bagasi_kamera_mulai_menit?: number | null;
     bagasi_kamera_selesai_menit?: number | null;
+    board_hide_after_menit?: number | null;
 }
 
 const TIMEZONE_OPTIONS = [
@@ -49,6 +50,7 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
         bagasi_durasi_status_menit: setting?.bagasi_durasi_status_menit ?? 30,
         bagasi_kamera_mulai_menit: setting?.bagasi_kamera_mulai_menit ?? 10,
         bagasi_kamera_selesai_menit: setting?.bagasi_kamera_selesai_menit ?? 20,
+        board_hide_after_menit: setting?.board_hide_after_menit ?? 180,
         _method: 'POST',
     });
 
@@ -289,6 +291,31 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
                                             />
                                             <p className="text-xs text-gray-500 mt-1">Kamera CCTV berhenti tampil setelah menit ini.</p>
                                             <InputError message={errors.bagasi_kamera_selesai_menit} className="mt-2" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Pengaturan Papan Keberangkatan & Kedatangan */}
+                                <div className="border-t border-gray-200 pt-6">
+                                    <h3 className="text-base font-semibold text-gray-800 mb-1">Papan Keberangkatan & Kedatangan</h3>
+                                    <p className="text-sm text-gray-500 mb-4">Mengatur berapa lama penerbangan tetap tampil setelah berangkat/tiba, sebelum otomatis hilang dari papan.</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <InputLabel htmlFor="board_hide_after_menit" value="Sembunyikan setelah selesai (menit)" />
+                                            <input
+                                                id="board_hide_after_menit"
+                                                type="number" min={0} max={1440}
+                                                className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                                value={data.board_hide_after_menit}
+                                                onChange={(e) => setData('board_hide_after_menit', parseInt(e.target.value) || 0)}
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Penerbangan yang sudah berangkat/tiba hilang setelah menit ini.
+                                                {' '}{data.board_hide_after_menit > 0
+                                                    ? `≈ ${(data.board_hide_after_menit / 60).toFixed(1).replace(/\.0$/, '')} jam.`
+                                                    : 'Isi 0 = tidak pernah disembunyikan (tampil terus).'}
+                                            </p>
+                                            <InputError message={errors.board_hide_after_menit} className="mt-2" />
                                         </div>
                                     </div>
                                 </div>

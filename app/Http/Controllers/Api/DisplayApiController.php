@@ -173,20 +173,25 @@ class DisplayApiController extends Controller
         ]);
     }
 
-    /** Sembunyikan penerbangan dari papan setelah N jam sejak berangkat/tiba. */
-    private const BOARD_HIDE_AFTER_HOURS = 3;
+    /** Default sembunyikan penerbangan dari papan: 180 menit (3 jam) sejak berangkat/tiba. */
+    private const BOARD_HIDE_DEFAULT_MIN = 180;
 
     /**
      * Buang penerbangan yang sudah "selesai" (berangkat/tiba) lebih dari
-     * BOARD_HIDE_AFTER_HOURS jam dari papan keberangkatan/kedatangan.
+     * durasi (menit) yang diatur di Pengaturan Layar (board_hide_after_menit).
+     * Nilai 0 = jangan pernah disembunyikan.
      *
      * @param  \Illuminate\Support\Collection  $flights
      * @param  array  $doneStatuses  status yang dianggap selesai (mis. ['Departed'])
      */
     private function hideStaleFlights($flights, array $doneStatuses)
     {
+        $limitMin = (int) (DisplaySetting::first()?->board_hide_after_menit ?? self::BOARD_HIDE_DEFAULT_MIN);
+        if ($limitMin <= 0) {
+            return $flights->values(); // 0 = tampilkan terus, jangan disembunyikan
+        }
+
         $now = Carbon::now(\App\Support\DisplayTimezone::get());
-        $limitMin = self::BOARD_HIDE_AFTER_HOURS * 60;
 
         return $flights->reject(function ($f) use ($now, $doneStatuses, $limitMin) {
             if (! in_array($f->status, $doneStatuses, true)) {

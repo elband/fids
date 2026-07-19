@@ -104,4 +104,35 @@ class BoardStaleFlightsTest extends TestCase
 
         $this->assertContains('IU700', $nomors);
     }
+
+    public function test_hide_duration_configurable_via_setting(): void
+    {
+        // Durasi disetel 60 menit di Pengaturan Layar.
+        \App\Models\DisplaySetting::create(['board_hide_after_menit' => 60]);
+
+        // Berangkat 90 menit lalu (13:30, sekarang 15:00) → > 60 menit → hilang.
+        $this->make('departure', 'IU900', '13:30:00', 'Departed', '13:30:00');
+        // Berangkat 30 menit lalu (14:30) → < 60 menit → tetap tampil.
+        $this->make('departure', 'IU901', '14:30:00', 'Departed', '14:30:00');
+
+        $nomors = collect($this->getJson('/api/fids/departures')->assertOk()->json('data'))
+            ->pluck('nomor_penerbangan')->all();
+
+        $this->assertNotContains('IU900', $nomors);
+        $this->assertContains('IU901', $nomors);
+    }
+
+    public function test_zero_disables_hiding(): void
+    {
+        // 0 = tidak pernah disembunyikan (tampil terus).
+        \App\Models\DisplaySetting::create(['board_hide_after_menit' => 0]);
+
+        // Berangkat 5 jam lalu tetap tampil.
+        $this->make('departure', 'IU910', '10:00:00', 'Departed', '10:00:00');
+
+        $nomors = collect($this->getJson('/api/fids/departures')->assertOk()->json('data'))
+            ->pluck('nomor_penerbangan')->all();
+
+        $this->assertContains('IU910', $nomors);
+    }
 }

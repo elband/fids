@@ -112,6 +112,7 @@ class DisplaySettingController extends Controller
             'bagasi_durasi_status_menit'  => 'nullable|integer|min:1|max:240',
             'bagasi_kamera_mulai_menit'   => 'nullable|integer|min:0|max:240',
             'bagasi_kamera_selesai_menit' => 'nullable|integer|min:1|max:240',
+            'board_hide_after_menit'      => 'nullable|integer|min:0|max:1440',
         ]);
 
         $setting->nama_bandara     = $validated['nama_bandara'];
@@ -130,6 +131,9 @@ class DisplaySettingController extends Controller
         }
         if (isset($validated['bagasi_kamera_selesai_menit'])) {
             $setting->bagasi_kamera_selesai_menit = (int) $validated['bagasi_kamera_selesai_menit'];
+        }
+        if (array_key_exists('board_hide_after_menit', $validated) && $validated['board_hide_after_menit'] !== null) {
+            $setting->board_hide_after_menit = (int) $validated['board_hide_after_menit'];
         }
 
         if ($request->hasFile('logo_bandara')) {

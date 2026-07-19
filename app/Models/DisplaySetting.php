@@ -44,6 +44,7 @@ class DisplaySetting extends Model
         'bagasi_durasi_status_menit',
         'bagasi_kamera_mulai_menit',
         'bagasi_kamera_selesai_menit',
+        'board_hide_after_menit',
     ];
 
     protected $casts = [
@@ -56,5 +57,6 @@ class DisplaySetting extends Model
         'bagasi_durasi_status_menit' => 'integer',
         'bagasi_kamera_mulai_menit' => 'integer',
         'bagasi_kamera_selesai_menit' => 'integer',
+        'board_hide_after_menit' => 'integer',
     ];
 }
