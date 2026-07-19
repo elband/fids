@@ -330,7 +330,7 @@ export default function Departures() {
                                     </div>
 
                                     {/* Gate */}
-                                    <div style={{ fontSize: '1.4vw', color: textColor }} className="col-span-1 font-black text-center">
+                                    <div style={{ fontSize: '1.2vw', color: textColor }} className="col-span-1 font-black text-center whitespace-nowrap">
                                         <ScoreChars text={flight.gate || '-'} baseDelay={idx * 100 + 300} />
                                     </div>
 
@@ -338,12 +338,12 @@ export default function Departures() {
                                     <div className="col-span-2 flex justify-end">
                                         <span
                                             style={{
-                                                fontSize: '0.85vw',
+                                                fontSize: '1.15vw',
                                                 padding: '0.6vh 0.5vw',
                                                 color: semanticStatusClass ? undefined : textColor,
                                                 opacity: semanticStatusClass ? undefined : 0.75,
                                             }}
-                                            className={`font-black tracking-[0.15em] uppercase ${semanticStatusClass} ${style.glow}`}
+                                            className={`font-black tracking-[0.1em] uppercase whitespace-nowrap ${semanticStatusClass} ${style.glow}`}
                                         >
                                             <ScoreChars text={flight.status} baseDelay={idx * 100 + 350} />
                                         </span>
