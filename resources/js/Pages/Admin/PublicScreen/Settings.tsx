@@ -7,7 +7,7 @@ import InputError from '@/Components/InputError';
 import {
     Monitor, LayoutGrid, Columns, Square, Eye, EyeOff, ExternalLink, Tv,
     Sparkles, Image as ImageIcon, Save, RefreshCw, Palette, PlaneTakeoff, PlaneLanding, CloudSun,
-    Type, Megaphone, Gauge, Building2,
+    Type,
 } from 'lucide-react';
 import { appConfirm } from '@/lib/confirm';
 
@@ -80,11 +80,11 @@ export default function Settings({ setting, adCount = 0 }: PageProps<{ setting: 
         show_advertisement: setting?.show_advertisement ?? false,
         background_header:  null as File | null,
         remove_background:  false,
-        nama_bandara:       (setting as any)?.nama_bandara || '',
-        kecepatan_scroll:   (setting as any)?.kecepatan_scroll || 1,
-        teks_ticker:        (setting as any)?.teks_ticker || '',
         _method:            'POST',
     });
+
+    // Nama bandara, kecepatan scroll, dan teks berjalan (ticker) diatur di halaman
+    // "Pengaturan Layar FIDS", bukan di sini — pratinjau memakai nilai tersimpan.
 
     const [bgPreview, setBgPreview] = useState<string | null>(null);
 
@@ -157,8 +157,8 @@ export default function Settings({ setting, adCount = 0 }: PageProps<{ setting: 
                                     showWeather={data.tampilkan_cuaca}
                                     showAd={data.show_advertisement}
                                     backgroundUrl={currentBg}
-                                    namaBandara={data.nama_bandara}
-                                    teksTicker={data.teks_ticker}
+                                    namaBandara={setting?.nama_bandara ?? ''}
+                                    teksTicker={setting?.teks_ticker ?? ''}
                                 />
                             </div>
                         </div>
@@ -291,94 +291,8 @@ export default function Settings({ setting, adCount = 0 }: PageProps<{ setting: 
                                 )}
                             </SectionCard>
 
-                            {/* Identitas Layar */}
-                            <SectionCard
-                                icon={<Building2 size={18} />}
-                                title="Identitas Layar"
-                                subtitle="Nama bandara yang tampil di header TV publik"
-                                accentClass="bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300"
-                            >
-                                <div className="space-y-2">
-                                    <label htmlFor="nama_bandara" className="text-xs font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                                        <Type size={12} /> Nama Bandara
-                                    </label>
-                                    <input
-                                        id="nama_bandara"
-                                        type="text"
-                                        value={data.nama_bandara}
-                                        onChange={(e) => setData('nama_bandara', e.target.value)}
-                                        placeholder="Contoh: SAMS Sepinggan International Airport"
-                                        className="w-full rounded-lg border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 text-sm focus:border-fuchsia-500 focus:ring focus:ring-fuchsia-500/20"
-                                    />
-                                    <p className="text-[11px] text-gray-400">Tampil di pojok kanan atas TV layar publik.</p>
-                                </div>
-                            </SectionCard>
-
-                            {/* Animasi & Kecepatan */}
-                            <SectionCard
-                                icon={<Gauge size={18} />}
-                                title="Animasi & Ticker"
-                                subtitle="Kecepatan auto-scroll & teks marquee"
-                                accentClass="bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-300"
-                            >
-                                <div className="space-y-5">
-                                    <div>
-                                        <label htmlFor="kecepatan_scroll" className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                            <span className="flex items-center gap-1.5"><Gauge size={12} /> Kecepatan Auto-Scroll Tabel</span>
-                                            <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200 font-black tabular-nums">
-                                                {data.kecepatan_scroll}
-                                            </span>
-                                        </label>
-                                        <input
-                                            id="kecepatan_scroll"
-                                            type="range"
-                                            min={1}
-                                            max={10}
-                                            value={data.kecepatan_scroll}
-                                            onChange={(e) => setData('kecepatan_scroll', parseInt(e.target.value) || 1)}
-                                            className="mt-2 w-full accent-fuchsia-500"
-                                        />
-                                        <div className="flex justify-between text-[10px] uppercase tracking-widest text-gray-400 mt-1">
-                                            <span>Lambat</span>
-                                            <span>Sedang</span>
-                                            <span>Cepat</span>
-                                        </div>
-                                        <InputError message={errors.kecepatan_scroll} className="mt-2" />
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="teks_ticker" className="text-xs font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                                            <Megaphone size={12} /> Teks Marquee Ticker
-                                        </label>
-                                        <textarea
-                                            id="teks_ticker"
-                                            value={data.teks_ticker}
-                                            onChange={(e) => setData('teks_ticker', e.target.value)}
-                                            rows={2}
-                                            placeholder="Selamat datang di Bandara..."
-                                            className="mt-2 w-full rounded-lg border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 text-sm focus:border-fuchsia-500 focus:ring focus:ring-fuchsia-500/20"
-                                        />
-                                        <p className="text-[11px] text-gray-400 mt-1">
-                                            Kosongkan untuk menyembunyikan ticker bawah layar publik.
-                                        </p>
-                                        <InputError message={errors.teks_ticker} className="mt-2" />
-
-                                        {data.teks_ticker && (
-                                            <div className="mt-3 rounded-lg bg-slate-900 ring-1 ring-slate-700 overflow-hidden">
-                                                <div className="flex items-center">
-                                                    <span className="bg-fuchsia-500 text-black font-black px-3 py-1.5 text-[10px] tracking-widest uppercase">INFO</span>
-                                                    <div className="flex-1 relative h-7 overflow-hidden">
-                                                        <div className="absolute whitespace-nowrap text-pink-100 font-semibold tracking-widest text-xs animate-[ticker-preview_25s_linear_infinite] flex items-center h-full">
-                                                            {data.teks_ticker}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <style>{`@keyframes ticker-preview { from { transform: translateX(100%); } to { transform: translateX(-100%); } }`}</style>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </SectionCard>
+                            {/* Nama bandara, kecepatan scroll, & teks berjalan (ticker) diatur
+                                di halaman "Pengaturan Layar FIDS" agar tidak dobel. */}
 
                             {/* Tema Warna */}
                             <SectionCard
@@ -614,8 +528,8 @@ export default function Settings({ setting, adCount = 0 }: PageProps<{ setting: 
                                     showWeather={data.tampilkan_cuaca}
                                     showAd={data.show_advertisement}
                                     backgroundUrl={currentBg}
-                                    namaBandara={data.nama_bandara}
-                                    teksTicker={data.teks_ticker}
+                                    namaBandara={setting?.nama_bandara ?? ''}
+                                    teksTicker={setting?.teks_ticker ?? ''}
                                     large
                                 />
                                 <p className="text-[11px] text-gray-400 px-1">

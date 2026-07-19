@@ -64,15 +64,11 @@ class DisplaySettingController extends Controller
             'tampilkan_cuaca'    => 'boolean',
             'show_advertisement' => 'boolean',
             'background_header'  => 'nullable|image|max:5120',
-            'nama_bandara'       => 'nullable|string|max:255',
-            'kecepatan_scroll'   => 'nullable|integer|min:1|max:10',
-            'teks_ticker'        => 'nullable|string|max:1000',
             'remove_background'  => 'nullable|boolean',
         ]);
 
-        if (!empty($validated['nama_bandara'])) {
-            $setting->nama_bandara = $validated['nama_bandara'];
-        }
+        // Catatan: nama_bandara, kecepatan_scroll, dan teks_ticker TIDAK diatur di sini
+        // (dipindahkan ke halaman "Pengaturan Layar FIDS" agar tidak dobel).
         $setting->mode_default       = $validated['mode_default'];
         $setting->tema_warna         = $validated['tema_warna'];
         $setting->warna_utama        = $validated['warna_utama'] ?? '#ffffff';
@@ -81,13 +77,6 @@ class DisplaySettingController extends Controller
         $setting->show_arrivals      = (bool) ($validated['show_arrivals']      ?? false);
         $setting->tampilkan_cuaca    = (bool) ($validated['tampilkan_cuaca']    ?? false);
         $setting->show_advertisement = (bool) ($validated['show_advertisement'] ?? false);
-
-        if (array_key_exists('kecepatan_scroll', $validated) && $validated['kecepatan_scroll'] !== null) {
-            $setting->kecepatan_scroll = (int) $validated['kecepatan_scroll'];
-        }
-        if (array_key_exists('teks_ticker', $validated)) {
-            $setting->teks_ticker = $validated['teks_ticker'];
-        }
 
         if ($request->hasFile('background_header')) {
             if ($setting->background_header) {
