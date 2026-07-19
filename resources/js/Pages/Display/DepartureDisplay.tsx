@@ -39,7 +39,7 @@ function getStatusStyle(status: string) {
 
 export default function Departures() {
     const [flights, setFlights] = useState<Flight[]>([]);
-    const { dateText, timeText } = useNtpClock();
+    const { dateText, time24h } = useNtpClock();
     const [loading, setLoading] = useState(true);
     const [bgImage, setBgImage] = useState<string | null>(null);
     // Warna tema latar dari Pengaturan Layar (default navy). Diterapkan ke seluruh papan.
@@ -229,8 +229,13 @@ export default function Departures() {
                                 {weather.suhu}°C <span className="mx-1">•</span> {weather.kondisi_cuaca}
                             </div>
                         )}
-                        <div style={{ fontSize: '1.6vw', color: textColor }} className="font-bold tracking-wide mt-1 drop-shadow whitespace-nowrap font-mono">
-                            <ScoreChars text={`${dateText} | ${timeText}`} baseDelay={0} />
+                        <div style={{ fontSize: '0.95vw', color: accentColor }} className="font-semibold tracking-[0.25em] uppercase mt-1 drop-shadow whitespace-nowrap">
+                            {dateText}
+                        </div>
+                        {/* Jam digital 7-segment (DSEG7) ala foto referensi. */}
+                        <div className="dseg-clock mt-1 drop-shadow" style={{ fontSize: '2vw', color: textColor }}>
+                            <span className="dseg-off" aria-hidden="true">88:88:88</span>
+                            <span>{time24h}</span>
                         </div>
                     </div>
                 </header>

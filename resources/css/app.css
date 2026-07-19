@@ -2,6 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Font 7-segment (DSEG7 Classic, SIL OFL 1.1) untuk jam digital layar publik.
+   Di-self-host dari /public/fonts agar tetap jalan offline di kiosk. */
+@font-face {
+    font-family: 'DSEG7 Classic';
+    src: url('/fonts/DSEG7Classic-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'DSEG7 Classic';
+    src: url('/fonts/DSEG7Classic-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Jam 7-segment ala LCD: digit menyala di atas "segmen mati" yang samar. */
+.dseg-clock {
+    position: relative;
+    display: inline-block;
+    font-family: 'DSEG7 Classic', ui-monospace, monospace;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.06em;
+}
+.dseg-clock .dseg-off {
+    position: absolute;
+    inset: 0;
+    opacity: 0.13;         /* segmen mati (background 88:88:88) */
+    pointer-events: none;
+}
+
 @layer utilities {
     .scrollbar-hide::-webkit-scrollbar {
         display: none;
