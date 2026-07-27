@@ -12,9 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // ValidatePostSize bawaan dilepas karena melempar 413 mentah dari
+        // middleware global (sebelum sesi ada), sehingga pesannya tak bisa
+        // disampaikan sebagai notifikasi. Digantikan HandleOversizedUpload
+        // di grup web, yang berjalan setelah sesi siap.
         $middleware->remove(\Illuminate\Http\Middleware\ValidatePostSize::class);
 
         $middleware->web(append: [
+            \App\Http\Middleware\HandleOversizedUpload::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
