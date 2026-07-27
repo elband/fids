@@ -32,6 +32,13 @@ import {
     Camera,
     FileBarChart2,
     Globe,
+    Car,
+    Signpost,
+    Wallet,
+    Film,
+    Type,
+    SlidersHorizontal,
+    MonitorSmartphone,
 } from 'lucide-react';
 
 export default function Authenticated({
@@ -42,6 +49,9 @@ export default function Authenticated({
     const user = props.auth.user;
     const roles = props.auth.roles as string[];
     const isSuperAdmin = roles?.includes('Super Admin');
+    const permissions = (props.auth.permissions ?? []) as string[];
+    // Super Admin lolos semua permission (Gate::before di server).
+    const can = (permission: string) => isSuperAdmin || permissions.includes(permission);
     const logoBandara = props.logoBandara as string | null;
 
     const [isDark, setIsDark] = useState(() =>
@@ -73,10 +83,14 @@ export default function Authenticated({
     const [isReportExpanded, setIsReportExpanded] = useState(
         url.startsWith('/admin/reports')
     );
+    const [isTaxiExpanded, setIsTaxiExpanded] = useState(
+        url.startsWith('/admin/taxi')
+    );
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
     const toggleDataMaster = () => setIsDataMasterExpanded(!isDataMasterExpanded);
     const toggleReport = () => setIsReportExpanded(!isReportExpanded);
+    const toggleTaxi = () => setIsTaxiExpanded(!isTaxiExpanded);
 
     // Sidebar items definition
     const sidebarItems = [
@@ -165,6 +179,18 @@ export default function Authenticated({
         { name: 'Reason', icon: <AlertCircle size={18} />, href: route('admin.reasons.index'), active: route().current('admin.reasons.*') },
     ];
 
+    // Submenu Taxi Information; tiap entri hanya muncul bila permission-nya dimiliki.
+    const taxiItems = [
+        { name: 'Dashboard', icon: <LayoutDashboard size={18} />, href: route('admin.taxi.dashboard'), active: route().current('admin.taxi.dashboard'), show: can('taxi.view') },
+        { name: 'Petunjuk Arah', icon: <Signpost size={18} />, href: route('admin.taxi.directions.index'), active: route().current('admin.taxi.directions.*'), show: can('taxi.directions.manage') },
+        { name: 'Counter Taksi', icon: <Car size={18} />, href: route('admin.taxi.counters.index'), active: route().current('admin.taxi.counters.*'), show: can('taxi.counters.manage') },
+        { name: 'Tarif Taksi', icon: <Wallet size={18} />, href: route('admin.taxi.fares.index'), active: route().current('admin.taxi.fares.*'), show: can('taxi.fares.manage') },
+        { name: 'Playlist Video', icon: <Film size={18} />, href: route('admin.taxi.videos.index'), active: route().current('admin.taxi.videos.*'), show: can('taxi.videos.manage') },
+        { name: 'Running Text', icon: <Type size={18} />, href: route('admin.taxi.running-texts.index'), active: route().current('admin.taxi.running-texts.*'), show: can('taxi.runningtext.manage') },
+        { name: 'Pengaturan Display', icon: <SlidersHorizontal size={18} />, href: route('admin.taxi.settings.index'), active: route().current('admin.taxi.settings.*'), show: can('taxi.settings.manage') },
+        { name: 'Monitoring Layar', icon: <MonitorSmartphone size={18} />, href: route('admin.taxi.screens.index'), active: route().current('admin.taxi.screens.*'), show: can('taxi.screens.view') },
+    ].filter((item) => item.show);
+
     const reportItems = [
         { name: 'Keberangkatan', icon: <PlaneTakeoff size={18} />, href: route('admin.reports.departures'), active: route().current('admin.reports.departures*') },
         { name: 'Kedatangan', icon: <PlaneLanding size={18} />, href: route('admin.reports.arrivals'), active: route().current('admin.reports.arrivals*') },
@@ -241,6 +267,48 @@ export default function Authenticated({
                                 </div>
                             )}
                         </div>
+
+                        {/* Taxi Information Collapsible */}
+                        {taxiItems.length > 0 && (
+                            <div>
+                                <button
+                                    onClick={toggleTaxi}
+                                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                        isTaxiExpanded
+                                            ? 'text-gray-900 dark:text-white'
+                                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Car size={20} />
+                                        <span>Taxi Information</span>
+                                    </div>
+                                    <ChevronDown
+                                        size={16}
+                                        className={`transform transition-transform duration-200 ${isTaxiExpanded ? 'rotate-180' : ''}`}
+                                    />
+                                </button>
+
+                                {isTaxiExpanded && (
+                                    <div className="mt-1 ml-4 space-y-1 border-l border-gray-200 dark:border-gray-700">
+                                        {taxiItems.map((item) => (
+                                            <Link
+                                                key={item.name}
+                                                href={item.href}
+                                                className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                                    item.active
+                                                        ? 'text-amber-600 dark:text-amber-400'
+                                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                                }`}
+                                            >
+                                                <span className="opacity-70">{item.icon}</span>
+                                                {item.name}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Report Collapsible */}
                         <div>

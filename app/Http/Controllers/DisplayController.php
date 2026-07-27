@@ -407,6 +407,21 @@ class DisplayController extends Controller
         return Inertia::render('Display/WorldClockDisplay');
     }
 
+    /**
+     * Layar "Taxi Information & Digital Signage".
+     *
+     * Props awal sengaja berisi payload lengkap supaya layar langsung tampil
+     * penuh saat kios dinyalakan, lalu di-refresh lewat polling API.
+     */
+    public function taxiSignage(Request $request)
+    {
+        return Inertia::render('Display/TaxiSignage', [
+            'initial' => \App\Support\TaxiSignage::payload(),
+            // Kode layar (mis. /public/taxi?screen=terminal-a) untuk monitoring online/offline.
+            'screenCode' => (string) $request->query('screen', ''),
+        ]);
+    }
+
     public function pendingAnnouncementsApi()
     {
         $pending = Announcement::where('status_aktif', true)

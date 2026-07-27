@@ -35,6 +35,9 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user'  => $request->user(),
                 'roles' => $request->user()?->getRoleNames() ?? [],
+                // Dipakai sidebar untuk menyembunyikan menu yang tak boleh diakses
+                // (mis. submenu Taxi Information).
+                'permissions' => $request->user()?->getAllPermissions()->pluck('name') ?? [],
             ],
             'logoBandara' => function () {
                 $setting = DisplaySetting::first();

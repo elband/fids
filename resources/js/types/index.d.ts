@@ -11,6 +11,7 @@ export type PageProps<
     auth: {
         user: User;
         roles: string[];
+        permissions: string[];
     };
     logoBandara: string | null;
 };

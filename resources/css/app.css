@@ -51,6 +51,57 @@
 }
 
 /* ============================================================
+   Taxi Information & Digital Signage
+   ============================================================ */
+
+/* Running text: pita digandakan 2x, geser 50% agar loop mulus tanpa jeda. */
+.taxi-marquee {
+    animation-name: taxi-marquee;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+@keyframes taxi-marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* Panel jadwal & tarif: isi bergulir ke atas terus-menerus.
+   Pembungkus berisi dua salinan konten, jadi -50% = tepat satu salinan. */
+.taxi-scroll-up {
+    animation-name: taxi-scroll-up;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    will-change: transform;
+}
+@keyframes taxi-scroll-up {
+    0%   { transform: translateY(0); }
+    100% { transform: translateY(-50%); }
+}
+
+/* Jalur arah: garis putus-putus mengalir menuju counter taksi. */
+.taxi-walk-track {
+    animation: taxi-walk-track 1.6s linear infinite;
+}
+@keyframes taxi-walk-track {
+    0%   { background-position-x: 0; }
+    100% { background-position-x: 3.2vw; }
+}
+
+/* Ikon pejalan kaki: naik-turun halus. */
+.taxi-walk-bob {
+    animation: taxi-walk-bob 1.1s ease-in-out infinite;
+}
+@keyframes taxi-walk-bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-18%); }
+}
+
+html.perf-lite .taxi-walk-track,
+html.perf-lite .taxi-walk-bob {
+    animation: none !important;
+}
+
+/* ============================================================
    Mode Hemat (Raspberry Pi): matikan efek/animasi berat agar
    layar mulus di perangkat berdaya rendah. Kelas .perf-lite
    dipasang di <html> oleh ReloadWatcher berdasarkan pengaturan.

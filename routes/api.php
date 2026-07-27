@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\DisplayApiController;
+use App\Http\Controllers\Api\TaxiSignageApiController;
 use App\Http\Controllers\Api\TransaksiApiController;
 
 Route::get('/user', function (Request $request) {
@@ -39,4 +40,14 @@ Route::prefix('fids')->middleware('throttle:120,1')->group(function () {
     Route::get('/checkin-counters', [DisplayApiController::class, 'allCheckinCounters']);
     Route::get('/gates', [DisplayApiController::class, 'allGates']);
     Route::get('/baggage-claims', [DisplayApiController::class, 'allBaggageClaims']);
+
+    // Taxi Information & Digital Signage. Satu endpoint payload penuh; heartbeat
+    // dan statistik video di-throttle lebih ketat karena bersifat tulis.
+    Route::get('/taxi', [TaxiSignageApiController::class, 'index'])->name('api.taxi.index');
+    Route::post('/taxi/heartbeat', [TaxiSignageApiController::class, 'heartbeat'])
+        ->middleware('throttle:60,1')
+        ->name('api.taxi.heartbeat');
+    Route::post('/taxi/videos/{video}/played', [TaxiSignageApiController::class, 'videoPlayed'])
+        ->middleware('throttle:60,1')
+        ->name('api.taxi.video-played');
 });

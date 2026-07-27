@@ -26,6 +26,14 @@ use App\Http\Controllers\Admin\PublicAnnouncementController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\NtpSettingController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\Taxi\CounterController as TaxiCounterController;
+use App\Http\Controllers\Admin\Taxi\DashboardController as TaxiDashboardController;
+use App\Http\Controllers\Admin\Taxi\DirectionController as TaxiDirectionController;
+use App\Http\Controllers\Admin\Taxi\FareController as TaxiFareController;
+use App\Http\Controllers\Admin\Taxi\RunningTextController as TaxiRunningTextController;
+use App\Http\Controllers\Admin\Taxi\ScreenController as TaxiScreenController;
+use App\Http\Controllers\Admin\Taxi\SettingController as TaxiSettingController;
+use App\Http\Controllers\Admin\Taxi\VideoController as TaxiVideoController;
 use App\Http\Controllers\DisplayController;
 use App\Http\Controllers\WelcomeController;
 
@@ -50,6 +58,8 @@ Route::prefix('public')->group(function () {
     Route::get('/screen',        [DisplayController::class, 'publicScreen'])->name('public.screen');
     Route::get('/advertisement', [DisplayController::class, 'advertisementDisplay'])->name('public.advertisement');
     Route::get('/world-clock',   [DisplayController::class, 'worldClock'])->name('public.world-clock');
+
+    Route::get('/taxi',          [DisplayController::class, 'taxiSignage'])->name('public.taxi');
 });
 
 Route::get('/mclock', [DisplayController::class, 'worldClock'])->name('mclock');
@@ -154,6 +164,70 @@ Route::middleware(['auth', 'verified', 'role:Super Admin|Admin Operasional'])->p
     // Brochure PDF
     Route::get('brochure/download', [\App\Http\Controllers\Admin\BrochureController::class, 'download'])->name('brochure.download');
 });
+
+/*
+ * Taxi Information & Digital Signage.
+ *
+ * Grup terpisah dari modul admin lain karena aksesnya berbasis permission
+ * (Spatie), bukan role tetap — sehingga role seperti "Operator Informasi" bisa
+ * mengelola tarif/running text tanpa diberi akses ke seluruh modul FIDS.
+ * Super Admin lolos otomatis lewat Gate::before di AppServiceProvider.
+ */
+Route::middleware(['auth', 'verified', 'permission:taxi.view'])
+    ->prefix('admin/taxi')->name('admin.taxi.')
+    ->group(function () {
+        Route::get('/', [TaxiDashboardController::class, 'index'])->name('dashboard');
+
+        Route::middleware('permission:taxi.directions.manage')->group(function () {
+            Route::get('directions', [TaxiDirectionController::class, 'index'])->name('directions.index');
+            Route::post('directions', [TaxiDirectionController::class, 'store'])->name('directions.store');
+            Route::put('directions/{direction}', [TaxiDirectionController::class, 'update'])->name('directions.update');
+            Route::delete('directions/{direction}', [TaxiDirectionController::class, 'destroy'])->name('directions.destroy');
+        });
+
+        Route::middleware('permission:taxi.counters.manage')->group(function () {
+            Route::get('counters', [TaxiCounterController::class, 'index'])->name('counters.index');
+            Route::post('counters', [TaxiCounterController::class, 'store'])->name('counters.store');
+            Route::put('counters/{counter}', [TaxiCounterController::class, 'update'])->name('counters.update');
+            Route::delete('counters/{counter}', [TaxiCounterController::class, 'destroy'])->name('counters.destroy');
+        });
+
+        Route::middleware('permission:taxi.fares.manage')->group(function () {
+            Route::get('fares', [TaxiFareController::class, 'index'])->name('fares.index');
+            Route::post('fares', [TaxiFareController::class, 'store'])->name('fares.store');
+            Route::put('fares/{fare}', [TaxiFareController::class, 'update'])->name('fares.update');
+            Route::delete('fares/{fare}', [TaxiFareController::class, 'destroy'])->name('fares.destroy');
+        });
+
+        Route::middleware('permission:taxi.videos.manage')->group(function () {
+            Route::get('videos', [TaxiVideoController::class, 'index'])->name('videos.index');
+            Route::post('videos', [TaxiVideoController::class, 'store'])->name('videos.store');
+            Route::put('videos/{video}', [TaxiVideoController::class, 'update'])->name('videos.update');
+            Route::delete('videos/{video}', [TaxiVideoController::class, 'destroy'])->name('videos.destroy');
+            Route::post('videos/{video}/reset-stats', [TaxiVideoController::class, 'resetStats'])->name('videos.reset-stats');
+        });
+
+        Route::middleware('permission:taxi.runningtext.manage')->group(function () {
+            Route::get('running-texts', [TaxiRunningTextController::class, 'index'])->name('running-texts.index');
+            Route::post('running-texts', [TaxiRunningTextController::class, 'store'])->name('running-texts.store');
+            Route::put('running-texts/{running_text}', [TaxiRunningTextController::class, 'update'])->name('running-texts.update');
+            Route::delete('running-texts/{running_text}', [TaxiRunningTextController::class, 'destroy'])->name('running-texts.destroy');
+        });
+
+        Route::middleware('permission:taxi.settings.manage')->group(function () {
+            Route::get('settings', [TaxiSettingController::class, 'index'])->name('settings.index');
+            Route::post('settings', [TaxiSettingController::class, 'update'])->name('settings.update');
+        });
+
+        Route::post('emergency', [TaxiSettingController::class, 'emergency'])
+            ->middleware('permission:taxi.emergency.manage')->name('emergency');
+
+        Route::middleware('permission:taxi.screens.view')->group(function () {
+            Route::get('screens', [TaxiScreenController::class, 'index'])->name('screens.index');
+            Route::put('screens/{screen}', [TaxiScreenController::class, 'update'])->name('screens.update');
+            Route::delete('screens/{screen}', [TaxiScreenController::class, 'destroy'])->name('screens.destroy');
+        });
+    });
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
