@@ -58,15 +58,6 @@ export function pick(id: string | null | undefined, en: string | null | undefine
     return id ?? '';
 }
 
-/**
- * Sebagian panah (mis. ↘ U+2198) punya varian emoji dan akan dirender sebagai
- * ikon berwarna. Variation Selector-15 memaksa presentasi teks agar bentuknya
- * konsisten dengan panah lain di layar.
- */
-export function textArrow(arrow: string): string {
-    return `${arrow}︎`;
-}
-
 export function formatRupiah(value: number): string {
     return 'Rp ' + value.toLocaleString('id-ID');
 }

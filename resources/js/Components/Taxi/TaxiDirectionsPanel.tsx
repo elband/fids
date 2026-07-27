@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Footprints, MapPin, QrCode, Timer } from 'lucide-react';
 import { Lang, TaxiCounter, TaxiDirection, TaxiSettings } from './types';
 import { PanelTitle } from './TaxiFlightPanel';
-import { pick, t, textArrow } from './i18n';
+import { pick, t } from './i18n';
+import CounterArrow from './CounterArrow';
 
 interface Props {
     directions: TaxiDirection[];
@@ -175,24 +176,31 @@ function CounterCard({
                       style={{ fontSize: 'clamp(0.38rem, 0.9vmin, 0.7rem)' }}>
                     {t('counterLabel', lang)}
                 </span>
-                <span className="block font-black leading-none tabular-nums"
-                      style={{ color: accent, fontSize: 'clamp(1.1rem, 3.4vmin, 3rem)' }}>
-                    {counter.nomor}
+                {/* Panah mendahului nomor: arah dibaca lebih dulu, baru counternya. */}
+                <span className="flex items-center justify-center gap-[0.35vw]">
+                    <CounterArrow
+                        arah={counter.arah}
+                        className="shrink-0 h-[2.8vmin] w-[2.8vmin]"
+                        style={{ color: accent }}
+                    />
+                    <span className="font-black leading-none tabular-nums"
+                          style={{ color: accent, fontSize: 'clamp(1.1rem, 3.4vmin, 3rem)' }}>
+                        {counter.nomor}
+                    </span>
                 </span>
             </div>
 
-            <div className="flex-1 min-w-0 flex items-center gap-[0.5vw] px-[0.6vw] py-[0.5vmin]">
-                <span className="shrink-0 leading-none" style={{ color: accent, fontSize: 'clamp(1rem, 3vmin, 2.6rem)' }}>
-                    {textArrow(counter.arah)}
-                </span>
+            <div className="flex-1 min-w-0 flex items-center px-[0.8vw] py-[0.5vmin]">
                 <span className="min-w-0">
-                    <span className="block text-white font-bold leading-tight truncate"
-                          style={{ fontSize: 'clamp(0.6rem, 1.6vmin, 1.35rem)' }}>
+                    {/* Nama operator adalah informasi utama kartu, jadi diberi
+                        porsi terbesar setelah nomor counter. */}
+                    <span className="block text-white font-black leading-tight truncate"
+                          style={{ fontSize: 'clamp(0.8rem, 2.5vmin, 2.2rem)' }}>
                         {counter.nama_operator}
                     </span>
                     {counter.jenis_layanan && (
-                        <span className="block text-white/45 font-semibold truncate"
-                              style={{ fontSize: 'clamp(0.42rem, 1.05vmin, 0.9rem)' }}>
+                        <span className="block text-white/50 font-semibold truncate"
+                              style={{ fontSize: 'clamp(0.5rem, 1.4vmin, 1.15rem)' }}>
                             {counter.jenis_layanan}
                         </span>
                     )}

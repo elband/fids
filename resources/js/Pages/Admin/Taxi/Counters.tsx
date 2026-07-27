@@ -6,7 +6,7 @@ import TextInput from '@/Components/TextInput';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import { Field } from './Directions';
-import { textArrow } from '@/Components/Taxi/i18n';
+import CounterArrow from '@/Components/Taxi/CounterArrow';
 import { appConfirm } from '@/lib/confirm';
 import { Car, ChevronDown, ChevronUp, Edit2, Eye, EyeOff, Plus, Trash2, X } from 'lucide-react';
 
@@ -136,12 +136,14 @@ export default function Counters({ counters, arrows }: Props) {
                             <div className="flex items-stretch bg-slate-900 text-white">
                                 <div className="w-2/5 grid place-items-center py-4 bg-black/60">
                                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">Counter</span>
-                                    <span className="text-4xl font-black leading-none text-amber-400">{c.nomor}</span>
+                                    <span className="flex items-center gap-1.5">
+                                        <CounterArrow arah={c.arah} className="h-6 w-6 text-amber-400" />
+                                        <span className="text-4xl font-black leading-none text-amber-400">{c.nomor}</span>
+                                    </span>
                                 </div>
-                                <div className="flex-1 flex items-center gap-2 px-3 py-4 min-w-0">
-                                    <span className="text-3xl leading-none text-amber-300 shrink-0">{textArrow(c.arah)}</span>
+                                <div className="flex-1 flex items-center px-3 py-4 min-w-0">
                                     <span className="min-w-0">
-                                        <span className="block font-bold truncate">{c.nama_operator}</span>
+                                        <span className="block text-lg font-black truncate">{c.nama_operator}</span>
                                         {c.jenis_layanan && (
                                             <span className="block text-xs text-white/50 truncate">{c.jenis_layanan}</span>
                                         )}
@@ -233,12 +235,12 @@ export default function Counters({ counters, arrows }: Props) {
                                 <div className="mt-2 flex flex-wrap gap-2">
                                     {arrows.map((a) => (
                                         <button key={a} type="button" onClick={() => setData('arah', a)}
-                                                className={`h-11 w-11 grid place-items-center rounded-xl text-2xl border-2 transition ${
+                                                className={`h-11 w-11 grid place-items-center rounded-xl border-2 transition ${
                                                     data.arah === a
                                                         ? 'border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200'
                                                         : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-amber-400'
                                                 }`}>
-                                            {textArrow(a)}
+                                            <CounterArrow arah={a} className="h-5 w-5" />
                                         </button>
                                     ))}
                                 </div>
