@@ -4,6 +4,9 @@ import { PlaneLanding } from 'lucide-react';
 import { t, type Lang } from '@/lib/fids';
 import { themeGradient, scoreboardVars } from '@/lib/theme';
 import { useNtpClock } from '@/hooks/useNtpClock';
+import { useStatusChanges } from '@/hooks/useStatusChanges';
+import { BOARD_CSS, URGENT_ARRIVAL_STATUSES } from '@/lib/boardMotion';
+import ScoreChars from '@/Components/Fids/ScoreChars';
 
 interface Flight {
     id: number;
@@ -44,6 +47,9 @@ export default function Arrivals() {
     const [textColor, setTextColor] = useState<string>('#ffffff');
     const [accentColor, setAccentColor] = useState<string>('#fbbf24');
     const [weather, setWeather] = useState<{ suhu: string; kondisi_cuaca: string } | null>(null);
+    // Mode hemat (Raspberry Pi): default aktif sampai Pengaturan Layar terbaca,
+    // supaya perangkat lemah tidak sempat menggambar animasi berat saat start.
+    const [eco, setEco] = useState(true);
     const [tickerText, setTickerText] = useState('');
     const [lang, setLang] = useState<Lang>('id');
 
@@ -81,6 +87,7 @@ export default function Arrivals() {
             if (jsonSettings.data?.warna_aksen) setAccentColor(jsonSettings.data.warna_aksen);
             if (jsonSettings.data?.teks_ticker) setTickerText(jsonSettings.data.teks_ticker);
             if (jsonSettings.data?.bahasa) setLang(jsonSettings.data.bahasa);
+            if (jsonSettings.data?.mode_hemat !== undefined) setEco(!!jsonSettings.data.mode_hemat);
         } catch (err) {
             console.error('Failed to fetch arrivals:', err);
         } finally {
@@ -122,88 +129,14 @@ export default function Arrivals() {
         ? [...flights.slice(offset % flights.length), ...flights.slice(0, offset % flights.length)]
         : [];
 
+    // Baris yang statusnya baru berubah disorot sebentar agar terbedakan dari
+    // gerakan rotasi papan yang berjalan tiap 15 detik.
+    const changedIds = useStatusChanges(flights);
+
     return (
         <FidsLayout title="FIDS - Kedatangan">
-            <style>{`
-                @keyframes score-slide-up {
-                    0%   { transform: translateY(100%); opacity: 0; }
-                    60%  { transform: translateY(-8%); opacity: 1; }
-                    80%  { transform: translateY(3%); }
-                    100% { transform: translateY(0%); opacity: 1; }
-                }
-                @keyframes score-row-in {
-                    0%   { transform: translateY(100%); opacity: 0; }
-                    50%  { transform: translateY(-3%); opacity: 1; }
-                    100% { transform: translateY(0); opacity: 1; }
-                }
-                .score-row {
-                    animation: score-row-in 0.6s cubic-bezier(0.16, 0.84, 0.44, 1) both;
-                    transform-origin: bottom center;
-                }
-                /* Ubin split-flap (Solari): ubin gelap, belahan atas/bawah, seam melintang. */
-                .score-char {
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    overflow: hidden;
-                    min-width: 0.62em;
-                    height: 1.3em;
-                    margin: 0 0.75px;
-                    background: var(--score-slot-bg, rgba(0,0,0,0.28));
-                    border-radius: 2px;
-                    border: 1px solid var(--score-slot-border, rgba(0,0,0,0.55));
-                    box-shadow: 0 1px 1px rgba(0,0,0,0.25);
-                    position: relative;
-                }
-                .score-char::before {
-                    content: '';
-                    position: absolute;
-                    inset: 0;
-                    background: linear-gradient(to bottom,
-                        var(--flap-top, rgba(255,255,255,0.06)) 0%,
-                        var(--flap-top, rgba(255,255,255,0.06)) 49.3%,
-                        var(--flap-bottom, rgba(0,0,0,0.3)) 50.7%,
-                        var(--flap-bottom, rgba(0,0,0,0.3)) 100%);
-                    pointer-events: none;
-                    z-index: 0;
-                }
-                .score-char::after {
-                    content: '';
-                    position: absolute;
-                    left: 0; right: 0;
-                    top: 50%;
-                    height: 1px;
-                    transform: translateY(-0.5px);
-                    background: var(--score-seam, rgba(0,0,0,0.7));
-                    z-index: 2;
-                }
-                .score-char > span {
-                    position: relative;
-                    z-index: 1;
-                    display: inline-block;
-                    animation: score-slide-up 0.4s cubic-bezier(0.16, 0.84, 0.44, 1) both;
-                }
-                @keyframes header-col-in {
-                    0%   { transform: translateY(110%); opacity: 0; }
-                    55%  { transform: translateY(-6%);  opacity: 1; }
-                    75%  { transform: translateY(2%); }
-                    100% { transform: translateY(0%);   opacity: 1; }
-                }
-                .header-col-wrap {
-                    overflow: hidden;
-                    display: block;
-                }
-                .header-col-text {
-                    display: inline-block;
-                    animation: header-col-in 0.55s cubic-bezier(0.16, 0.84, 0.44, 1) both;
-                }
-                /* Font monospace gaya papan bandara (Solari/split-flap) untuk isi tabel. */
-                .board-font, .board-font * {
-                    font-family: ui-monospace, 'Cascadia Mono', 'Consolas', 'DejaVu Sans Mono', 'Menlo', 'Courier New', monospace;
-                    letter-spacing: 0.02em;
-                }
-            `}</style>
-            <div className="h-screen text-white font-sans select-none overflow-hidden flex flex-col" style={{ background: themeGradient(themeColor), ...scoreboardVars(themeColor) }}>
+            <style>{BOARD_CSS}</style>
+            <div className={`h-screen text-white font-sans select-none overflow-hidden flex flex-col ${eco ? 'fids-eco' : ''}`} style={{ background: themeGradient(themeColor), ...scoreboardVars(themeColor), ['--row-marker' as string]: accentColor }}>
 
                 <header
                     className="relative w-full flex items-center justify-between bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 overflow-hidden shadow-lg border-b-4 border-black bg-cover bg-center"
@@ -217,7 +150,7 @@ export default function Arrivals() {
                     <div className="absolute inset-0 bg-black/30"></div>
 
                     <div className="relative z-10 flex items-center gap-[1vw] min-w-0 w-[30%]">
-                        <PlaneLanding style={{ width: '3.5vw', height: '3.5vw', flexShrink: 0, color: accentColor }} className="drop-shadow" />
+                        <PlaneLanding style={{ width: '3.5vw', height: '3.5vw', flexShrink: 0, color: accentColor }} className="drop-shadow head-float" />
                         <h1 style={{ fontSize: '3.5vw', color: textColor }} className="font-extrabold tracking-tighter drop-shadow-lg leading-none whitespace-nowrap">
                             {t.arrivals[lang]}
                         </h1>
@@ -268,6 +201,8 @@ export default function Arrivals() {
 
                 {/* Baris penerbangan â€” animasi scoreboard badminton */}
                 <div className="board-font flex-1 overflow-hidden relative">
+                    {/* Kilau lambat melintasi papan — dimatikan otomatis di mode hemat. */}
+                    <div className="board-sweep" aria-hidden="true" />
                     {loading ? (
                         <div className="flex items-center justify-center py-20">
                             <div style={{ fontSize: '1.5vw' }} className="text-yellow-500 font-bold animate-pulse tracking-widest">
@@ -289,10 +224,14 @@ export default function Arrivals() {
                                 : flight.status === 'Delayed' ? 'text-orange-400'
                                 : flight.status === 'Cancelled' ? 'text-red-400'
                                 : '';
+                            const justChanged = changedIds.has(flight.id);
+                            const urgent = URGENT_ARRIVAL_STATUSES.includes(flight.status);
                             return (
                                 <div
                                     key={`${flight.id}-${flipKey}`}
                                     className={`score-row grid grid-cols-12 gap-4 items-center border-b group ${
+                                        justChanged ? 'score-row--changed' : ''
+                                    } ${
                                         idx % 2 === 0 ? 'bg-white/[0.02]' : 'bg-transparent'
                                     }`}
                                     style={{
@@ -345,9 +284,10 @@ export default function Arrivals() {
                                                 color: semanticStatusClass ? undefined : textColor,
                                                 opacity: semanticStatusClass ? undefined : 0.75,
                                             }}
-                                            className={`font-black tracking-[0.1em] uppercase whitespace-nowrap ${semanticStatusClass} ${style.glow}`}
+                                            className={`font-black tracking-[0.1em] uppercase whitespace-nowrap ${semanticStatusClass} ${eco ? '' : style.glow}`}
                                         >
-                                            <ScoreChars text={flight.status} baseDelay={idx * 100 + 350} />
+                                            {urgent && <span className="status-beacon" aria-hidden="true" />}
+                                            <ScoreChars text={flight.status} baseDelay={idx * 100 + 350} flip={justChanged} />
                                         </span>
                                     </div>
                                 </div>
@@ -369,19 +309,5 @@ export default function Arrivals() {
                 </footer>
             </div>
         </FidsLayout>
-    );
-}
-
-function ScoreChars({ text, baseDelay = 0 }: { text: string; baseDelay?: number }) {
-    return (
-        <>
-            {text.split('').map((char, i) => (
-                <span key={i} className="score-char">
-                    <span style={{ animationDelay: `${baseDelay + i * 40}ms` }}>
-                        {char === ' ' ? '\u00A0' : char}
-                    </span>
-                </span>
-            ))}
-        </>
     );
 }
