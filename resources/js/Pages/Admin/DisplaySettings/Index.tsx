@@ -350,9 +350,12 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
                                         <span>
                                             <span className="block text-sm font-semibold text-gray-800">Mode Hemat (Raspberry Pi / perangkat lemah)</span>
                                             <span className="block text-xs text-gray-500 mt-0.5">
-                                                Matikan efek berat (bayangan ubin, gradient, drop-shadow/blur, animasi flip)
-                                                agar tampilan mulus di Raspberry Pi. Layout & data tetap sama.
-                                                Nonaktifkan hanya bila PC layar cukup kuat dan ingin animasi penuh.
+                                                Di papan Keberangkatan &amp; Kedatangan, satu-satunya gerakan yang tersisa
+                                                adalah auto-scroll (kecepatannya mengikuti Kecepatan Scroll di atas).
+                                                Semua efek berat dimatikan: bayangan ubin, gradient, drop-shadow/blur,
+                                                animasi flip, sorotan baris, dan rotasi baris tiap 15 detik.
+                                                Layout &amp; data tetap sama. Nonaktifkan hanya bila PC layar cukup kuat
+                                                dan ingin animasi penuh.
                                             </span>
                                         </span>
                                     </label>

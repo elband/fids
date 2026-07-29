@@ -172,6 +172,13 @@ export const BOARD_CSS = `
         letter-spacing: 0.02em;
     }
 
+    /* Batang gulir disembunyikan: papan publik digulirkan sendiri oleh sistem. */
+    .board-scroll {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    .board-scroll::-webkit-scrollbar { display: none; }
+
     /* ---- Mode hemat: buang yang berjalan terus & yang mahal digambar ---- */
     .fids-eco .board-sweep,
     .fids-eco .head-float,

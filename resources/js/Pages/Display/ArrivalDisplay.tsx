@@ -5,6 +5,7 @@ import { t, type Lang } from '@/lib/fids';
 import { themeGradient, scoreboardVars } from '@/lib/theme';
 import { useNtpClock } from '@/hooks/useNtpClock';
 import { useStatusChanges } from '@/hooks/useStatusChanges';
+import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { useAnnouncementPlayer } from '@/hooks/useAnnouncementPlayer';
 import { BOARD_CSS, URGENT_ARRIVAL_STATUSES } from '@/lib/boardMotion';
 import ScoreChars from '@/Components/Fids/ScoreChars';
@@ -48,6 +49,8 @@ export default function Arrivals() {
     const [textColor, setTextColor] = useState<string>('#ffffff');
     const [accentColor, setAccentColor] = useState<string>('#fbbf24');
     const [weather, setWeather] = useState<{ suhu: string; kondisi_cuaca: string } | null>(null);
+    // Kecepatan gulir dari Pengaturan Layar, dipakai saat mode hemat.
+    const [scrollSpeed, setScrollSpeed] = useState(1);
     // Mode hemat (Raspberry Pi): default aktif sampai Pengaturan Layar terbaca,
     // supaya perangkat lemah tidak sempat menggambar animasi berat saat start.
     const [eco, setEco] = useState(true);
@@ -86,6 +89,7 @@ export default function Arrivals() {
             if (jsonSettings.data?.tema_warna) setThemeColor(jsonSettings.data.tema_warna);
             if (jsonSettings.data?.warna_utama) setTextColor(jsonSettings.data.warna_utama);
             if (jsonSettings.data?.warna_aksen) setAccentColor(jsonSettings.data.warna_aksen);
+            if (jsonSettings.data?.kecepatan_scroll !== undefined) setScrollSpeed(jsonSettings.data.kecepatan_scroll);
             if (jsonSettings.data?.teks_ticker) setTickerText(jsonSettings.data.teks_ticker);
             if (jsonSettings.data?.bahasa) setLang(jsonSettings.data.bahasa);
             if (jsonSettings.data?.mode_hemat !== undefined) setEco(!!jsonSettings.data.mode_hemat);
@@ -108,23 +112,27 @@ export default function Arrivals() {
 
     useEffect(() => {
         const sig = flights.map(f => `${f.id}:${f.status}:${f.baggage_claim}`).join('|');
-        if (prevFlightsRef.current && sig !== prevFlightsRef.current) {
+        // Mode hemat tidak memakai flipKey (baris tidak di-remount), jadi jangan
+        // memicu render tambahan di perangkat lemah.
+        if (!eco && prevFlightsRef.current && sig !== prevFlightsRef.current) {
             setFlipKey(k => k + 1);
         }
         prevFlightsRef.current = sig;
-    }, [flights]);
+    }, [flights, eco]);
 
     // Rotasi: tiap 15 detik, baris pertama pindah ke paling bawah
     const [offset, setOffset] = useState(0);
 
     useEffect(() => {
-        if (flights.length <= 1) return;
+        // Mode hemat memakai auto-scroll, bukan rotasi: rotasi me-remount seluruh
+        // baris tiap 15 detik, dan tanpa animasi itu terlihat sebagai lompatan kasar.
+        if (eco || flights.length <= 1) return;
         const timer = setInterval(() => {
             setOffset(o => o + 1);
             setFlipKey(k => k + 1);
         }, 15000);
         return () => clearInterval(timer);
-    }, [flights.length]);
+    }, [flights.length, eco]);
 
     const rotatedFlights = flights.length > 0
         ? [...flights.slice(offset % flights.length), ...flights.slice(0, offset % flights.length)]
@@ -133,6 +141,11 @@ export default function Arrivals() {
     // Baris yang statusnya baru berubah disorot sebentar agar terbedakan dari
     // gerakan rotasi papan yang berjalan tiap 15 detik.
     const changedIds = useStatusChanges(flights);
+
+    // Mode hemat: satu-satunya gerakan adalah auto-scroll (murah di Raspberry Pi).
+    // speed 0 = hook tidak berjalan sama sekali, jadi mode penuh tetap memakai rotasi.
+    const scrollRef = useAutoScroll(eco ? scrollSpeed : 0, 3000, [flights]);
+    const visibleFlights = eco ? flights : rotatedFlights;
 
     // Pengumuman PAS diputar di browser layar ini, bukan di speaker server.
     useAnnouncementPlayer();
@@ -204,7 +217,7 @@ export default function Arrivals() {
                 </div>
 
                 {/* Baris penerbangan â€” animasi scoreboard badminton */}
-                <div className="board-font flex-1 overflow-hidden relative">
+                <div ref={scrollRef} className={`board-font flex-1 relative ${eco ? 'overflow-y-auto board-scroll' : 'overflow-hidden'}`}>
                     {/* Kilau lambat melintasi papan — dimatikan otomatis di mode hemat. */}
                     <div className="board-sweep" aria-hidden="true" />
                     {loading ? (
@@ -218,7 +231,7 @@ export default function Arrivals() {
                             {t.noFlightsArr[lang]}
                         </div>
                     ) : (
-                        rotatedFlights.map((flight, idx) => {
+                        visibleFlights.map((flight, idx) => {
                             const style = getStatusStyle(flight.status);
                             // Warna status semantik (tetap); status lain ikut warna teks utama
                             // agar terbaca di latar terang/gelap.
@@ -232,7 +245,7 @@ export default function Arrivals() {
                             const urgent = URGENT_ARRIVAL_STATUSES.includes(flight.status);
                             return (
                                 <div
-                                    key={`${flight.id}-${flipKey}`}
+                                    key={eco ? flight.id : `${flight.id}-${flipKey}`}
                                     className={`score-row grid grid-cols-12 gap-4 items-center border-b group ${
                                         justChanged ? 'score-row--changed' : ''
                                     } ${

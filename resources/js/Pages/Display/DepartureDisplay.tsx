@@ -5,6 +5,7 @@ import { t, type Lang } from '@/lib/fids';
 import { themeGradient, scoreboardVars } from '@/lib/theme';
 import { useNtpClock } from '@/hooks/useNtpClock';
 import { useStatusChanges } from '@/hooks/useStatusChanges';
+import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { useAnnouncementPlayer } from '@/hooks/useAnnouncementPlayer';
 import { BOARD_CSS, URGENT_DEPARTURE_STATUSES } from '@/lib/boardMotion';
 import ScoreChars from '@/Components/Fids/ScoreChars';
@@ -54,7 +55,6 @@ export default function Departures() {
     // Papan keberangkatan memakai rotasi baris (offset), bukan auto-scroll.
     // scrollSpeed tetap dibaca dari Pengaturan Layar untuk kompatibilitas data.
     const [scrollSpeed, setScrollSpeed] = useState(1);
-    void scrollSpeed;
     const [weather, setWeather] = useState<{ suhu: string; kondisi_cuaca: string } | null>(null);
     // Mode hemat (Raspberry Pi): default aktif sampai Pengaturan Layar terbaca,
     // supaya perangkat lemah tidak sempat menggambar animasi berat saat start.
@@ -119,23 +119,27 @@ export default function Departures() {
 
     useEffect(() => {
         const sig = flights.map(f => `${f.id}:${f.status}:${f.gate}`).join('|');
-        if (prevFlightsRef.current && sig !== prevFlightsRef.current) {
+        // Mode hemat tidak memakai flipKey (baris tidak di-remount), jadi jangan
+        // memicu render tambahan di perangkat lemah.
+        if (!eco && prevFlightsRef.current && sig !== prevFlightsRef.current) {
             setFlipKey(k => k + 1);
         }
         prevFlightsRef.current = sig;
-    }, [flights]);
+    }, [flights, eco]);
 
     // Rotasi: tiap 15 detik, baris pertama pindah ke paling bawah (shift)
     const [offset, setOffset] = useState(0);
 
     useEffect(() => {
-        if (flights.length <= 1) return;
+        // Mode hemat memakai auto-scroll, bukan rotasi: rotasi me-remount seluruh
+        // baris tiap 15 detik, dan tanpa animasi itu terlihat sebagai lompatan kasar.
+        if (eco || flights.length <= 1) return;
         const timer = setInterval(() => {
             setOffset(o => o + 1);
             setFlipKey(k => k + 1);
         }, 15000);
         return () => clearInterval(timer);
-    }, [flights.length]);
+    }, [flights.length, eco]);
 
     // Hitung rotated flights berdasarkan offset
     const rotatedFlights = flights.length > 0
@@ -145,6 +149,11 @@ export default function Departures() {
     // Baris yang statusnya baru berubah disorot sebentar agar terbedakan dari
     // gerakan rotasi papan yang berjalan tiap 15 detik.
     const changedIds = useStatusChanges(flights);
+
+    // Mode hemat: satu-satunya gerakan adalah auto-scroll (murah di Raspberry Pi).
+    // speed 0 = hook tidak berjalan sama sekali, jadi mode penuh tetap memakai rotasi.
+    const scrollRef = useAutoScroll(eco ? scrollSpeed : 0, 3000, [flights]);
+    const visibleFlights = eco ? flights : rotatedFlights;
 
     // Pengumuman PAS diputar di browser layar ini, bukan di speaker server.
     useAnnouncementPlayer();
@@ -216,7 +225,7 @@ export default function Departures() {
                 </div>
 
                 {/* Baris penerbangan â€” animasi scoreboard badminton */}
-                <div className="board-font flex-1 overflow-hidden relative">
+                <div ref={scrollRef} className={`board-font flex-1 relative ${eco ? 'overflow-y-auto board-scroll' : 'overflow-hidden'}`}>
                     {/* Kilau lambat melintasi papan — dimatikan otomatis di mode hemat. */}
                     <div className="board-sweep" aria-hidden="true" />
                     {loading ? (
@@ -230,7 +239,7 @@ export default function Departures() {
                             {t.noFlightsDep[lang]}
                         </div>
                     ) : (
-                        rotatedFlights.map((flight, idx) => {
+                        visibleFlights.map((flight, idx) => {
                             const style = getStatusStyle(flight.status);
                             // Warna status semantik (tetap); status lain (Scheduled, dll.)
                             // ikut warna teks utama agar terbaca di latar terang/gelap.
@@ -244,7 +253,7 @@ export default function Departures() {
                             const urgent = URGENT_DEPARTURE_STATUSES.includes(flight.status);
                             return (
                                 <div
-                                    key={`${flight.id}-${flipKey}`}
+                                    key={eco ? flight.id : `${flight.id}-${flipKey}`}
                                     className={`score-row grid grid-cols-12 gap-4 items-center border-b group ${
                                         justChanged ? 'score-row--changed' : ''
                                     } ${
