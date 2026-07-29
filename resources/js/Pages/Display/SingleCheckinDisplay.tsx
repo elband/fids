@@ -157,14 +157,14 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
             >
                 <div className="relative z-50 shrink-0 mx-[2vw] mt-[2vw] flex items-start justify-between pointer-events-none">
                     <div className="flex items-center gap-[1vw] bg-black/40 backdrop-blur-xl px-[2vw] py-[1vw] rounded-2xl border border-white/10 shadow-2xl pointer-events-auto">
-                        <div className="p-[0.5vw] bg-white/5 rounded-xl text-white/80">
+                        <div className="p-[0.5vw] bg-white/5 rounded-xl text-[#FFD700]">
                             <Clock size={32} strokeWidth={2} />
                         </div>
                         <div className="flex flex-col">
-                            <span style={{ fontSize: '3.5vw' }} className="font-black tracking-tighter text-white drop-shadow-md leading-none">
+                            <span style={{ fontSize: '3.5vw' }} className="font-black tracking-tighter text-[#FFD700] drop-shadow-md leading-none">
                                 {time24h}
                             </span>
-                            <span style={{ fontSize: '0.9vw' }} className="font-bold text-white/60 uppercase tracking-[0.2em] mt-1">
+                            <span style={{ fontSize: '0.9vw' }} className="font-bold text-[#FFD700]/70 uppercase tracking-[0.2em] mt-1">
                                 {dateFullId}
                             </span>
                         </div>
