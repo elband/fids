@@ -5,6 +5,7 @@ import { t, type Lang } from '@/lib/fids';
 import { themeGradient, scoreboardVars } from '@/lib/theme';
 import { useNtpClock } from '@/hooks/useNtpClock';
 import { useStatusChanges } from '@/hooks/useStatusChanges';
+import { useAnnouncementPlayer } from '@/hooks/useAnnouncementPlayer';
 import { BOARD_CSS, URGENT_DEPARTURE_STATUSES } from '@/lib/boardMotion';
 import ScoreChars from '@/Components/Fids/ScoreChars';
 
@@ -144,6 +145,9 @@ export default function Departures() {
     // Baris yang statusnya baru berubah disorot sebentar agar terbedakan dari
     // gerakan rotasi papan yang berjalan tiap 15 detik.
     const changedIds = useStatusChanges(flights);
+
+    // Pengumuman PAS diputar di browser layar ini, bukan di speaker server.
+    useAnnouncementPlayer();
 
     return (
         <FidsLayout title="FIDS - Keberangkatan">

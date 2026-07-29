@@ -1,9 +1,9 @@
 ﻿import { Head, router } from '@inertiajs/react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Monitor, Volume2, PlaneTakeoff, PlaneLanding } from 'lucide-react';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
 import AdSlide from '@/Components/AdSlide';
-import { announce } from '@/lib/announcer';
+import { useAnnouncementPlayer } from '@/hooks/useAnnouncementPlayer';
 import { useNtpClock } from '@/hooks/useNtpClock';
 
 type Flight = {
@@ -275,9 +275,6 @@ const AdPanel = ({ ads }: { ads: Ad[] }) => {
 export default function PublicScreenRealtime({ settings, departures, arrivals, weather, advertisements, server_timezone, utc_now }: PublicScreenProps) {
     const { time24h, dateFullId } = useNtpClock();
     const [audioEnabled, setAudioEnabled] = useState(true);
-    const [pending, setPending] = useState<any[]>([]);
-    const isPlayingRef = useRef(false);
-    const playedIdsRef = useRef<Set<number>>(new Set());
 
     useEffect(() => {
         const refreshTimer = setInterval(() => {
@@ -286,59 +283,8 @@ export default function PublicScreenRealtime({ settings, departures, arrivals, w
         return () => { clearInterval(refreshTimer); };
     }, []);
 
-    useEffect(() => {
-        const fetchPending = async () => {
-            if (!audioEnabled) return;
-            try {
-                const res = await fetch(route('api.pending-announcements'));
-                const data = await res.json();
-                setPending(data);
-            } catch (e) {
-                console.error('Audio: Failed to fetch announcements', e);
-            }
-        };
-        const timer = setInterval(fetchPending, 10000);
-        if (audioEnabled) fetchPending();
-        return () => clearInterval(timer);
-    }, [audioEnabled]);
-
-    useEffect(() => {
-        if (!audioEnabled || isPlayingRef.current) return;
-        const ann = pending.find((a) => !playedIdsRef.current.has(a.id));
-        if (!ann) return;
-
-        isPlayingRef.current = true;
-        playedIdsRef.current.add(ann.id);
-        const text = String(ann.isi_pengumuman ?? '').replace(/---/g, '. ');
-
-        announce(text, { lang: 'id-ID', rate: 0.92 })
-            .catch((e) => console.error('Speak failed', e))
-            .then(() => {
-                // Laporkan ke server bahwa pengumuman selesai diputar -> broadcast_count naik.
-                // Endpoint API publik (tanpa auth/CSRF) agar layar kiosk yang tidak login tetap bisa melapor.
-                return fetch(`/api/fids/announcements/${ann.id}/played`, {
-                    method: 'POST',
-                    headers: { 'Accept': 'application/json' },
-                });
-            })
-            .catch((e) => console.error('Increment failed', e))
-            .finally(() => {
-                isPlayingRef.current = false;
-                // refresh pending agar yang sudah max keluar dari antrian
-                fetch(route('api.pending-announcements'))
-                    .then((r) => r.json())
-                    .then((fresh) => {
-                        // Lepas id dari daftar "sudah diputar" bila server sudah men-gating-nya
-                        // (tidak lagi pending). Dengan begitu pengumuman bisa diputar lagi
-                        // pada siklus berikutnya setelah interval_pemutaran terlewati.
-                        if (!fresh.some((a: any) => a.id === ann.id)) {
-                            playedIdsRef.current.delete(ann.id);
-                        }
-                        setPending(fresh);
-                    })
-                    .catch(() => { /* ignore */ });
-            });
-    }, [pending, audioEnabled]);
+    // Pemutar PAS di browser layar (client), dipakai bersama papan berangkat/datang.
+    useAnnouncementPlayer(audioEnabled);
 
     const time    = time24h;
     const dateStr = dateFullId;

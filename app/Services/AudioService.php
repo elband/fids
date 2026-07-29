@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Cache;
+
 class AudioService
 {
     /**
@@ -80,17 +82,28 @@ class AudioService
             // exec() menjalankan /bin/sh (dash di Debian/Ubuntu) yang TIDAK
             // mengembangkan brace, sehingga loop lama berjalan dengan literal
             // "{1..3}" dan repeat diabaikan diam-diam.
+            // Batas waktu keras per berkas. Di VM tanpa sink audio nyata (ALSA
+            // dummy), mpg123 tidak pernah selesai memutar: ia berputar di state R
+            // memakan ~25% CPU selamanya. Karena scheduler memanggil tiap menit,
+            // prosesnya menumpuk sampai seluruh core server habis. Pengumuman TTS
+            // hanya beberapa detik, jadi 30 detik sudah sangat longgar.
+            $guard = $this->timeoutPrefix();
+
             $script = '';
             for ($i = 0; $i < max(1, $repeat); $i++) {
                 foreach ($audioFiles as $file) {
-                    $script .= $player . ' ' . escapeshellarg($file) . '; sleep 0.5; ';
+                    $script .= $guard . $player . ' ' . escapeshellarg($file) . '; sleep 0.5; ';
                 }
                 if ($i < $repeat - 1) {
                     $script .= 'sleep ' . (int) $intervalSeconds . '; ';
                 }
             }
 
-            $this->runDetached($script);
+            // Jendela kunci: total durasi maksimum skrip di atas, plus kelonggaran.
+            $ttl = (max(1, $repeat) * count($audioFiles) * self::PLAYER_TIMEOUT_SEC)
+                 + (max(0, $repeat - 1) * (int) $intervalSeconds) + 10;
+
+            $this->runDetached($script, $ttl);
         }
     }
 
@@ -138,13 +151,48 @@ class AudioService
         return null;
     }
 
+    /** Batas waktu satu kali pemutaran berkas audio (detik). */
+    private const PLAYER_TIMEOUT_SEC = 30;
+
+    /**
+     * Awalan `timeout` bila tersedia (coreutils, standar di Debian/Ubuntu).
+     * -k mengirim KILL bila pemutar mengabaikan TERM.
+     */
+    private function timeoutPrefix(): string
+    {
+        static $prefix = null;
+        if ($prefix !== null) {
+            return $prefix;
+        }
+
+        $prefix = shell_exec('command -v timeout 2>/dev/null')
+            ? 'timeout -k 5 ' . self::PLAYER_TIMEOUT_SEC . ' '
+            : '';
+
+        return $prefix;
+    }
+
     /**
      * Jalankan skrip shell di latar belakang tanpa menahan request/command PHP.
+     *
+     * Satu pemutar pada satu waktu. exec() di bawah bersifat fire-and-forget:
+     * ia kembali seketika, jadi `withoutOverlapping` pada scheduler TIDAK
+     * melindungi apa pun — command PHP-nya memang sudah selesai. Tanpa kunci
+     * ini, tiap menit menambah satu proses pemutar baru di atas yang lama.
      */
-    private function runDetached(string $script): void
+    private function runDetached(string $script, int $ttlSeconds = 120): void
     {
+        // Kunci dilepas oleh kedaluwarsa, bukan oleh kita: prosesnya terlepas
+        // sehingga tidak ada yang tersisa untuk melepaskannya secara eksplisit.
+        if (! Cache::add(self::PLAYER_LOCK_KEY, 1, max(10, $ttlSeconds))) {
+            return;
+        }
+
         exec('nohup sh -c ' . escapeshellarg($script) . ' > /dev/null 2>&1 &');
     }
+
+    /** Penanda "sedang ada pemutar berjalan" di cache. */
+    private const PLAYER_LOCK_KEY = 'fids:pas:player-busy';
 
     /**
      * Returns list of missing system dependencies required for Linux TTS playback.
@@ -194,13 +242,18 @@ class AudioService
                 if ($cleanSegment === '') continue;
 
                 $voice = ($index === 0) ? 'id' : 'en';
-                $script .= 'espeak -v ' . $voice . ' -s 140 ' . escapeshellarg($cleanSegment) . '; sleep 0.5; ';
+                // espeak bisa menggantung dengan sebab yang sama seperti mpg123.
+                $script .= $this->timeoutPrefix() . 'espeak -v ' . $voice . ' -s 140 ' . escapeshellarg($cleanSegment) . '; sleep 0.5; ';
             }
             if ($i < $repeat - 1) {
                 $script .= 'sleep ' . (int) $intervalSeconds . '; ';
             }
         }
 
-        if ($script !== '') $this->runDetached($script);
+        if ($script !== '') {
+            $ttl = (max(1, $repeat) * max(1, count($segments)) * self::PLAYER_TIMEOUT_SEC)
+                 + (max(0, $repeat - 1) * (int) $intervalSeconds) + 10;
+            $this->runDetached($script, $ttl);
+        }
     }
 }

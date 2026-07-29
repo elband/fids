@@ -43,6 +43,11 @@ function isCacheableApiGet(method: string, url: string): boolean {
     if (/\/time(\?|$)/.test(url) || /worldtimeapi|timeapi\.io|time\.google|worldclockapi/i.test(url)) {
         return false;
     }
+    // JANGAN cache antrian pengumuman. Menyajikan antrian basi saat jaringan
+    // putus membuat pengeras suara terminal mengulang pengumuman lama tanpa henti
+    // — laporan /played tidak pernah sampai ke server, jadi tidak ada yang
+    // menghentikannya. Lebih baik diam daripada mengumumkan yang keliru.
+    if (/\/pending-announcements(\?|$)/.test(url)) return false;
     // Hanya cache API data same-origin (abaikan cross-origin, aset/Inertia/mutasi).
     if (!isSameOrigin(url)) return false;
     return /\/api\//.test(url) && !/\/played(\?|$)/.test(url);
