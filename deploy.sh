@@ -16,10 +16,10 @@ for arg in "$@"; do
     esac
 done
 
-echo "==> [1/8] Installing PHP dependencies..."
+echo "==> [1/9] Installing PHP dependencies..."
 composer install --optimize-autoloader --no-dev
 
-echo "==> [2/8] Setting up environment..."
+echo "==> [2/9] Setting up environment..."
 if [ ! -f .env ]; then
     cp .env.example .env
     php artisan key:generate
@@ -27,31 +27,43 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
-echo "==> [3/8] Running database migrations..."
+echo "==> [3/9] Running database migrations..."
 if [ "$FRESH" = true ]; then
     php artisan migrate:fresh --force
 else
     php artisan migrate --force
 fi
 
-echo "==> [4/8] Seeding database..."
+echo "==> [4/9] Seeding database..."
 if [ "$NO_SEED" = false ]; then
     php artisan db:seed --force
 fi
 
-echo "==> [5/8] Linking storage..."
+echo "==> [5/9] Linking storage..."
 php artisan storage:link --force
 
-echo "==> [6/8] Building frontend assets..."
+echo "==> [6/9] Building frontend assets..."
 npm ci
 npm run build
 
-echo "==> [7/8] Caching config, routes, and views..."
+echo "==> [7/9] Caching config, routes, and views..."
 php artisan optimize
 
-echo "==> [8/8] Setting permissions..."
+echo "==> [8/9] Setting permissions..."
 chmod -R 775 storage bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+
+echo "==> [9/9] Memuat ulang PHP-FPM..."
+# Tanpa ini, OPcache yang disetel validate_timestamps=0 tetap menjalankan bytecode
+# lama walau file di disk sudah diganti: deploy terlihat sukses dan `git log`
+# menunjuk commit baru, tapi perilaku aplikasi tidak berubah sama sekali.
+FPM_SERVICE=$(systemctl list-units --type=service --no-legend 'php*-fpm.service' 2>/dev/null | awk '{print $1}' | head -1)
+if [ -n "$FPM_SERVICE" ]; then
+    systemctl reload "$FPM_SERVICE" && echo "     $FPM_SERVICE dimuat ulang" \
+        || echo "     GAGAL memuat ulang $FPM_SERVICE — jalankan manual"
+else
+    echo "     PHP-FPM tidak terdeteksi (lewati). Bila memakai server lain, muat ulang manual."
+fi
 
 echo ""
 echo "Deployment complete."
