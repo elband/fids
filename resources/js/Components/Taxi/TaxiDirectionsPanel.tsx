@@ -4,6 +4,7 @@ import { Lang, TaxiCounter, TaxiDirection, TaxiSettings } from './types';
 import { PanelTitle } from './TaxiFlightPanel';
 import { pick, t } from './i18n';
 import CounterArrow from './CounterArrow';
+import FitText from '@/Components/FitText';
 
 interface Props {
     directions: TaxiDirection[];
@@ -190,21 +191,20 @@ function CounterCard({
                 </span>
             </div>
 
-            <div className="flex-1 min-w-0 flex items-center px-[0.8vw] py-[0.5vmin]">
-                <span className="min-w-0">
-                    {/* Nama operator adalah informasi utama kartu, jadi diberi
-                        porsi terbesar setelah nomor counter. */}
-                    <span className="block text-white font-black leading-tight truncate"
-                          style={{ fontSize: 'clamp(0.8rem, 2.5vmin, 2.2rem)' }}>
+            <div className="flex-1 min-w-0 flex flex-col justify-center px-[0.8vw] py-[0.5vmin]">
+                {/* Nama operator adalah informasi utama kartu: diberi seluruh sisa
+                    ruang dan diskalakan mengisi penuh, bukan dipatok lalu dipotong. */}
+                <div className="flex-1 min-h-0">
+                    <FitText className="text-white font-black" min={12} max={72}>
                         {counter.nama_operator}
+                    </FitText>
+                </div>
+                {counter.jenis_layanan && (
+                    <span className="block text-white/50 font-semibold truncate shrink-0"
+                          style={{ fontSize: 'clamp(0.5rem, 1.4vmin, 1.15rem)' }}>
+                        {counter.jenis_layanan}
                     </span>
-                    {counter.jenis_layanan && (
-                        <span className="block text-white/50 font-semibold truncate"
-                              style={{ fontSize: 'clamp(0.5rem, 1.4vmin, 1.15rem)' }}>
-                            {counter.jenis_layanan}
-                        </span>
-                    )}
-                </span>
+                )}
             </div>
         </div>
     );
