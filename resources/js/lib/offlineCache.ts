@@ -48,6 +48,16 @@ function isCacheableApiGet(method: string, url: string): boolean {
     return /\/api\//.test(url) && !/\/played(\?|$)/.test(url);
 }
 
+/**
+ * Endpoint hiasan header (cuaca, jam dunia). Isinya tetap di-cache supaya header
+ * tidak berkedip, tapi kegagalannya TIDAK boleh menyalakan banner "Mode Luring":
+ * banner itu memberi tahu petugas bahwa DATA PENERBANGAN sudah basi, dan satu
+ * request cuaca 502/429 tidak berarti papan berhenti diperbarui.
+ */
+function isCosmeticApi(url: string): boolean {
+    return /\/(weather|world-clock-settings)(\?|$)/.test(url);
+}
+
 function resolveUrl(input: RequestInfo | URL): string {
     if (typeof input === 'string') return input;
     if (input instanceof URL) return input.toString();
@@ -64,6 +74,8 @@ export function installOfflineCache(): void {
         const method = (init?.method || (input as Request)?.method || 'GET').toUpperCase();
         const url = resolveUrl(input);
         const cacheable = isCacheableApiGet(method, url);
+        // Hanya endpoint data (bukan cuaca/jam dunia) yang menentukan status jaringan.
+        const signalsNet = cacheable && !isCosmeticApi(url);
         const key = PREFIX + url;
 
         try {
@@ -75,23 +87,23 @@ export function installOfflineCache(): void {
                     const clone = res.clone();
                     const body = await clone.text();
                     localStorage.setItem(key, JSON.stringify({ at: Date.now(), body }));
-                    localStorage.setItem(LAST_OK_KEY, String(Date.now()));
+                    if (signalsNet) localStorage.setItem(LAST_OK_KEY, String(Date.now()));
                 } catch { /* kuota localStorage / parse — abaikan */ }
-                emit(true);
+                if (signalsNet) emit(true);
                 return res;
             }
 
             // Respons non-2xx pada endpoint cacheable → coba fallback cache.
             if (cacheable && !res.ok) {
                 const cached = readCache(key);
-                if (cached) { emit(false); return cached; }
+                if (cached) { if (signalsNet) emit(false); return cached; }
             }
             return res;
         } catch (err) {
             // Kegagalan jaringan total → sajikan cache bila ada.
             if (cacheable) {
                 const cached = readCache(key);
-                if (cached) { emit(false); return cached; }
+                if (cached) { if (signalsNet) emit(false); return cached; }
             }
             throw err;
         }

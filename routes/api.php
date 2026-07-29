@@ -12,14 +12,17 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 // Rate limiting (audit M-01): batasi per-IP untuk cegah DoS/scraping.
-// Tiap monitor = 1 IP, polling ~6-12 req/mnt, jadi 120/mnt sangat longgar untuk read.
+// Asumsi "tiap monitor = 1 IP" TIDAK berlaku bila seluruh layar keluar lewat satu
+// NAT/proxy: satu papan menembak 3-4 endpoint tiap 15 dtk (~16 req/mnt), sehingga
+// batas 120/mnt jebol di layar ke-8 dan 429 terbaca oleh layar sebagai "Mode Luring".
+// 600/mnt menampung ~35 layar per IP dan masih memotong scraping/DoS.
 // Transaksi penerbangan (format mengikuti API referensi 103.210.122.2)
 Route::prefix('transaksi')->middleware('throttle:60,1')->group(function () {
     Route::get('/keberangkatan', [TransaksiApiController::class, 'keberangkatan']);
     Route::get('/kedatangan', [TransaksiApiController::class, 'kedatangan']);
 });
 
-Route::prefix('fids')->middleware('throttle:120,1')->group(function () {
+Route::prefix('fids')->middleware('throttle:600,1')->group(function () {
     Route::get('/departures', [DisplayApiController::class, 'departures']);
     Route::get('/arrivals', [DisplayApiController::class, 'arrivals']);
     Route::get('/gate/{gate}', [DisplayApiController::class, 'gate']);
