@@ -458,8 +458,12 @@ export default function Authenticated({
     );
 }
 const VoiceMonitor = () => {
+    // Default ON: sebelumnya default OFF membuat pengumuman otomatis tidak pernah
+    // terhitung (broadcast_count mandek di 0) saat tidak ada layar publik terbuka,
+    // sehingga kartu PAS tak pernah habis pemutarannya. Operator tetap bisa mematikan
+    // manual; pilihan itu dihormati karena disimpan eksplisit sebagai 'false'.
     const [audioEnabled, setAudioEnabled] = useState(() => {
-        return localStorage.getItem('fids_pas_monitor') === 'true';
+        return localStorage.getItem('fids_pas_monitor') !== 'false';
     });
     
     const [pending, setPending] = useState<any[]>([]);
@@ -468,6 +472,9 @@ const VoiceMonitor = () => {
 
     useEffect(() => {
         localStorage.setItem('fids_pas_monitor', audioEnabled.toString());
+        // Halaman PAS memakai ini untuk memperingatkan operator bahwa pengumuman
+        // tidak akan pernah terhitung selesai bila monitor dimatikan.
+        window.dispatchEvent(new CustomEvent('fids:pas-monitor', { detail: audioEnabled }));
         if (audioEnabled) {
             // PAS Monitor enabled
         } else {
@@ -477,14 +484,16 @@ const VoiceMonitor = () => {
         }
     }, [audioEnabled]);
 
-    const fetchPending = async () => {
-        if (!audioEnabled) return;
+    const fetchPending = async (): Promise<any[] | null> => {
+        if (!audioEnabled) return null;
         try {
             const res = await fetch(route('api.pending-announcements'));
             const data = await res.json();
             setPending(data);
+            return Array.isArray(data) ? data : null;
         } catch (e) {
             // silent fail for polling
+            return null;
         }
     };
 
@@ -520,7 +529,16 @@ const VoiceMonitor = () => {
             .finally(() => {
                 isPlayingRef.current = false;
                 // refresh pending list so finished announcement disappears
-                fetchPending();
+                fetchPending().then((fresh) => {
+                    // Lepas id dari daftar "sudah diputar" bila server sudah men-gating-nya
+                    // (tidak lagi pending karena interval_pemutaran belum lewat / sudah habis).
+                    // Tanpa ini id tersimpan selamanya di tab tersebut, sehingga pengumuman
+                    // hanya pernah diputar SEKALI per sesi dan broadcast_count mandek
+                    // sebelum mencapai max_broadcasts — kartu PAS tak pernah hilang.
+                    if (fresh && !fresh.some((a: any) => a.id === ann.id)) {
+                        playedIdsRef.current.delete(ann.id);
+                    }
+                });
             });
     }, [pending, audioEnabled]);
 

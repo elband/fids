@@ -7,7 +7,7 @@ import InputLabel from '@/Components/InputLabel';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
-import { Plus, Edit2, Trash2, Send, X, Volume2, Globe, Target, AlertTriangle, Terminal, Repeat, Timer, Headphones } from 'lucide-react';
+import { Plus, Edit2, Trash2, Send, X, Volume2, VolumeX, Globe, Target, AlertTriangle, Terminal, Repeat, Timer, Headphones } from 'lucide-react';
 import { announce } from '@/lib/announcer';
 import { appConfirm } from '@/lib/confirm';
 
@@ -36,6 +36,25 @@ interface Props {
 export default function Index({ announcements, missingDependencies = [] }: Props) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAnn, setEditingAnn] = useState<Announcement | null>(null);
+
+    // Pemutaran & penghitungan pengumuman dilakukan oleh pemutar (browser atau
+    // speaker server). Bila PAS Monitor dimatikan dan tidak ada layar publik yang
+    // terbuka, "Sisa pemutaran" tidak akan pernah turun dan pengumuman menumpuk —
+    // operator perlu tahu itu, bukan menyangka sistemnya rusak.
+    const [pasMonitorOn, setPasMonitorOn] = useState(
+        () => localStorage.getItem('fids_pas_monitor') !== 'false',
+    );
+
+    useEffect(() => {
+        const onToggle = (e: Event) => setPasMonitorOn(Boolean((e as CustomEvent).detail));
+        const onStorage = () => setPasMonitorOn(localStorage.getItem('fids_pas_monitor') !== 'false');
+        window.addEventListener('fids:pas-monitor', onToggle);
+        window.addEventListener('storage', onStorage);
+        return () => {
+            window.removeEventListener('fids:pas-monitor', onToggle);
+            window.removeEventListener('storage', onStorage);
+        };
+    }, []);
 
     // Auto-refresh: perbarui daftar tiap 20 detik agar "Sisa pemutaran" turun secara live
     // ketika pengumuman diputar di layar publik (tanpa perlu reload manual).
@@ -137,6 +156,28 @@ export default function Index({ announcements, missingDependencies = [] }: Props
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
+
+                    {/* PAS Monitor mati -> pemutaran tidak terhitung */}
+                    {!pasMonitorOn && (
+                        <div className="bg-rose-50 border-l-4 border-rose-500 p-5 rounded-r-lg shadow-sm dark:bg-rose-950/40">
+                            <div className="flex gap-4">
+                                <div className="bg-rose-500 p-2 rounded-lg h-fit text-white">
+                                    <VolumeX size={22} />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-rose-800 dark:text-rose-200 mb-1">
+                                        PAS Monitor mati di browser ini
+                                    </h3>
+                                    <p className="text-rose-700 dark:text-rose-300 text-sm">
+                                        Selama tidak ada layar publik yang terbuka atau speaker server yang aktif,
+                                        pengumuman tidak akan diputar dan <span className="font-semibold">Sisa pemutaran tidak berkurang</span>,
+                                        sehingga kartu di bawah tidak pernah hilang. Nyalakan kembali lewat tombol
+                                        <span className="font-semibold"> PAS MONITOR</span> di bilah atas.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Dependency Warning */}
                     {missingDependencies.length > 0 && (

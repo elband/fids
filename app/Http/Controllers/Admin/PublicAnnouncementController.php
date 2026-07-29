@@ -104,15 +104,30 @@ class PublicAnnouncementController extends Controller
 
     public function incrementCount(Announcement $public_announcement)
     {
-        $public_announcement->increment('broadcast_count');
-        $public_announcement->update(['last_broadcast_at' => now()]);
+        // Debounce lintas-tab: dengan PAS Monitor aktif di beberapa tab admin,
+        // satu siklus pemutaran dilaporkan N kali. UPDATE atomik bersyarat membuat
+        // laporan hampir-bersamaan hanya dihitung SEKALI, sekaligus menghilangkan
+        // race read-modify-write. Sejalan dengan DisplayApiController@markAnnouncementPlayed.
+        $debounceSeconds = 30;
+
+        $incremented = Announcement::where('id', $public_announcement->id)
+            ->where(function ($q) use ($debounceSeconds) {
+                $q->whereNull('last_broadcast_at')
+                  ->orWhere('last_broadcast_at', '<=', now()->subSeconds($debounceSeconds));
+            })
+            ->update([
+                'broadcast_count'   => \DB::raw('broadcast_count + 1'),
+                'last_broadcast_at' => now(),
+            ]);
+
+        $public_announcement->refresh();
 
         // Auto-delete when play count reaches the max
         if ($public_announcement->broadcast_count >= $public_announcement->max_broadcasts) {
             $public_announcement->delete();
-            return response()->json(['success' => true, 'deleted' => true]);
+            return response()->json(['success' => true, 'counted' => (bool) $incremented, 'deleted' => true]);
         }
 
-        return response()->json(['success' => true, 'deleted' => false]);
+        return response()->json(['success' => true, 'counted' => (bool) $incremented, 'deleted' => false]);
     }
 }
