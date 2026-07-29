@@ -182,7 +182,7 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
 
                 <div className="relative z-10 h-full flex flex-col">
                     {/* Header */}
-                    <div className="absolute top-8 left-8 right-8 z-50 flex items-start justify-between pointer-events-none">
+                    <div className="relative z-50 shrink-0 mx-8 mt-8 flex items-start justify-between pointer-events-none">
                         <div className="flex items-center gap-4 bg-black/40 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 shadow-2xl pointer-events-auto">
                             <div className="p-3 bg-white/5 rounded-xl text-white/80"><Clock size={32} strokeWidth={2} /></div>
                             <div className="flex flex-col">
@@ -212,7 +212,7 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
                     </div>
 
                     {/* Main */}
-                    <div className="flex-1 flex flex-col p-[2vw] mt-[13vh] min-h-0">
+                    <div className="flex-1 flex flex-col p-[2vw] min-h-0">
                         <div className="flex justify-between items-start gap-[2vw] mb-[2vh]">
                             <div className="min-w-0">
                                 <div style={{ fontSize: 'min(1.8vw, 2.4vh)' }} className="text-gray-300 tracking-[0.5em] font-medium uppercase mb-2 drop-shadow">{t.baggageClaimBelt[lang]}</div>

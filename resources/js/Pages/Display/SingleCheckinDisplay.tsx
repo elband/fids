@@ -155,7 +155,7 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
                     backgroundPosition: 'center'
                 } : (airlineColor ? { backgroundColor: hexToRgba(airlineColor, 0.2) } : {})}
             >
-                <div className="absolute top-[2vw] left-[2vw] right-[2vw] z-50 flex items-start justify-between pointer-events-none">
+                <div className="relative z-50 shrink-0 mx-[2vw] mt-[2vw] flex items-start justify-between pointer-events-none">
                     <div className="flex items-center gap-[1vw] bg-black/40 backdrop-blur-xl px-[2vw] py-[1vw] rounded-2xl border border-white/10 shadow-2xl pointer-events-auto">
                         <div className="p-[0.5vw] bg-white/5 rounded-xl text-white/80">
                             <Clock size={32} strokeWidth={2} />
@@ -198,7 +198,7 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
                     )}
                 </div>
 
-                <div className="flex-1 flex flex-col p-[2vw] mt-[13vh] min-h-0">
+                <div className="flex-1 flex flex-col p-[2vw] min-h-0">
                     <div className="flex justify-between items-start gap-[2vw] mb-[2vh]">
                         <div className="min-w-0">
                             <div style={{ fontSize: 'min(1.8vw, 2.4vh)' }} className="text-gray-400 tracking-[0.5em] font-medium uppercase mb-2">{t.checkinCounterLabel[lang]}</div>
