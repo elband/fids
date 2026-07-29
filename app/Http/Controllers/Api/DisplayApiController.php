@@ -54,8 +54,19 @@ class DisplayApiController extends Controller
     private const GATE_LINGER_MINUTES = 5;
 
     /**
+     * Status yang berarti penerbangan sudah benar-benar melekat ke gate-nya:
+     * begitu check-in dibuka, penumpang sudah diarahkan ke gate tersebut, jadi
+     * gate harus menampilkannya tanpa menunggu jendela 1 jam. Jendela itu hanya
+     * relevan untuk penerbangan yang masih pasif (Scheduled/On Time/Delayed).
+     */
+    private const GATE_ACTIVE_STATUSES = [
+        'Check-in Open', 'Check-in Closed', 'Boarding', 'Gate Open', 'Final Call',
+    ];
+
+    /**
      * Tentukan penerbangan yang sedang "memakai" sebuah gate menurut aturan operasional:
-     *  - Muncul mulai 1 jam sebelum jam jadwal (GATE_LEAD_MINUTES).
+     *  - Status aktif (check-in dibuka dst.) langsung tampil; selain itu mulai
+     *    1 jam sebelum jam jadwal (GATE_LEAD_MINUTES).
      *  - Hanya SATU penerbangan memakai gate pada satu waktu (yang paling awal jadwalnya);
      *    gate baru bisa dipakai penerbangan berikutnya setelah penghuni sebelumnya hilang.
      *  - Hilang 5 menit setelah statusnya "Departed" (GATE_LINGER_MINUTES).
@@ -88,7 +99,13 @@ class DisplayApiController extends Controller
                 return $now->lte($departedAt->copy()->addMinutes(self::GATE_LINGER_MINUTES));
             }
 
-            // Belum berangkat: tampil mulai 1 jam sebelum jam jadwal.
+            // Check-in sudah dibuka / boarding: gate sudah resmi dipakai, tampilkan
+            // sekarang juga berapa pun sisa waktu ke jam jadwal.
+            if (in_array($f->status, self::GATE_ACTIVE_STATUSES, true)) {
+                return true;
+            }
+
+            // Masih pasif (Scheduled/On Time/Delayed): tampil mulai 1 jam sebelum jadwal.
             return $now->gte($sched->copy()->subMinutes(self::GATE_LEAD_MINUTES));
         });
 

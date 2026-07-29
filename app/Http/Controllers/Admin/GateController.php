@@ -16,8 +16,12 @@ class GateController extends Controller
         $today = Carbon::today();
         
         $gates = Gate::with(['flights' => function($query) use ($today) {
+            // 'Check-in Open'/'Check-in Closed' sempat tertinggal dari daftar ini,
+            // sehingga penerbangan yang check-in-nya sudah dibuka tampil sebagai
+            // "Belum ada penerbangan" di kartu gate — padahal justru itu tahap
+            // ketika petugas paling butuh melihat gate mana yang sudah terisi.
             $query->whereDate('tanggal_penerbangan', $today)
-                  ->whereIn('status', ['Scheduled', 'Boarding', 'Gate Open', 'Final Call', 'Delayed'])
+                  ->whereIn('status', ['Scheduled', 'Check-in Open', 'Check-in Closed', 'Boarding', 'Gate Open', 'Final Call', 'Delayed'])
                   ->orderBy('jam_jadwal')
                   ->with(['airline', 'airportTujuan']);
         }])->orderBy('kode_gate')->get();

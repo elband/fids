@@ -94,6 +94,24 @@ class BoardingGateRuleTest extends TestCase
         $this->assertCount(0, $this->gateFlights());
     }
 
+    public function test_checkin_open_appears_regardless_of_lead_window(): void
+    {
+        // Check-in dibuka pukul 10:00 untuk penerbangan 15:00 — jendela 1 jam belum
+        // terbuka, tapi penumpang sudah diarahkan ke gate, jadi gate harus terisi.
+        $this->makeFlight('IU400', '15:00:00', 'Check-in Open');
+
+        $flights = $this->gateFlights();
+
+        $this->assertCount(1, $flights);
+        $this->assertSame('IU400', $flights[0]['nomor_penerbangan']);
+    }
+
+    public function test_boarding_appears_regardless_of_lead_window(): void
+    {
+        $this->makeFlight('IU500', '14:00:00', 'Boarding');
+        $this->assertCount(1, $this->gateFlights());
+    }
+
     public function test_departed_flight_lingers_5_minutes_then_hidden(): void
     {
         // Berangkat 09:57 (3 menit lalu) → masih tampil.
