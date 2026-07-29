@@ -20,6 +20,7 @@ interface Flight {
 interface Gate {
     id: number;
     kode_gate: string;
+    nama_gate?: string | null;
     status_gate: string;
     flights?: Flight[];
 }
@@ -168,7 +169,8 @@ export default function SingleGateDisplay({ identifier }: { identifier: string }
                         <div className="min-w-0">
                             <div style={{ fontSize: 'min(1.8vw, 2.4vh)' }} className="text-gray-400 tracking-[0.5em] font-medium uppercase mb-2">{t.boardingGateLabel[lang]}</div>
                             <div style={{ fontSize: 'min(16vw, 19vh)', lineHeight: 1 }} className="font-black text-[#FFD700] drop-shadow-[0_0_15px_rgba(255,215,0,0.4)]">
-                                {gate.kode_gate}
+                                {/* Nama gate yang dikenal penumpang ("Gate A1"), bukan kode internal ("01"). */}
+                                {gate.nama_gate || gate.kode_gate}
                             </div>
                         </div>
                         {flight?.airline?.logo && (

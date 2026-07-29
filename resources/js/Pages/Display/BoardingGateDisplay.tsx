@@ -213,7 +213,8 @@ export default function BoardingGateDisplay() {
                                                 hasCheckin && !hasActive ? 'text-cyan-300' :
                                                 gate.status_gate === 'aktif' ? 'text-yellow-400' : 'text-gray-600'
                                             }`}>
-                                                {gate.kode_gate}
+                                                {/* Nama gate yang dikenal penumpang ("Gate A1"), bukan kode internal ("01"). */}
+                                                {gate.nama_gate || gate.kode_gate}
                                             </span>
                                             {gate.petunjuk_arah && (
                                                 <span className="text-5xl leading-none text-amber-300 mt-1">

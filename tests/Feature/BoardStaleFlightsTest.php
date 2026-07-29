@@ -105,6 +105,31 @@ class BoardStaleFlightsTest extends TestCase
         $this->assertContains('IU700', $nomors);
     }
 
+    public function test_departed_without_actual_time_hidden_by_schedule(): void
+    {
+        // Kasus nyata di lapangan: petugas menandai "Departed" tanpa mengisi ATD,
+        // dan barisnya tersentuh update belakangan. Patokan harus jam jadwal —
+        // dulu memakai updated_at sehingga penerbangan pagi menempel seharian.
+        $this->make('departure', 'IU110', '09:05:00', 'Departed', null);
+        Flight::where('nomor_penerbangan', 'IU110')->update(['updated_at' => Carbon::now()]);
+
+        $nomors = collect($this->getJson('/api/fids/departures')->assertOk()->json('data'))
+            ->pluck('nomor_penerbangan')->all();
+
+        $this->assertNotContains('IU110', $nomors);
+    }
+
+    public function test_arrived_without_actual_time_hidden_by_schedule(): void
+    {
+        $this->make('arrival', 'IU111', '08:20:00', 'Arrived', null);
+        Flight::where('nomor_penerbangan', 'IU111')->update(['updated_at' => Carbon::now()]);
+
+        $nomors = collect($this->getJson('/api/fids/arrivals')->assertOk()->json('data'))
+            ->pluck('nomor_penerbangan')->all();
+
+        $this->assertNotContains('IU111', $nomors);
+    }
+
     public function test_hide_duration_configurable_via_setting(): void
     {
         // Durasi disetel 60 menit di Pengaturan Layar.

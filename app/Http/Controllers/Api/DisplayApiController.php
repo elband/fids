@@ -177,6 +177,32 @@ class DisplayApiController extends Controller
     private const BOARD_HIDE_DEFAULT_MIN = 180;
 
     /**
+     * Patokan "kapan penerbangan ini selesai" untuk papan keberangkatan/kedatangan:
+     * jam berangkat/tiba aktual (ATD/ATA), lalu jam jadwal.
+     *
+     * updated_at TIDAK dipakai di sini. Sebelumnya patokannya updated_at, sehingga
+     * penerbangan berstatus Departed yang barusan disunting petugas (atau tersentuh
+     * proses lain) dianggap "baru berangkat" dan menempel di papan berjam-jam —
+     * penerbangan 09:05 masih terpampang pukul 14:15. Jam jadwal selalu ada dan
+     * merupakan patokan yang benar saat ATD/ATA belum diisi.
+     */
+    private function flightDoneAt($flight): ?Carbon
+    {
+        $tz = \App\Support\DisplayTimezone::get();
+        $jam = ! empty($flight->jam_aktual) ? $flight->jam_aktual : $flight->jam_jadwal;
+
+        if (empty($jam)) {
+            return null;
+        }
+
+        $date = $flight->tanggal_penerbangan
+            ? Carbon::parse($flight->tanggal_penerbangan)->toDateString()
+            : Carbon::now($tz)->toDateString();
+
+        return Carbon::parse("{$date} {$jam}", $tz);
+    }
+
+    /**
      * Buang penerbangan yang sudah "selesai" (berangkat/tiba) lebih dari
      * durasi (menit) yang diatur di Pengaturan Layar (board_hide_after_menit).
      * Nilai 0 = jangan pernah disembunyikan.
@@ -197,9 +223,9 @@ class DisplayApiController extends Controller
             if (! in_array($f->status, $doneStatuses, true)) {
                 return false; // belum selesai → tetap tampil
             }
-            $at = $this->flightArrivedAt($f); // jam_aktual (ATA/ATD) → fallback updated_at
+            $at = $this->flightDoneAt($f); // jam_aktual (ATD/ATA) → fallback jam_jadwal
             if (! $at) {
-                return false; // tanpa waktu aktual → tetap tampil
+                return false; // tanpa jam sama sekali → tetap tampil
             }
             return $at->diffInMinutes($now, false) >= $limitMin;
         })->values();
