@@ -67,7 +67,16 @@ export default function Index({ announcements, missingDependencies = [] }: Props
         return () => clearInterval(timer);
     }, [isModalOpen]);
 
-    const { data, setData, post, put, processing, errors, reset } = useForm({
+    const { data, setData, post, put, processing, errors, reset } = useForm<{
+        judul: string;
+        isi_pengumuman: string;
+        bahasa: string;
+        target: string;
+        mode: string;
+        // Boleh kosong sementara selagi operator mengetik ulang angkanya.
+        max_broadcasts: number | '';
+        interval_pemutaran: number | '';
+    }>({
         judul: '',
         isi_pengumuman: '',
         bahasa: 'Indonesia',
@@ -104,6 +113,14 @@ export default function Index({ announcements, missingDependencies = [] }: Props
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Menekan Enter tidak memicu onBlur, jadi kotak yang masih kosong
+        // dinormalkan di sini agar tidak pernah terkirim sebagai nilai kosong
+        // (yang di server akan jatuh ke default kolom).
+        if (data.max_broadcasts === '') setData('max_broadcasts', 3);
+        if (data.interval_pemutaran === '') setData('interval_pemutaran', 4);
+        if (data.max_broadcasts === '' || data.interval_pemutaran === '') return;
+
         if (editingAnn) {
             put(route('admin.public-announcements.update', editingAnn.id), {
                 onSuccess: () => closeModal(),
@@ -515,7 +532,12 @@ export default function Index({ announcements, missingDependencies = [] }: Props
                                         max={99}
                                         className="mt-1 block w-full"
                                         value={data.max_broadcasts}
-                                        onChange={(e) => setData('max_broadcasts', parseInt(e.target.value) || 1)}
+                                        // Kotak boleh kosong sementara saat operator mengganti angka.
+                                        // Pola lama `parseInt(...) || 1` mengubah kosong menjadi 1 secara
+                                        // diam-diam, sehingga menekan Simpan tanpa mengetik ulang menyimpan
+                                        // batas 1 pemutaran — pengumuman lalu hilang setelah sekali putar.
+                                        onChange={(e) => setData('max_broadcasts', e.target.value === '' ? '' : parseInt(e.target.value))}
+                                        onBlur={(e) => { if (e.target.value === '') setData('max_broadcasts', 3); }}
                                         required
                                     />
                                     <p className="text-[10px] text-gray-400 mt-1 italic">*Otomatis terhapus setelah selesai</p>
@@ -530,7 +552,8 @@ export default function Index({ announcements, missingDependencies = [] }: Props
                                         max={60}
                                         className="mt-1 block w-full"
                                         value={data.interval_pemutaran}
-                                        onChange={(e) => setData('interval_pemutaran', parseInt(e.target.value) || 1)}
+                                        onChange={(e) => setData('interval_pemutaran', e.target.value === '' ? '' : parseInt(e.target.value))}
+                                        onBlur={(e) => { if (e.target.value === '') setData('interval_pemutaran', 4); }}
                                         required
                                     />
                                     <p className="text-[10px] text-gray-400 mt-1 italic">*Jeda antar ulangan</p>
