@@ -49,8 +49,13 @@ class AudioService
                 $psScript .= "\$p = New-Object System.Windows.Media.MediaPlayer; ";
                 $psScript .= "\$p.Open('" . str_replace('/', '\\', $file) . "'); ";
                 $psScript .= "\$p.Play(); ";
-                $psScript .= "Start-Sleep -m 200; while(\$p.NaturalDuration.HasTimeSpan -eq \$false){ Start-Sleep -m 100 }; "; // Wait for load
-                $psScript .= "Start-Sleep -s [Math]::Ceiling(\$p.NaturalDuration.TimeSpan.TotalSeconds + 1); ";
+                // Tunggu durasi termuat, tapi jangan selamanya: bila file rusak/gagal
+                // dibuka, HasTimeSpan tak pernah true dan proses menggantung tanpa suara.
+                $psScript .= "\$w = 0; while(\$p.NaturalDuration.HasTimeSpan -eq \$false -and \$w -lt 50){ Start-Sleep -m 100; \$w++ }; ";
+                // [Math]::Ceiling(...) harus dibungkus \$( ) — tanpa itu PowerShell
+                // memperlakukannya sebagai string literal dan Start-Sleep gagal bind
+                // ("CannotConvertArgument"), sehingga pengumuman tidak pernah terdengar.
+                $psScript .= "if(\$p.NaturalDuration.HasTimeSpan){ Start-Sleep -s \$([Math]::Ceiling(\$p.NaturalDuration.TimeSpan.TotalSeconds + 1)) } else { Start-Sleep -s 10 }; ";
                 $psScript .= "\$p.Close(); ";
             }
             $psScript .= "if(\$i -lt " . ($repeat - 1) . "){ Start-Sleep -s {$intervalSeconds} } ";
