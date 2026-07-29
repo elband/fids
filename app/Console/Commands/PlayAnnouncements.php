@@ -22,12 +22,17 @@ use Illuminate\Support\Facades\DB;
 class PlayAnnouncements extends Command
 {
     protected $signature = 'fids:play-announcements
-                            {--force : Putar walau config fids.pas.server_speaker mati}';
+                            {--force : Putar walau config fids.pas.server_speaker mati}
+                            {--check : Periksa kesiapan speaker server tanpa memutar apa pun}';
 
     protected $description = 'Putar pengumuman PAS yang tertunda lewat speaker server';
 
     public function handle(AudioService $audio): int
     {
+        if ($this->option('check')) {
+            return $this->preflight($audio);
+        }
+
         if (! config('fids.pas.server_speaker') && ! $this->option('force')) {
             $this->comment('Pemutar server nonaktif (FIDS_PAS_SERVER_SPEAKER=false). Dilewati.');
             return self::SUCCESS;
@@ -75,6 +80,78 @@ class PlayAnnouncements extends Command
         Cache::forget('fids:api:announcements');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Diagnostik kesiapan speaker server. Dijalankan sebagai user yang sama
+     * dengan cron (mis. `sudo -u www-data php artisan ...`) supaya masalah izin
+     * perangkat audio ikut ketahuan, bukan hanya keberadaan paketnya.
+     */
+    private function preflight(AudioService $audio): int
+    {
+        $ok = true;
+        $windows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+
+        $this->line('Pemeriksaan speaker server PAS');
+        $this->line(str_repeat('-', 46));
+        $this->line('Dijalankan sebagai : ' . (function_exists('posix_getpwuid') && function_exists('posix_geteuid')
+            ? (posix_getpwuid(posix_geteuid())['name'] ?? '?')
+            : get_current_user()));
+
+        $enabled = (bool) config('fids.pas.server_speaker');
+        $this->state($enabled, 'FIDS_PAS_SERVER_SPEAKER aktif',
+            'nonaktif — command akan dilewati (set true di .env lalu `php artisan optimize`)');
+        $ok = $ok && $enabled;
+
+        if (! $windows) {
+            $hasDevice = is_dir('/dev/snd') && count((array) @scandir('/dev/snd')) > 2;
+            $this->state($hasDevice, 'Perangkat audio /dev/snd terdeteksi',
+                'TIDAK ADA perangkat audio — lazim pada VM tanpa passthrough; speaker server tidak mungkin berbunyi');
+            $ok = $ok && $hasDevice;
+
+            $readable = $hasDevice && is_readable('/dev/snd');
+            if ($hasDevice) {
+                $this->state($readable, 'Perangkat audio bisa diakses user ini',
+                    'perangkat ada tapi tidak terbaca — jalankan `sudo usermod -aG audio ' . get_current_user() . '` lalu restart');
+                $ok = $ok && $readable;
+            }
+
+            $missing = $audio->getMissingDependencies();
+            $this->state($missing === [], 'Paket pemutar audio lengkap',
+                'paket kurang: ' . implode(', ', $missing) . ' — `sudo apt install -y ' . implode(' ', array_map(
+                    fn ($m) => str_contains($m, 'alsa') ? 'alsa-utils' : $m, $missing)) . '`');
+            $ok = $ok && $missing === [];
+        }
+
+        $dir = storage_path('app/public/audio');
+        $writable = (is_dir($dir) && is_writable($dir)) || (! is_dir($dir) && is_writable(dirname($dir)));
+        $this->state($writable, 'Direktori cache audio bisa ditulis',
+            "tidak bisa menulis ke {$dir} — perbaiki kepemilikan storage/");
+        $ok = $ok && $writable;
+
+        $online = @get_headers('https://translate.google.com', true) !== false;
+        $this->state($online, 'TTS Google terjangkau (suara natural)',
+            'tidak terjangkau — akan memakai suara robotik espeak sebagai cadangan');
+
+        $pending = $this->nextPending();
+        $this->line(($pending ? '  •  ' : '  •  ') . 'Antrian: ' . ($pending
+            ? "#{$pending->id} \"{$pending->judul}\" siap diputar"
+            : 'tidak ada pengumuman tertunda saat ini'));
+
+        $this->line(str_repeat('-', 46));
+
+        if ($ok) {
+            $this->info('Siap. Uji suara: php artisan fids:play-announcements --force');
+            return self::SUCCESS;
+        }
+
+        $this->error('Belum siap — perbaiki butir bertanda x di atas.');
+        return self::FAILURE;
+    }
+
+    private function state(bool $pass, string $okMessage, string $failMessage): void
+    {
+        $this->line($pass ? "  <fg=green>v</> {$okMessage}" : "  <fg=red>x</> {$failMessage}");
     }
 
     /**

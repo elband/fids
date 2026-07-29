@@ -95,6 +95,27 @@ class PlayAnnouncementsCommandTest extends TestCase
         $this->assertFalse((bool) $ann->status_aktif);
     }
 
+    /** --check hanya mendiagnosis: tidak memutar, tidak menyentuh hitungan. */
+    public function test_check_never_plays_or_counts(): void
+    {
+        config(['fids.pas.server_speaker' => true]);
+        $ann = $this->announcement();
+        $this->muteSpeaker(0);
+
+        $this->artisan('fids:play-announcements', ['--check' => true]);
+
+        $this->assertSame(0, (int) $ann->fresh()->broadcast_count);
+    }
+
+    /** --check gagal (exit non-nol) saat speaker server belum diaktifkan. */
+    public function test_check_fails_when_disabled(): void
+    {
+        config(['fids.pas.server_speaker' => false]);
+        $this->muteSpeaker(0);
+
+        $this->artisan('fids:play-announcements', ['--check' => true])->assertFailed();
+    }
+
     /** Target selain "Server Speakers" ditangani pemutar browser, bukan server. */
     public function test_ignores_other_targets(): void
     {
