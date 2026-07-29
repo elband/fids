@@ -140,7 +140,7 @@ export default function CheckinCounterDisplay() {
                                                         className="absolute inset-0 h-full w-full object-cover"
                                                     />
                                                 ) : (
-                                                    <div className="text-3xl font-bold tracking-widest uppercase text-gray-600 text-center opacity-50">
+                                                    <div className="text-3xl font-bold tracking-widest uppercase text-yellow-400 text-center">
                                                         {t.closed[lang]}
                                                     </div>
                                                 )

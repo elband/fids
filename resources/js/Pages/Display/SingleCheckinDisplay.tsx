@@ -215,7 +215,7 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
 
                     <div className="flex-1 flex flex-col justify-center min-h-0">
                         {counter.status_counter !== 'buka' ? (
-                            <div style={{ fontSize: 'min(10vw, 14vh)' }} className="font-black text-gray-600 tracking-widest text-center">
+                            <div style={{ fontSize: 'min(10vw, 14vh)' }} className="font-black text-yellow-400 tracking-widest text-center">
                                 {t.closed[lang]}
                             </div>
                         ) : (

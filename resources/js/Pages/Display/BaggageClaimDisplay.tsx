@@ -128,7 +128,7 @@ export default function BaggageClaimDisplay() {
 
                                         <div className="w-3/4 flex flex-col justify-center p-6 relative">
                                             {claim.status_belt !== 'aktif' ? (
-                                                <div className="text-3xl font-bold tracking-widest uppercase text-gray-600 text-center opacity-50">
+                                                <div className="text-3xl font-bold tracking-widest uppercase text-yellow-400 text-center">
                                                     {t.closed[lang]}
                                                 </div>
                                             ) : (

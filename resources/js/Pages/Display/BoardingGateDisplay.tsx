@@ -226,7 +226,7 @@ export default function BoardingGateDisplay() {
                                         {/* Panel kanan — info penerbangan */}
                                         <div className="w-3/4 flex flex-col justify-center p-4 relative gap-2">
                                             {gate.status_gate !== 'aktif' ? (
-                                                <div className="text-3xl font-bold tracking-widest uppercase text-gray-600 text-center opacity-50">
+                                                <div className="text-3xl font-bold tracking-widest uppercase text-yellow-400 text-center">
                                                     {t.closed[lang]}
                                                 </div>
                                             ) : visibleFlights.length === 0 ? (
