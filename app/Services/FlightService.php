@@ -41,8 +41,13 @@ class FlightService
     {
         $flight->load(['airline', 'airportAsal', 'airportTujuan']);
         
-        $locationLabel = $flight->jenis_penerbangan === 'departure' ? 'tujuan' : 'dari';
-        $location = $flight->jenis_penerbangan === 'departure' ? ($flight->airportTujuan->kota ?? '') : ($flight->airportAsal->kota ?? '');
+        $isDeparture = $flight->jenis_penerbangan === 'departure';
+        $locationLabel = $isDeparture ? 'tujuan' : 'dari';
+        // Versi Inggris harus ikut berubah arah: kedatangan datang "from", bukan "to".
+        // Sebelumnya selalu "to", sehingga pesawat yang tiba dari Jakarta diumumkan
+        // sebagai "flight XX to Jakarta has landed".
+        $locationLabelEn = $isDeparture ? 'to' : 'from';
+        $location = $isDeparture ? ($flight->airportTujuan->kota ?? '') : ($flight->airportAsal->kota ?? '');
         $airline = $flight->airline->nama_maskapai ?? '';
         
         // Status Mapping for more natural speech
@@ -81,7 +86,7 @@ class FlightService
         $textId = "Perhatian, penerbangan {$airline} dengan nomor penerbangan {$flight->nomor_penerbangan} {$locationLabel} {$location}, {$msgId}.";
         
         // English Message
-        $textEn = "Attention, {$airline} flight {$flight->nomor_penerbangan} to {$location}, {$msgEn}.";
+        $textEn = "Attention, {$airline} flight {$flight->nomor_penerbangan} {$locationLabelEn} {$location}, {$msgEn}.";
 
         \App\Models\Announcement::create([
             'judul' => "Auto: {$flight->nomor_penerbangan} - {$status}",
@@ -122,12 +127,72 @@ class FlightService
 
     /**
      * Sync check-in counters for a flight.
+     *
+     * Penugasan counter punya DUA penyimpanan yang harus selalu sejalan:
+     *  - pivot `flight_checkin_counter` → sumber kebenaran, dibaca layar publik
+     *    (CheckinCounter::flights() belongsToMany) dan bisa berisi >1 counter;
+     *  - kolom `flights.checkin_counter_id` → warisan, masih dibaca KPI Dashboard,
+     *    modul Check-in Counter, dan proses arsip (archived_flights).
+     *
+     * Dulu modul Keberangkatan hanya menulis pivot sementara modul Check-in Counter
+     * hanya menulis kolom, sehingga penugasan yang dibuat di satu modul tidak terlihat
+     * di modul lain — layar counter tetap "TUTUP" walau petugas sudah menugaskan
+     * penerbangan. Selalu lewati kedua penulisan melalui metode ini.
      */
     public function syncCounters(Flight $flight, ?array $counterIds): void
     {
-        if ($counterIds !== null) {
-            $flight->checkinCounters()->sync($counterIds);
+        if ($counterIds === null) {
+            return;
         }
+
+        $flight->checkinCounters()->sync($counterIds);
+        $this->syncPrimaryCounterColumn($flight);
+    }
+
+    /**
+     * Selaraskan kolom warisan `checkin_counter_id` dengan isi pivot.
+     * Counter "utama" = counter bernomor terkecil (urutan numerik agar 2 < 10).
+     */
+    public function syncPrimaryCounterColumn(Flight $flight): void
+    {
+        $primary = $flight->checkinCounters()
+            ->orderByRaw('CAST(nomor_counter AS UNSIGNED), nomor_counter')
+            ->first();
+
+        $flight->update(['checkin_counter_id' => $primary?->id]);
+    }
+
+    /**
+     * Tugaskan satu penerbangan ke satu counter dari modul Check-in Counter.
+     * Menulis pivot + kolom warisan, dan mencatat perubahan status lewat
+     * updateStatus() agar tetap masuk FlightStatusLog dan memicu pengumuman.
+     */
+    public function assignCounter(Flight $flight, int $counterId, string $status): void
+    {
+        $flight->checkinCounters()->syncWithoutDetaching([$counterId]);
+        $this->syncPrimaryCounterColumn($flight);
+        $this->updateStatus($flight, $status);
+    }
+
+    /**
+     * Lepaskan satu penerbangan dari satu counter (pivot + kolom warisan).
+     *
+     * @return bool  false bila penerbangan memang tidak tertaut ke counter tersebut.
+     */
+    public function detachCounter(Flight $flight, int $counterId, string $status): bool
+    {
+        $linkedViaPivot = $flight->checkinCounters()->whereKey($counterId)->exists();
+        $linkedViaColumn = (int) $flight->checkin_counter_id === $counterId;
+
+        if (! $linkedViaPivot && ! $linkedViaColumn) {
+            return false;
+        }
+
+        $flight->checkinCounters()->detach($counterId);
+        $this->syncPrimaryCounterColumn($flight);
+        $this->updateStatus($flight, $status);
+
+        return true;
     }
 
     /**

@@ -7,25 +7,35 @@ use Illuminate\Http\Request;
 use App\Models\BaggageClaim;
 use App\Models\Flight;
 use Inertia\Inertia;
-use Carbon\Carbon;
+use App\Services\FlightService;
+use App\Support\DisplayTimezone;
+use App\Support\FlightStatus;
 
 class BaggageClaimController extends Controller
 {
+    public function __construct(protected FlightService $flightService)
+    {
+    }
+
     public function index()
     {
-        $today = Carbon::today();
-        
+        // Zona waktu tampilan FIDS (lihat catatan di CheckinCounterController::index).
+        $today = DisplayTimezone::today()->toDateString();
+
         $claims = BaggageClaim::with(['flights' => function($query) use ($today) {
-            $query->whereDate('tanggal_penerbangan', $today)
-                  ->whereIn('status', ['Scheduled', 'Landed', 'Arrived', 'Baggage Claim', 'Delayed'])
+            $query->daily()
+                  ->whereDate('tanggal_penerbangan', $today)
+                  ->where('jenis_penerbangan', 'arrival')
+                  ->whereIn('status', FlightStatus::BAGGAGE_BOARD)
                   ->orderBy('jam_jadwal')
                   ->with(['airline', 'airportAsal']);
         }])->orderBy('nomor_belt')->get();
-        
+
         $todayArrivals = Flight::with(['airline', 'airportAsal'])
             ->where('jenis_penerbangan', 'arrival')
+            ->daily()
             ->whereDate('tanggal_penerbangan', $today)
-            ->whereIn('status', ['Scheduled', 'Landed', 'Delayed'])
+            ->whereIn('status', FlightStatus::BAGGAGE_BOARD)
             ->orderBy('jam_jadwal')
             ->get();
 
@@ -62,10 +72,10 @@ class BaggageClaimController extends Controller
         if ($request->has('flight_id') && $request->flight_id) {
             $flight = Flight::find($request->flight_id);
             if ($flight) {
-                $flight->update([
-                    'baggage_claim_id' => $baggage_claim->id,
-                    'status' => 'Baggage Claim'
-                ]);
+                // Status lewat FlightService agar tercatat di FlightStatusLog + memicu
+                // pengumuman, konsisten dengan modul Kedatangan.
+                $flight->update(['baggage_claim_id' => $baggage_claim->id]);
+                $this->flightService->updateStatus($flight, 'Baggage Claim');
             }
         }
 
@@ -75,10 +85,9 @@ class BaggageClaimController extends Controller
     public function removeFlight(Request $request, BaggageClaim $baggage_claim, Flight $flight)
     {
         if ($flight->baggage_claim_id == $baggage_claim->id) {
-            $flight->update([
-                'baggage_claim_id' => null,
-                'status' => 'Arrived'
-            ]);
+            $flight->update(['baggage_claim_id' => null]);
+            $this->flightService->updateStatus($flight, 'Arrived');
+
             return redirect()->back()->with('success', 'Penerbangan berhasil dilepas dari belt.');
         }
         return redirect()->back()->with('error', 'Penerbangan tidak cocok dengan belt ini.');

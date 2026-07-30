@@ -14,7 +14,7 @@ class DashboardController extends Controller
     public function exportFlightLogs()
     {
         $flightLogs = FlightStatusLog::with(['flight.airline', 'flight.airportAsal', 'flight.airportTujuan', 'changedBy'])
-            ->whereDate('changed_at', Carbon::today())
+            ->whereDate('changed_at', \App\Support\DisplayTimezone::today()->toDateString())
             ->latest('changed_at')
             ->get();
 
@@ -28,8 +28,9 @@ class DashboardController extends Controller
 
     public function index()
     {
-        $today = Carbon::today();
-        
+        // Zona waktu tampilan FIDS agar batas "hari ini" sama dengan scope Flight::today().
+        $today = \App\Support\DisplayTimezone::today()->toDateString();
+
         $flightsToday = Flight::daily()->today();
         
         $totalFlights = (clone $flightsToday)->count();
@@ -43,7 +44,13 @@ class DashboardController extends Controller
         $arrived = (clone $flightsToday)->whereIn('status', ['Arrived', 'Landed'])->count();
         $departed = (clone $flightsToday)->where('status', 'Departed')->count();
         $gatesAssigned = Flight::daily()->today()->whereNotNull('gate_id')->distinct('gate_id')->count('gate_id');
-        $checkinCountersAssigned = Flight::daily()->today()->whereNotNull('checkin_counter_id')->distinct('checkin_counter_id')->count('checkin_counter_id');
+        // Hitung dari pivot flight_checkin_counter — sumber kebenaran penugasan counter.
+        // Dulu KPI ini membaca kolom warisan flights.checkin_counter_id yang tidak diisi
+        // oleh modul Keberangkatan, sehingga nilainya nyaris selalu 0.
+        $checkinCountersAssigned = \App\Models\CheckinCounter::whereHas(
+            'flights',
+            fn ($q) => $q->daily()->today()
+        )->count();
         $activeAirlines = Flight::daily()->today()->distinct('airline_id')->count('airline_id');
 
         // Hourly Data untuk Chart (Optimized: Single query instead of 48)

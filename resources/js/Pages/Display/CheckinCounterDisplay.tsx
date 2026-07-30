@@ -132,7 +132,10 @@ export default function CheckinCounterDisplay() {
                                         </div>
 
                                         <div className="w-3/4 flex flex-col justify-center p-6 relative">
-                                            {counter.status_counter === 'tutup' ? (
+                                            {/* Cek "bukan buka", bukan "tutup": nilai lain (mis. standby)
+                                                dulu jatuh ke cabang terbuka dan memajang penerbangan pada
+                                                counter yang tidak dibuka. Samakan dengan SingleCheckinDisplay. */}
+                                            {counter.status_counter !== 'buka' ? (
                                                 counter.idle_image ? (
                                                     <img
                                                         src={counter.idle_image}

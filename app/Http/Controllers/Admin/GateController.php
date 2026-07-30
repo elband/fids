@@ -7,21 +7,29 @@ use Illuminate\Http\Request;
 use App\Models\Gate;
 use App\Models\Flight;
 use Inertia\Inertia;
-use Carbon\Carbon;
+use App\Services\FlightService;
+use App\Support\DisplayTimezone;
+use App\Support\FlightStatus;
 
 class GateController extends Controller
 {
+    public function __construct(protected FlightService $flightService)
+    {
+    }
+
     public function index()
     {
-        $today = Carbon::today();
-        
+        // Zona waktu tampilan FIDS (lihat catatan di CheckinCounterController::index).
+        $today = DisplayTimezone::today()->toDateString();
+
         $gates = Gate::with(['flights' => function($query) use ($today) {
-            // 'Check-in Open'/'Check-in Closed' sempat tertinggal dari daftar ini,
-            // sehingga penerbangan yang check-in-nya sudah dibuka tampil sebagai
-            // "Belum ada penerbangan" di kartu gate — padahal justru itu tahap
-            // ketika petugas paling butuh melihat gate mana yang sudah terisi.
-            $query->whereDate('tanggal_penerbangan', $today)
-                  ->whereIn('status', ['Scheduled', 'Check-in Open', 'Check-in Closed', 'Boarding', 'Gate Open', 'Final Call', 'Delayed'])
+            // Daftar status dipusatkan di FlightStatus::GATE_BOARD supaya tidak lagi
+            // menyimpang dari daftar yang dipakai API layar publik. Filter
+            // jenis_penerbangan mencegah kedatangan ber-gate_id muncul di kartu gate.
+            $query->daily()
+                  ->whereDate('tanggal_penerbangan', $today)
+                  ->where('jenis_penerbangan', 'departure')
+                  ->whereIn('status', FlightStatus::GATE_BOARD)
                   ->orderBy('jam_jadwal')
                   ->with(['airline', 'airportTujuan']);
         }])->orderBy('kode_gate')->get();
@@ -35,8 +43,9 @@ class GateController extends Controller
 
         $todayDepartures = Flight::with(['airline', 'airportTujuan'])
             ->where('jenis_penerbangan', 'departure')
+            ->daily()
             ->whereDate('tanggal_penerbangan', $today)
-            ->whereIn('status', ['Scheduled', 'Check-in Open', 'Check-in Closed', 'Gate Open', 'Delayed'])
+            ->whereIn('status', FlightStatus::GATE_BOARD)
             ->orderBy('jam_jadwal')
             ->get()
             ->map(function ($flight) {
@@ -79,10 +88,12 @@ class GateController extends Controller
         if ($request->has('flight_id') && $request->flight_id) {
             $flight = Flight::find($request->flight_id);
             if ($flight) {
-                $flight->update([
-                    'gate_id' => $gate->id,
-                    'status' => 'Gate Open'
-                ]);
+                // Status diubah lewat FlightService agar tercatat di FlightStatusLog dan
+                // memicu pengumuman PA — sama seperti bila petugas mengubahnya dari modul
+                // Keberangkatan. Sebelumnya update langsung membuat perubahan status dari
+                // modul ini tidak muncul di Laporan/log Dashboard dan tanpa pengumuman.
+                $flight->update(['gate_id' => $gate->id]);
+                $this->flightService->updateStatus($flight, 'Gate Open');
             }
         }
 
@@ -92,10 +103,9 @@ class GateController extends Controller
     public function removeFlight(Request $request, Gate $gate, Flight $flight)
     {
         if ($flight->gate_id == $gate->id) {
-            $flight->update([
-                'gate_id' => null,
-                'status' => 'Check-in Closed'
-            ]);
+            $flight->update(['gate_id' => null]);
+            $this->flightService->updateStatus($flight, 'Check-in Closed');
+
             return redirect()->back()->with('success', 'Penerbangan berhasil dilepas dari gate.');
         }
         return redirect()->back()->with('error', 'Penerbangan tidak cocok dengan gate ini.');

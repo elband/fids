@@ -139,10 +139,16 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
         ? (now.getTime() - new Date(flight.arrived_at).getTime()) / 60000
         : 0;
 
+    // Belt yang di-set tidak_aktif/maintenance di modul Baggage Claim tidak boleh
+    // menampilkan apa pun selain "TUTUP" — sama seperti layar gate & counter tunggal,
+    // dan sama seperti papan bagasi grid. Sebelumnya layar ini mengabaikan status_belt
+    // sehingga belt nonaktif tetap memajang penerbangan dan streaming CCTV-nya.
+    const isBeltActive = belt?.status_belt === 'aktif';
+
     // Aturan: teks status tampil s/d durasi status; kamera tampil antara
     // menit "kamera muncul" s/d "kamera hilang".
-    const showText = !!flight && (!flight.arrived_at || elapsedMin < durStatusMin);
-    const showCamera = !!flight && !!camera && !!flight.arrived_at
+    const showText = isBeltActive && !!flight && (!flight.arrived_at || elapsedMin < durStatusMin);
+    const showCamera = isBeltActive && !!flight && !!camera && !!flight.arrived_at
         && elapsedMin >= camStartMin && elapsedMin < camEndMin;
 
     const airlineColor = showText ? (flight?.airline?.warna ?? null) : null;
@@ -239,6 +245,10 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
                                     <div style={{ fontSize: 'min(10vw, 14vh)', lineHeight: 1 }} className="font-black text-[#FFD700] truncate drop-shadow-lg uppercase">
                                         {flight.asal}
                                     </div>
+                                </div>
+                            ) : !isBeltActive ? (
+                                <div style={{ fontSize: 'min(10vw, 14vh)' }} className="font-black text-yellow-400 tracking-widest text-center">
+                                    {t.closed[lang]}
                                 </div>
                             ) : showCamera ? null : (
                                 <div style={{ fontSize: 'min(8vw, 11vh)' }} className="font-bold text-gray-400 tracking-widest text-center leading-tight whitespace-pre-line">

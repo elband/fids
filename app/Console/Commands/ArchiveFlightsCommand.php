@@ -27,7 +27,11 @@ class ArchiveFlightsCommand extends Command
         $this->info("Mengarsipkan penerbangan sebelum {$cutoffDate->toDateString()}...");
 
         // Jangan pernah arsipkan/hapus master template, walau sempat punya tanggal.
-        $flights = Flight::where('is_master', false)
+        // checkinCounters di-eager-load: penugasan counter tersimpan di pivot, dan
+        // arsip hanya punya satu kolom checkin_counter_id. Tanpa ini penerbangan yang
+        // counter-nya ditugaskan lewat modul Keberangkatan terarsip tanpa nomor counter.
+        $flights = Flight::with('checkinCounters')
+            ->where('is_master', false)
             ->whereNotNull('tanggal_penerbangan')
             ->whereDate('tanggal_penerbangan', '<', $cutoffDate->toDateString())
             ->get();
@@ -56,7 +60,8 @@ class ArchiveFlightsCommand extends Command
                     'tipe_layanan' => $flight->tipe_layanan,
                     'status' => $flight->status,
                     'gate_id' => $flight->gate_id,
-                    'checkin_counter_id' => $flight->checkin_counter_id,
+                    'checkin_counter_id' => $flight->checkin_counter_id
+                        ?? $flight->checkinCounters->first()?->id,
                     'baggage_claim_id' => $flight->baggage_claim_id,
                     'catatan' => $flight->catatan,
                     'archived_at' => Carbon::now(),

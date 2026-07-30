@@ -8,28 +8,39 @@ use App\Models\CheckinCounter;
 use App\Models\Airline;
 use App\Models\Flight;
 use Inertia\Inertia;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+use App\Services\FlightService;
+use App\Support\DisplayTimezone;
+use App\Support\FlightStatus;
 
 class CheckinCounterController extends Controller
 {
+    public function __construct(protected FlightService $flightService)
+    {
+    }
+
     public function index()
     {
-        $today = Carbon::today();
-        
+        // Pakai zona waktu tampilan FIDS, bukan Carbon::today() (config app.timezone).
+        // Operator dapat mengubah timezone dari Pengaturan Layar; dengan Carbon::today()
+        // halaman ini menampilkan hari yang berbeda dari layar di sekitar tengah malam.
+        $today = DisplayTimezone::today()->toDateString();
+
         $counters = CheckinCounter::with(['airline', 'flights' => function($query) use ($today) {
             $query->with(['airline', 'airportTujuan'])
+                  ->daily()
                   ->whereDate('tanggal_penerbangan', $today)
-                  ->whereIn('status', ['Scheduled', 'Check-in Open', 'Check-in Closed', 'Delayed'])
+                  ->whereIn('status', FlightStatus::CHECKIN_BOARD)
                   ->orderBy('jam_jadwal');
         }])->orderBy('nomor_counter')->get();
 
         $airlines = Airline::where('status_aktif', true)->get();
-        
+
         $todayDepartures = Flight::with(['airline', 'airportTujuan'])
             ->where('jenis_penerbangan', 'departure')
+            ->daily()
             ->whereDate('tanggal_penerbangan', $today)
-            ->whereIn('status', ['Scheduled', 'Check-in Open', 'Delayed'])
+            ->whereIn('status', FlightStatus::CHECKIN_BOARD)
             ->orderBy('jam_jadwal')
             ->get();
 
@@ -85,29 +96,35 @@ class CheckinCounterController extends Controller
 
         $checkin_counter->update($validated);
 
-        // Jika ada flight_id yang dikirim, kita update flight tersebut
+        // Jika ada flight_id yang dikirim, kita update flight tersebut.
+        // Lewat FlightService agar pivot flight_checkin_counter (yang dibaca layar
+        // publik) ikut terisi dan perubahan status tercatat di FlightStatusLog.
         if ($request->has('flight_id') && $request->flight_id) {
             $flight = Flight::find($request->flight_id);
             if ($flight) {
-                $flight->update([
-                    'checkin_counter_id' => $checkin_counter->id,
-                    'status' => 'Check-in Open' // Auto update status
-                ]);
+                $this->flightService->assignCounter(
+                    $flight,
+                    $checkin_counter->id,
+                    FlightStatus::CHECKIN_OPEN
+                );
             }
         }
 
         return redirect()->back()->with('success', 'Check-in Counter berhasil diupdate.');
     }
-    
+
     public function removeFlight(Request $request, CheckinCounter $checkin_counter, Flight $flight)
     {
-        if ($flight->checkin_counter_id == $checkin_counter->id) {
-            $flight->update([
-                'checkin_counter_id' => null,
-                'status' => 'Check-in Closed'
-            ]);
+        $detached = $this->flightService->detachCounter(
+            $flight,
+            $checkin_counter->id,
+            'Check-in Closed'
+        );
+
+        if ($detached) {
             return redirect()->back()->with('success', 'Penerbangan berhasil dilepas dari counter.');
         }
+
         return redirect()->back()->with('error', 'Penerbangan tidak cocok dengan counter ini.');
     }
 

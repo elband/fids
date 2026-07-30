@@ -58,10 +58,12 @@ class DisplayApiController extends Controller
      * begitu check-in dibuka, penumpang sudah diarahkan ke gate tersebut, jadi
      * gate harus menampilkannya tanpa menunggu jendela 1 jam. Jendela itu hanya
      * relevan untuk penerbangan yang masih pasif (Scheduled/On Time/Delayed).
+     *
+     * Daftar konkretnya kini tinggal di App\Support\FlightStatus agar tidak lagi
+     * menyimpang dari daftar whereIn di kueri (dulu 'Check-in Closed' ada di sini
+     * tetapi tersaring SQL lebih dulu, sehingga entri ini jadi kode mati).
      */
-    private const GATE_ACTIVE_STATUSES = [
-        'Check-in Open', 'Check-in Closed', 'Boarding', 'Gate Open', 'Final Call',
-    ];
+    private const GATE_ACTIVE_STATUSES = \App\Support\FlightStatus::GATE_ACTIVE;
 
     /**
      * Tentukan penerbangan yang sedang "memakai" sebuah gate menurut aturan operasional:
@@ -127,7 +129,7 @@ class DisplayApiController extends Controller
      */
     private function checkinOccupant($flights)
     {
-        $open = $flights->filter(fn ($f) => $f->status === 'Check-in Open');
+        $open = $flights->filter(fn ($f) => $f->status === \App\Support\FlightStatus::CHECKIN_OPEN);
         if ($open->isEmpty()) {
             return $open;
         }
@@ -135,11 +137,36 @@ class DisplayApiController extends Controller
     }
 
     /**
+     * Susun bagian counter yang bergantung status untuk respons layar publik.
+     * Kontrak keluaran selalu dua nilai ('buka'/'tutup') supaya kedua varian layar
+     * (grid & tunggal) tidak perlu menangani nilai ketiga.
+     *
+     * CATATAN PENTING — `checkin_counters.status_counter` yang di-set petugas di modul
+     * Check-in Counter SENGAJA diabaikan di sini; status layar sepenuhnya diturunkan
+     * dari ada/tidaknya penerbangan berstatus "Check-in Open".
+     *
+     * Kolom itu tidak bisa dipakai sebagai penutupan paksa selama nilai default-nya
+     * masih 'tutup' (lihat migrasi create_checkin_counters_table dan default form
+     * admin): hampir semua counter yang sudah ada bernilai 'tutup', jadi menghormati
+     * kolom tersebut akan langsung mematikan seluruh layar counter di lapangan.
+     * Menjadikannya kendali nyata butuh migrasi data lebih dulu — sampai itu
+     * diputuskan, jangan hormati kolom ini di sini.
+     *
+     * @return array{0: string, 1: \Illuminate\Support\Collection}  [status layar, occupant]
+     */
+    private function checkinDisplayState($counter): array
+    {
+        $occupant = $this->checkinOccupant($counter->flights);
+
+        return [$occupant->isNotEmpty() ? 'buka' : 'tutup', $occupant];
+    }
+
+    /**
      * Status penerbangan yang berarti pesawat sudah tiba (memicu tampil di baggage claim).
      * CATATAN: "On Time" TIDAK termasuk — itu status pra-kedatangan (sejajar Scheduled/Delayed),
      * bukan pertanda pesawat sudah mendarat. Samakan dengan set CCTV di DisplayController.
      */
-    private const BAGGAGE_ARRIVED_STATUSES = ['Arrived', 'Landed', 'Baggage Claim'];
+    private const BAGGAGE_ARRIVED_STATUSES = \App\Support\FlightStatus::ARRIVED;
 
     /**
      * Waktu tiba penerbangan sebagai Carbon (zona tampilan).
@@ -275,7 +302,7 @@ class DisplayApiController extends Controller
                 ->orderBy('jam_jadwal', 'asc')
                 ->get();
             // Sembunyikan yang sudah berangkat lebih dari 3 jam.
-            $flights = $this->hideStaleFlights($flights, ['Departed']);
+            $flights = $this->hideStaleFlights($flights, \App\Support\FlightStatus::DEPARTED);
             return FlightResource::collection($flights)->resolve();
         });
 
@@ -302,9 +329,13 @@ class DisplayApiController extends Controller
         $key = "fids:api:gate:{$gateCode}:v{$this->flightCacheVersion()}";
         $data = Cache::remember($key, self::TTL_LIST, function () use ($gateCode) {
             $gate = \App\Models\Gate::with(['flights' => function($q) {
+                // Filter jenis_penerbangan wajib disamakan dengan allGates(): tanpa ini
+                // kedatangan berstatus Scheduled/Delayed yang punya gate_id ikut tampil
+                // di layar gate tunggal padahal tidak muncul di papan gate grid.
                 $q->daily()
                   ->today()
-                  ->whereIn('status', ['Scheduled', 'Check-in Open', 'Boarding', 'Gate Open', 'Final Call', 'Delayed', 'Departed'])
+                  ->where('jenis_penerbangan', 'departure')
+                  ->whereIn('status', \App\Support\FlightStatus::GATE_BOARD)
                   ->orderBy('jam_jadwal', 'asc');
             }, ...self::nestedFlightRelations()])
             ->where(function ($q) use ($gateCode) {
@@ -339,7 +370,7 @@ class DisplayApiController extends Controller
             $counter = \App\Models\CheckinCounter::with(['airline', 'flights' => function($q) {
                 $q->daily()
                   ->today()
-                  ->where('status', 'Check-in Open')
+                  ->where('status', \App\Support\FlightStatus::CHECKIN_OPEN)
                   ->orderBy('jam_jadwal', 'asc');
             }, ...self::nestedFlightRelations()])
             ->where(function ($q) use ($counterNumber) {
@@ -353,12 +384,12 @@ class DisplayApiController extends Controller
             if (!$counter) return null;
 
             // Aturan: counter hanya menampilkan data bila ada penerbangan berstatus
-            // "Check-in Open" (satu counter = satu penerbangan). Status counter untuk
-            // tampilan ikut ditentukan oleh ada/tidaknya penerbangan open check-in.
-            $occupant = $this->checkinOccupant($counter->flights);
+            // "Check-in Open" (satu counter = satu penerbangan), DAN counter tidak
+            // ditutup paksa dari panel admin.
+            [$statusCounter, $occupant] = $this->checkinDisplayState($counter);
 
             $arr = $counter->toArray();
-            $arr['status_counter'] = $occupant->isNotEmpty() ? 'buka' : 'tutup';
+            $arr['status_counter'] = $statusCounter;
             $arr['flights'] = FlightResource::collection($occupant)->resolve();
 
             if ($counter->airline && $counter->airline->logo) {
@@ -385,8 +416,10 @@ class DisplayApiController extends Controller
             $windowMin = max($statusMin, $camEndMin);
 
             $belt = \App\Models\BaggageClaim::with(['flights' => function($q) {
+                // Filter jenis_penerbangan disamakan dengan allBaggageClaims().
                 $q->daily()
                   ->today()
+                  ->where('jenis_penerbangan', 'arrival')
                   ->whereIn('status', self::BAGGAGE_ARRIVED_STATUSES)
                   ->orderBy('jam_jadwal', 'asc');
             }, ...self::nestedFlightRelations()])
@@ -512,15 +545,16 @@ class DisplayApiController extends Controller
             $counters = \App\Models\CheckinCounter::with(['airline', 'flights' => function($q) {
                 $q->daily()
                   ->today()
-                  ->where('status', 'Check-in Open')
+                  ->where('status', \App\Support\FlightStatus::CHECKIN_OPEN)
                   ->orderBy('jam_jadwal', 'asc');
             }, ...self::nestedFlightRelations()])->orderBy('nomor_counter', 'asc')->get();
 
             return $counters->map(function ($counter) {
-                // Counter tampil "buka" + data hanya bila ada penerbangan open check-in.
-                $occupant = $this->checkinOccupant($counter->flights);
+                // Counter tampil "buka" + data hanya bila ada penerbangan open check-in
+                // dan tidak ditutup paksa dari panel admin.
+                [$statusCounter, $occupant] = $this->checkinDisplayState($counter);
                 $arr = $counter->toArray();
-                $arr['status_counter'] = $occupant->isNotEmpty() ? 'buka' : 'tutup';
+                $arr['status_counter'] = $statusCounter;
                 if ($counter->airline && $counter->airline->logo) {
                     $arr['airline']['logo'] = '/storage/' . $counter->airline->logo;
                 }
@@ -540,7 +574,7 @@ class DisplayApiController extends Controller
                 $q->daily()
                   ->today()
                   ->where('jenis_penerbangan', 'departure')
-                  ->whereIn('status', ['Scheduled', 'Check-in Open', 'Boarding', 'Gate Open', 'Final Call', 'Delayed', 'Departed'])
+                  ->whereIn('status', \App\Support\FlightStatus::GATE_BOARD)
                   ->orderBy('jam_jadwal', 'asc');
             }, ...self::nestedFlightRelations()])->orderBy('kode_gate', 'asc')->get();
 
