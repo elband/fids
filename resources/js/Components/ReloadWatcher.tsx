@@ -60,6 +60,11 @@ export default function ReloadWatcher() {
                 const res = await fetch('/api/fids/settings', { cache: 'no-store' });
                 if (cancelled) return;
                 if (!res.ok) throw new Error(`http ${res.status}`);
+                // offlineCache menyajikan cache lokal sebagai Response 200 saat server
+                // gagal. Tanpa memeriksa penanda ini, `res.ok` selalu true selama cache
+                // ada — lastOkAt terus disegarkan dan jaring pengaman "data basi" di
+                // bawah tidak pernah menyala. Cache HIT = server TIDAK terjangkau.
+                if (res.headers.get('X-FIDS-Cache') === 'HIT') throw new Error('cache hit');
                 const json = await res.json();
                 lastOkAt = Date.now(); // koneksi & server sehat
 
@@ -93,13 +98,25 @@ export default function ReloadWatcher() {
             } catch {
                 if (cancelled) return;
                 // (3) Auto-reload saat data basi: koneksi/server gagal terlalu lama.
-                if (Date.now() - lastOkAt >= STALE_RELOAD_MS) {
-                    let last = 0;
-                    try { last = Number(sessionStorage.getItem(STALE_GUARD_KEY) || '0'); } catch { /* ignore */ }
-                    if (Date.now() - last >= STALE_RELOAD_MS) {
-                        try { sessionStorage.setItem(STALE_GUARD_KEY, String(Date.now())); } catch { /* ignore */ }
-                        window.location.reload();
-                    }
+                if (Date.now() - lastOkAt < STALE_RELOAD_MS) return;
+
+                // Reload HANYA menolong bila server sebenarnya terjangkau — mis. bundel
+                // JS basi setelah deploy, atau tab yang tersangkut. Bila jaringan TV
+                // benar-benar putus, memuat ulang menukar "data terakhir + banner Mode
+                // Luring" dengan halaman error browser: app-shell tidak ter-cache
+                // (Service Worker belum ada). Lebih baik diam menampilkan data basi.
+                // /api/fids/time tidak pernah masuk cache offline, jadi sahih jadi probe.
+                let reachable = false;
+                try {
+                    reachable = (await fetch('/api/fids/time', { cache: 'no-store' })).ok;
+                } catch { /* tetap false */ }
+                if (cancelled || !reachable) return;
+
+                let last = 0;
+                try { last = Number(sessionStorage.getItem(STALE_GUARD_KEY) || '0'); } catch { /* ignore */ }
+                if (Date.now() - last >= STALE_RELOAD_MS) {
+                    try { sessionStorage.setItem(STALE_GUARD_KEY, String(Date.now())); } catch { /* ignore */ }
+                    window.location.reload();
                 }
             }
         };
