@@ -38,6 +38,9 @@ const statusColors: Record<string, { bg: string; text: string; glow: string }> =
     'Cancelled':       { bg: 'bg-transparent', text: 'text-red-500',     glow: '' },
 };
 
+/** Warna jam header papan (permintaan lapangan: merah, terbaca dari jauh). */
+const CLOCK_COLOR = '#ef4444';
+
 function getStatusStyle(status: string) {
     return statusColors[status] || { bg: 'bg-transparent', text: 'text-white', glow: '' };
 }
@@ -174,16 +177,9 @@ export default function Departures() {
                 >
                     <div className="absolute inset-0 bg-black/30"></div>
 
-                    <div className="relative z-10 flex items-center gap-[1vw] min-w-0 w-[30%]">
-                        <PlaneTakeoff style={{ width: '3.5vw', height: '3.5vw', flexShrink: 0, color: accentColor }} className="drop-shadow head-float" />
-                        <h1 style={{ fontSize: '3.5vw', color: textColor }} className="font-extrabold tracking-tighter drop-shadow-lg leading-none whitespace-nowrap">
-                            {t.departures[lang]}
-                        </h1>
-                    </div>
-
-                    <div className="w-[40%]"></div>
-
-                    <div className="relative z-10 text-right w-[30%]">
+                    {/* Jam di kiri: padding header (2.5vw) sama dengan header kolom di
+                        bawahnya, jadi blok ini rata persis dengan label MASKAPAI. */}
+                    <div className="relative z-10 text-left w-[30%]">
                         {weather && (
                             <div style={{ fontSize: '1.3vw', color: accentColor }} className="font-medium drop-shadow whitespace-nowrap">
                                 {weather.suhu}°C <span className="mx-1">•</span> {weather.kondisi_cuaca}
@@ -192,11 +188,23 @@ export default function Departures() {
                         <div style={{ fontSize: '0.95vw', color: accentColor }} className="font-semibold tracking-[0.25em] uppercase mt-1 drop-shadow whitespace-nowrap">
                             {dateText}
                         </div>
-                        {/* Jam digital 7-segment (DSEG7) ala foto referensi. */}
-                        <div className="dseg-clock mt-1 drop-shadow" style={{ fontSize: '2vw', color: textColor }}>
+                        {/* Jam digital 7-segment (DSEG7) ala foto referensi. Warnanya
+                            dipatok merah, tidak ikut warna_utama dari Pengaturan Layar. */}
+                        <div className="dseg-clock mt-1 drop-shadow" style={{ fontSize: '2vw', color: CLOCK_COLOR }}>
                             <span className="dseg-off" aria-hidden="true">88:88:88</span>
                             <span>{time24h}</span>
                         </div>
+                    </div>
+
+                    <div className="w-[40%]"></div>
+
+                    {/* Judul pindah ke kanan; ikon ikut di belakang teks agar blok ini
+                        membaca rata kanan (cermin dari tata letak lama). */}
+                    <div className="relative z-10 flex items-center justify-end gap-[1vw] min-w-0 w-[30%]">
+                        <h1 style={{ fontSize: '3.5vw', color: textColor }} className="font-extrabold tracking-tighter drop-shadow-lg leading-none whitespace-nowrap">
+                            {t.departures[lang]}
+                        </h1>
+                        <PlaneTakeoff style={{ width: '3.5vw', height: '3.5vw', flexShrink: 0, color: accentColor }} className="drop-shadow head-float" />
                     </div>
                 </header>
 
