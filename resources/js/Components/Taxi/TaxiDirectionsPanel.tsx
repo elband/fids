@@ -61,40 +61,9 @@ export default function TaxiDirectionsPanel({ directions, counters, settings, la
                 {t('callToAction', lang)}
             </p>
 
-            {/* Kartu counter */}
-            {counters.length === 0 ? (
-                <div className="flex-1 grid place-items-center text-white/25 font-bold uppercase tracking-[0.25em] text-center px-[1vw]"
-                     style={{ fontSize: 'clamp(0.6rem, 1.5vmin, 1.2rem)' }}>
-                    {t('noCounters', lang)}
-                </div>
-            ) : (
-                <div
-                    className="flex-1 min-h-0 px-[1vw] grid gap-[0.6vmin] overflow-hidden"
-                    style={{
-                        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-                        // Baris dibagi rata setinggi area yang tersedia, sehingga
-                        // kartu memenuhi panel berapa pun jumlahnya.
-                        gridAutoRows: 'minmax(0, 1fr)',
-                    }}
-                >
-                    {counters.map((c, i) => (
-                        <CounterCard
-                            key={c.id}
-                            counter={c}
-                            accent={accent}
-                            lang={lang}
-                            // Jumlah yang tidak habis dibagi kolom menyisakan sel
-                            // kosong di baris terakhir; kartu pamungkas dilebarkan
-                            // untuk menutupnya.
-                            span={i === counters.length - 1 ? lastCardSpan : 1}
-                        />
-                    ))}
-                </div>
-            )}
-
-            {/* Strip denah / jarak / QR */}
+            {/* Strip denah / jarak / QR — di atas kartu counter */}
             {current && (
-                <div className="mx-[1vw] mt-[0.7vmin] mb-[0.7vmin] flex items-center gap-[0.8vw] rounded-xl bg-black/30 ring-1 ring-white/10 p-[0.6vmin]">
+                <div className="mx-[1vw] mb-[0.7vmin] flex items-center gap-[0.8vw] rounded-xl bg-black/30 ring-1 ring-white/10 p-[0.6vmin]">
                     <div className="h-[7vmin] aspect-video rounded-lg overflow-hidden bg-black/50 shrink-0 grid place-items-center">
                         {(current.denah_url ?? current.gambar_url) ? (
                             <img
@@ -139,6 +108,37 @@ export default function TaxiDirectionsPanel({ directions, counters, settings, la
                             </p>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Kartu counter */}
+            {counters.length === 0 ? (
+                <div className="flex-1 grid place-items-center text-white/25 font-bold uppercase tracking-[0.25em] text-center px-[1vw]"
+                     style={{ fontSize: 'clamp(0.6rem, 1.5vmin, 1.2rem)' }}>
+                    {t('noCounters', lang)}
+                </div>
+            ) : (
+                <div
+                    className="flex-1 min-h-0 px-[1vw] grid gap-[0.6vmin] overflow-hidden"
+                    style={{
+                        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                        // Baris dibagi rata setinggi area yang tersedia, sehingga
+                        // kartu memenuhi panel berapa pun jumlahnya.
+                        gridAutoRows: 'minmax(0, 1fr)',
+                    }}
+                >
+                    {counters.map((c, i) => (
+                        <CounterCard
+                            key={c.id}
+                            counter={c}
+                            accent={accent}
+                            lang={lang}
+                            // Jumlah yang tidak habis dibagi kolom menyisakan sel
+                            // kosong di baris terakhir; kartu pamungkas dilebarkan
+                            // untuk menutupnya.
+                            span={i === counters.length - 1 ? lastCardSpan : 1}
+                        />
+                    ))}
                 </div>
             )}
 
