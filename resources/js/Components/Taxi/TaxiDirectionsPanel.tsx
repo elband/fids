@@ -63,8 +63,10 @@ export default function TaxiDirectionsPanel({ directions, counters, settings, la
 
             {/* Strip denah / jarak / QR — di atas kartu counter */}
             {current && (
-                <div className="mx-[1vw] mb-[0.7vmin] flex items-center gap-[0.8vw] rounded-xl bg-black/30 ring-1 ring-white/10 p-[0.6vmin]">
-                    <div className="h-[7vmin] aspect-video rounded-lg overflow-hidden bg-black/50 shrink-0 grid place-items-center">
+                <div className="mx-[1vw] mb-[0.7vmin] flex items-stretch gap-[0.8vw] rounded-xl bg-black/30 ring-1 ring-white/10 p-[0.6vmin]">
+                    {/* Tinggi mengikuti kartu, lebar menyesuaikan rasio foto,
+                        supaya tidak ada sisa ruang di atas/bawah gambar. */}
+                    <div className="self-stretch min-h-[7vmin] aspect-video rounded-lg overflow-hidden bg-black/50 shrink-0 grid place-items-center">
                         {(current.denah_url ?? current.gambar_url) ? (
                             <img
                                 src={(current.denah_url ?? current.gambar_url) as string}
@@ -77,7 +79,7 @@ export default function TaxiDirectionsPanel({ directions, counters, settings, la
                         )}
                     </div>
 
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 flex flex-col justify-center">
                         <p className="text-white font-bold truncate"
                            style={{ fontSize: 'clamp(0.6rem, 1.6vmin, 1.3rem)' }}>
                             {pick(current.judul, current.judul_en, lang)}
@@ -96,7 +98,7 @@ export default function TaxiDirectionsPanel({ directions, counters, settings, la
                     </div>
 
                     {current.qr_url_gambar && (
-                        <div className="text-center shrink-0">
+                        <div className="text-center shrink-0 flex flex-col justify-center">
                             <div className="rounded-lg bg-white p-[0.3vmin]">
                                 <img src={current.qr_url_gambar} alt="" loading="lazy"
                                      className="h-[6vmin] w-[6vmin] object-contain" />
