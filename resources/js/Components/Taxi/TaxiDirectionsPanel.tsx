@@ -64,9 +64,9 @@ export default function TaxiDirectionsPanel({ directions, counters, settings, la
             {/* Strip denah / jarak / QR — di atas kartu counter */}
             {current && (
                 <div className="mx-[1vw] mb-[0.7vmin] flex items-stretch gap-[0.8vw] rounded-xl bg-black/30 ring-1 ring-white/10 p-[0.6vmin]">
-                    {/* Tinggi mengikuti kartu, lebar menyesuaikan rasio foto,
-                        supaya tidak ada sisa ruang di atas/bawah gambar. */}
-                    <div className="self-stretch min-h-[7vmin] aspect-video rounded-lg overflow-hidden bg-black/50 shrink-0 grid place-items-center">
+                    {/* Lebar dipatok agar tidak ikut rasio bawaan gambar (yang
+                        membuat kartu melar); tingginya meregang mengikuti kartu. */}
+                    <div className="w-[11vmin] self-stretch min-h-[7vmin] rounded-lg overflow-hidden bg-black/50 shrink-0 grid place-items-center">
                         {(current.denah_url ?? current.gambar_url) ? (
                             <img
                                 src={(current.denah_url ?? current.gambar_url) as string}
