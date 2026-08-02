@@ -11,7 +11,6 @@ use App\Http\Controllers\Admin\GateController;
 use App\Http\Controllers\Admin\CheckinCounterController;
 use App\Http\Controllers\Admin\BaggageClaimController;
 use App\Http\Controllers\Admin\FlightController;
-use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\WeatherInfoController;
 use App\Http\Controllers\Admin\DisplaySettingController;
 use App\Http\Controllers\Admin\AirplaneController;
@@ -96,15 +95,21 @@ Route::middleware(['auth', 'verified', 'role:Super Admin|Admin Operasional'])->p
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/export-flight-logs', [DashboardController::class, 'exportFlightLogs'])->name('dashboard.export-flight-logs');
     
-    Route::resource('airlines', AirlineController::class);
-    Route::resource('airports', AirportController::class);
-    Route::resource('routes', FlightRouteController::class);
-    Route::resource('gates', GateController::class);
-    Route::resource('checkin-counters', CheckinCounterController::class);
-    Route::resource('baggage-claims', BaggageClaimController::class);
-    Route::resource('flights', FlightController::class);
-    Route::resource('announcements', AnnouncementController::class);
-    Route::resource('weather-infos', WeatherInfoController::class);
+    // UI admin sepenuhnya berbasis modal: form tambah/ubah tampil di halaman index,
+    // tidak ada halaman create/edit/show terpisah. Verb-nya tidak didaftarkan agar
+    // URL-nya dijawab 404/405 (bukan 500 karena method controller tidak ada).
+    Route::resource('airlines', AirlineController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('airports', AirportController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('routes', FlightRouteController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('gates', GateController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('checkin-counters', CheckinCounterController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('baggage-claims', BaggageClaimController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('flights', FlightController::class)->only(['index', 'store', 'update', 'destroy']);
+    // 'announcements' (Announcement) sengaja tidak punya route admin: record dibuat
+    // otomatis oleh FlightService dan diputar command PlayAnnouncements. CRUD-nya
+    // dulu ter-scaffold tapi komponen Pages/Admin/Announcements/Index.tsx tidak pernah ada,
+    // sehingga /admin/announcements selalu gagal. Yang dikelola operator: public-announcements.
+    Route::resource('weather-infos', WeatherInfoController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('cctv-cameras', \App\Http\Controllers\Admin\CctvCameraController::class)->only(['index', 'store', 'update', 'destroy']);
 
     // Report
@@ -124,28 +129,26 @@ Route::middleware(['auth', 'verified', 'role:Super Admin|Admin Operasional'])->p
     Route::post('baggage-claims/{baggage_claim}/remove-flight/{flight}', [BaggageClaimController::class, 'removeFlight'])->name('baggage-claims.remove-flight');
     
     // New Master Data
-    Route::resource('airplanes', AirplaneController::class);
-    Route::resource('remarks', RemarkController::class);
-    Route::resource('reasons', ReasonController::class);
-    Route::resource('departures', DepartureController::class);
-    Route::resource('arrivals', ArrivalController::class);
+    Route::resource('airplanes', AirplaneController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('remarks', RemarkController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('reasons', ReasonController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('departures', DepartureController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('arrivals', ArrivalController::class)->only(['index', 'store', 'update', 'destroy']);
     
     // Daily Operational Flights
     Route::post('daily-departures/pull', [DailyDepartureController::class, 'pullFromMaster'])->name('daily-departures.pull');
-    Route::resource('daily-departures', DailyDepartureController::class);
+    Route::resource('daily-departures', DailyDepartureController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('daily-arrivals/pull', [DailyArrivalController::class, 'pullFromMaster'])->name('daily-arrivals.pull');
-    Route::resource('daily-arrivals', DailyArrivalController::class);
+    Route::resource('daily-arrivals', DailyArrivalController::class)->only(['index', 'store', 'update', 'destroy']);
     
     Route::get('display-settings', [DisplaySettingController::class, 'index'])->name('display-settings.index');
     Route::post('display-settings', [DisplaySettingController::class, 'update'])->name('display-settings.update');
     Route::post('display-settings/force-reload', [DisplaySettingController::class, 'forceReload'])->name('display-settings.force-reload');
     Route::get('public-screen-settings', [DisplaySettingController::class, 'publicScreenSettings'])->name('public-screen-settings.index');
     Route::post('public-screen-settings', [DisplaySettingController::class, 'updatePublicScreenSettings'])->name('public-screen-settings.update');
-    Route::get('public-screen/editor', [DisplayController::class, 'publicScreenEditor'])->name('public-screen.editor');
-    Route::post('public-screen/editor', [DisplayController::class, 'savePublicScreenEditor'])->name('public-screen.editor.save');
-    Route::resource('advertisements', AdvertisementController::class);
+    Route::resource('advertisements', AdvertisementController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('advertisements/update-order', [AdvertisementController::class, 'updateOrder'])->name('advertisements.update-order');
-    Route::resource('public-announcements', PublicAnnouncementController::class);
+    Route::resource('public-announcements', PublicAnnouncementController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('public-announcements/{public_announcement}/broadcast', [PublicAnnouncementController::class, 'broadcast'])->name('public-announcements.broadcast');
     Route::post('public-announcements/{public_announcement}/increment-count', [PublicAnnouncementController::class, 'incrementCount'])->name('public-announcements.increment-count');
 

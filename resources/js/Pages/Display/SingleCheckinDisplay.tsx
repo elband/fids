@@ -121,19 +121,21 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
                         alt={`Counter ${counter.nomor_counter}`}
                         className="absolute inset-0 h-full w-full object-cover"
                     />
-                    <div className="absolute top-[2vw] left-[2vw] z-10 flex items-center gap-[1vw] rounded-2xl bg-black/40 px-[2vw] py-[1vw] backdrop-blur-xl">
+                    {/* Scrim dipertebal: idle_image bebas ditentukan operator dan sering terang,
+                        sehingga bg-black/40 membuat badge tidak terbaca dari jarak jauh. */}
+                    <div className="absolute top-[2vw] left-[2vw] z-10 flex items-center gap-[1vw] rounded-2xl bg-black/70 px-[2vw] py-[1vw] ring-1 ring-white/10 backdrop-blur-xl">
                         <Clock size={32} strokeWidth={2} className="text-[#FFD700]" />
                         <div className="flex flex-col">
                             <span style={{ fontSize: '3vw' }} className="font-black leading-none tracking-tighter text-[#FFD700] drop-shadow-md">
                                 {time24h}
                             </span>
-                            <span style={{ fontSize: '0.9vw' }} className="mt-1 font-bold uppercase tracking-[0.2em] text-[#FFD700]/70">
+                            <span style={{ fontSize: '0.9vw' }} className="mt-1 font-bold uppercase tracking-[0.2em] text-[#FFD700]/90">
                                 {dateFullId}
                             </span>
                         </div>
                     </div>
-                    <div className="absolute bottom-[2vw] right-[2vw] z-10 rounded-2xl bg-black/40 px-[2vw] py-[1vw] backdrop-blur-xl">
-                        <span style={{ fontSize: '1.2vw' }} className="font-bold uppercase tracking-[0.3em] text-[#FFD700]/70">
+                    <div className="absolute bottom-[2vw] right-[2vw] z-10 rounded-2xl bg-black/70 px-[2vw] py-[1vw] ring-1 ring-white/10 backdrop-blur-xl">
+                        <span style={{ fontSize: '1.2vw' }} className="font-bold uppercase tracking-[0.3em] text-[#FFD700]/90">
                             {t.checkinCounterLabel[lang]}
                         </span>
                         <div style={{ fontSize: '4vw', lineHeight: 1 }} className="font-black text-[#FFD700] drop-shadow-lg">

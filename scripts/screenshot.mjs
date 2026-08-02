@@ -51,7 +51,8 @@ async function login(page) {
   console.log('\n🔐 Logging in as admin...');
   await page.setViewport({ width: 1440, height: 900 });
   await page.goto(BASE_URL + '/login', { waitUntil: 'networkidle2' });
-  await page.type('input[name="email"]', 'admin@local.test');
+  // Harus akun ber-role operasional: grup /admin dijaga role:Super Admin|Admin Operasional.
+  await page.type('input[name="email"]', 'admin@fids.local');
   await page.type('input[name="password"]', 'password');
   await page.click('button[type="submit"]');
   await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 });

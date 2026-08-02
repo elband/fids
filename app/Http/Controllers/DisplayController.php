@@ -161,42 +161,6 @@ class DisplayController extends Controller
         ]);
     }
 
-    public function publicScreenEditor()
-    {
-        $settings = DisplaySetting::first();
-
-        return Inertia::render('Admin/DisplaySettings/Index', [
-            'settings' => $settings
-        ]);
-    }
-
-    public function savePublicScreenEditor(Request $request)
-    {
-        $settings = DisplaySetting::first();
-        
-        $data = $request->validate([
-            'screen_title' => 'required|string|max:255',
-            'layout_type' => 'required|in:single,2-column,3-column',
-            'show_clock' => 'boolean',
-            'show_weather' => 'boolean',
-            'show_ticker' => 'boolean',
-            'show_departures' => 'boolean',
-            'show_arrivals' => 'boolean',
-            'theme_color' => 'required|string',
-            'kecepatan_scroll' => 'required|integer|min:1|max:10',
-            'ticker_text' => 'nullable|string',
-        ]);
-
-        if ($request->hasFile('background_header')) {
-            $path = $request->file('background_header')->store('display', 'public');
-            $data['background_header_url'] = '/storage/' . $path;
-        }
-
-        $settings->update($data);
-
-        return redirect()->back()->with('success', 'Pengaturan layar berhasil disimpan.');
-    }
-
     public function checkinCounter()
     {
         return Inertia::render('Display/CheckinCounterDisplay');
