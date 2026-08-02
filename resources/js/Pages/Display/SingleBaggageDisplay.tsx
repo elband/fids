@@ -251,7 +251,7 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
                                     {t.closed[lang]}
                                 </div>
                             ) : showCamera ? null : (
-                                <div style={{ fontSize: 'min(8vw, 11vh)' }} className="font-bold text-gray-400 tracking-widest text-center leading-tight whitespace-pre-line">
+                                <div style={{ fontSize: 'min(8vw, 11vh)' }} className="font-bold text-yellow-400 tracking-widest text-center leading-tight whitespace-pre-line drop-shadow-lg">
                                     {t.awaitingBaggageBig[lang]}
                                 </div>
                             )}

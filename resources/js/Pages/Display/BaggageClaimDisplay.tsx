@@ -158,7 +158,7 @@ export default function BaggageClaimDisplay() {
                                                             </div>
                                                         </>
                                                     ) : (
-                                                        <div className="text-2xl font-bold tracking-widest uppercase text-gray-400 text-center">
+                                                        <div className="text-2xl font-bold tracking-widest uppercase text-yellow-400 text-center">
                                                             {t.awaitingBaggage[lang]}
                                                         </div>
                                                     )}
