@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type CSSProperties } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
 import { useNtpClock } from '@/hooks/useNtpClock';
 import { getNtpStatus } from '@/lib/timezoneClock';
@@ -163,8 +163,10 @@ export default function WorldClockDisplay() {
                     )}
                 </header>
 
-                {/* Hero WITA clock (center) */}
-                <div className="absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 z-20">
+                {/* Hero WITA clock (center) — digeser sedikit ke atas karena kartu
+                    satelit sekarang lebih tinggi; tanpa ini kartu WIB di bawah
+                    hampir menyentuh bingkai hero. */}
+                <div className="absolute left-1/2 top-[43%] -translate-x-1/2 -translate-y-1/2 z-20">
                     <HeroClock zone={hero} now={now} settings={settings} lang={lang} />
                 </div>
 
@@ -270,38 +272,51 @@ function HeroClock({ zone, now, settings, lang }: { zone: ZoneConfig; now: Date;
 }
 
 /* ─── Satellite Card ─── */
+/**
+ * Ukuran kartu satelit relatif terhadap hero WITA (digit hero = 7vh).
+ * Sebelumnya digit satelit 4.3vh (61% hero) — terlalu kecil untuk dibaca dari
+ * seberang ruang tunggu. Semua angka di bawah diskalakan dari satu tempat ini
+ * supaya proporsi antar-elemen kartu tidak pecah saat disetel ulang.
+ */
+const SAT_DIGIT = '6.2vh';   // ~89% hero
+const SAT_ANALOG = '9vh';
+
 function SatelliteCard({ zone, now, settings, lang }: { zone: ZoneConfig; now: Date; settings: WorldClockSettings; lang: 'id' | 'en'; }) {
     const { hour, minute, second, hourNum, minuteNum, secondNum } = getTimeParts(now, zone.timezone, settings.format_waktu);
     const C = zone.color;
 
     return (
-        <div className="rounded-2xl backdrop-blur-md px-[1.4vw] py-[1.6vh] shadow-2xl"
+        <div className="rounded-2xl backdrop-blur-md px-[1.8vw] py-[2vh] shadow-2xl"
              style={{ background: 'rgba(8,16,34,0.72)', border: `1.5px solid ${C}55`, boxShadow: `0 0 30px ${C}22` }}>
             {/* Title row */}
-            <div className="flex items-center gap-[0.6vw] mb-[1vh]">
+            <div className="flex items-center gap-[0.6vw] mb-[1.3vh]">
                 {zone.flag
-                    ? <IndoFlag className="w-[2vh] h-[1.3vh]" />
-                    : <span className="w-[1.6vh] h-[1.6vh] rounded-full" style={{ background: `${C}33`, border: `1px solid ${C}` }} />}
-                <span style={{ fontSize: '2vh', color: C }} className="font-black tracking-[0.1em] leading-none">{zone.label}</span>
-                <span style={{ fontSize: '0.95vh' }} className="text-white/55 font-bold tracking-[0.18em]">{zone.sub[lang]}</span>
+                    ? <IndoFlag className="w-[2.7vh] h-[1.8vh]" />
+                    : <span className="w-[2.2vh] h-[2.2vh] rounded-full" style={{ background: `${C}33`, border: `1px solid ${C}` }} />}
+                <span style={{ fontSize: '2.8vh', color: C }} className="font-black tracking-[0.1em] leading-none">{zone.label}</span>
+                <span style={{ fontSize: '1.25vh' }} className="text-white/55 font-bold tracking-[0.18em]">{zone.sub[lang]}</span>
             </div>
 
             {/* Body: analog + digital */}
             <div className="flex items-center gap-[1vw]">
-                <AnalogMini hourNum={hourNum} minuteNum={minuteNum} secondNum={secondNum} color={C} className="w-[7vh] h-[7vh]" />
-                <SevenSegTime hour={hour} minute={minute} second={second} size="4.3vh" color={C} />
+                {/* Ukuran lewat style, bukan class `w-[${'{'}...{'}'}]`: Tailwind JIT hanya
+                    memindai string literal, class yang dirangkai saat runtime tidak
+                    pernah ikut ter-generate ke CSS. */}
+                <AnalogMini hourNum={hourNum} minuteNum={minuteNum} secondNum={secondNum} color={C}
+                            style={{ width: SAT_ANALOG, height: SAT_ANALOG }} />
+                <SevenSegTime hour={hour} minute={minute} second={second} size={SAT_DIGIT} color={C} />
             </div>
 
             {/* Offset badge */}
-            <div className="mt-[1vh] rounded-md text-center py-[0.4vh]" style={{ background: `${C}1f`, border: `1px solid ${C}44` }}>
-                <span style={{ fontSize: '1.1vh', color: C }} className="font-black tracking-[0.25em]">{zone.offset}</span>
+            <div className="mt-[1.3vh] rounded-md text-center py-[0.55vh]" style={{ background: `${C}1f`, border: `1px solid ${C}44` }}>
+                <span style={{ fontSize: '1.5vh', color: C }} className="font-black tracking-[0.25em]">{zone.offset}</span>
             </div>
         </div>
     );
 }
 
 /* ─── Mini analog clock ─── */
-function AnalogMini({ hourNum, minuteNum, secondNum, color, className }: { hourNum: number; minuteNum: number; secondNum: number; color: string; className?: string; }) {
+function AnalogMini({ hourNum, minuteNum, secondNum, color, className, style }: { hourNum: number; minuteNum: number; secondNum: number; color: string; className?: string; style?: CSSProperties; }) {
     const hAng = ((hourNum % 12) + minuteNum / 60) * 30;
     const mAng = minuteNum * 6;
     const sAng = secondNum * 6;
@@ -311,7 +326,7 @@ function AnalogMini({ hourNum, minuteNum, secondNum, color, className }: { hourN
     };
     const h = hand(hAng, 22), m = hand(mAng, 32), s = hand(sAng, 36);
     return (
-        <svg viewBox="0 0 100 100" className={className}>
+        <svg viewBox="0 0 100 100" className={className} style={style}>
             <circle cx="50" cy="50" r="46" fill="rgba(0,0,0,0.45)" stroke={`${color}66`} strokeWidth="2.5" />
             {Array.from({ length: 12 }, (_, i) => {
                 const a = ((i * 30 - 90) * Math.PI) / 180;
