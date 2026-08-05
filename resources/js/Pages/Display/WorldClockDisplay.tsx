@@ -41,10 +41,34 @@ const ZONES: ZoneConfig[] = [
     { key: 'show_wit',  id: 'wit',  timezone: 'Asia/Jayapura', label: 'WIT',  sub: { id: 'WAKTU INDONESIA TIMUR', en: 'EASTERN INDONESIA' }, offset: 'UTC+9', color: '#22c55e', flag: true },
 ];
 
+/**
+ * Formatter di-cache per timezone: konstruksi Intl.DateTimeFormat mahal dan
+ * halaman ini tick tiap 200ms untuk 4 zona.
+ */
+const partsFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function getPartsFormatter(timezone: string): Intl.DateTimeFormat {
+    let fmt = partsFormatterCache.get(timezone);
+    if (!fmt) {
+        fmt = new Intl.DateTimeFormat('en-GB', {
+            timeZone: timezone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+        });
+        partsFormatterCache.set(timezone, fmt);
+    }
+    return fmt;
+}
+
 function getTimeParts(date: Date, timezone: string, format: '12h' | '24h') {
-    const h = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', hour12: false }).format(date);
-    const m = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, minute: '2-digit' }).format(date);
-    const s = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, second: '2-digit' }).format(date);
+    // Satu formatter berisi hour+minute+second. Jangan dipecah jadi tiga
+    // formatter satu-field: bila hanya satu field waktu diminta, `2-digit`
+    // diabaikan mesin Intl dan hasilnya "3" bukan "03" — digit kedua jadi
+    // undefined lalu jatuh ke '0', sehingga menit 01 tampil "10".
+    const parts = getPartsFormatter(timezone).formatToParts(date);
+    const pick = (type: string) => (parts.find((p) => p.type === type)?.value ?? '0').padStart(2, '0');
+
+    const h = pick('hour');
+    const m = pick('minute');
+    const s = pick('second');
 
     let hour = h === '24' ? '00' : h;
     let ampm = '';

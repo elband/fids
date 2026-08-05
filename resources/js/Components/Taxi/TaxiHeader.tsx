@@ -14,7 +14,9 @@ const DATE_FMT: Record<Lang, string> = { id: 'id-ID', en: 'en-GB' };
 
 export default function TaxiHeader({ settings, now, lang, online }: Props) {
     const jam = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-    const detik = now.toLocaleTimeString('en-GB', { second: '2-digit' });
+    // `2-digit` diabaikan bila hanya satu field waktu diminta (detik 5 → "5"),
+    // jadi pad manual supaya tetap "05".
+    const detik = now.toLocaleTimeString('en-GB', { second: '2-digit' }).padStart(2, '0');
     const tanggal = now.toLocaleDateString(DATE_FMT[lang], {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
     });
