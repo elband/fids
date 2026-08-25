@@ -228,7 +228,7 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
                             </div>
                             {showText && flight?.airline?.logo && (
                                 <div className="bg-white p-[1vw] rounded-3xl shadow-2xl shrink-0">
-                                    <img src={flight.airline.logo} alt="Airline Logo" style={{ height: 'min(14vw, 20vh)' }} className="object-contain" />
+                                    <img src={flight.airline.logo} alt="Airline Logo" style={{ height: 'min(14vw, 20vh)', maxWidth: '32vw' }} className="object-contain" />
                                 </div>
                             )}
                         </div>

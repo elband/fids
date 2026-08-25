@@ -3,21 +3,19 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\CheckinCounter;
 use App\Models\Airline;
+use App\Models\CheckinCounter;
 use App\Models\Flight;
-use Inertia\Inertia;
-use Illuminate\Support\Facades\Storage;
 use App\Services\FlightService;
 use App\Support\DisplayTimezone;
 use App\Support\FlightStatus;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class CheckinCounterController extends Controller
 {
-    public function __construct(protected FlightService $flightService)
-    {
-    }
+    public function __construct(protected FlightService $flightService) {}
 
     public function index()
     {
@@ -26,12 +24,12 @@ class CheckinCounterController extends Controller
         // halaman ini menampilkan hari yang berbeda dari layar di sekitar tengah malam.
         $today = DisplayTimezone::today()->toDateString();
 
-        $counters = CheckinCounter::with(['airline', 'flights' => function($query) use ($today) {
+        $counters = CheckinCounter::with(['airline', 'flights' => function ($query) use ($today) {
             $query->with(['airline', 'airportTujuan'])
-                  ->daily()
-                  ->whereDate('tanggal_penerbangan', $today)
-                  ->whereIn('status', FlightStatus::CHECKIN_BOARD)
-                  ->orderBy('jam_jadwal');
+                ->daily()
+                ->whereDate('tanggal_penerbangan', $today)
+                ->whereIn('status', FlightStatus::CHECKIN_BOARD)
+                ->orderBy('jam_jadwal');
         }])->orderBy('nomor_counter')->get();
 
         $airlines = Airline::where('status_aktif', true)->get();
@@ -47,7 +45,7 @@ class CheckinCounterController extends Controller
         return Inertia::render('Admin/CheckinCounters/Index', [
             'counters' => $counters,
             'airlines' => $airlines,
-            'flights' => $todayDepartures
+            'flights' => $todayDepartures,
         ]);
     }
 
@@ -67,13 +65,14 @@ class CheckinCounterController extends Controller
         }
 
         CheckinCounter::create($validated);
+
         return redirect()->back()->with('success', 'Check-in Counter berhasil ditambahkan.');
     }
 
     public function update(Request $request, CheckinCounter $checkin_counter)
     {
         $validated = $request->validate([
-            'nomor_counter' => 'required|string|unique:checkin_counters,nomor_counter,' . $checkin_counter->id,
+            'nomor_counter' => 'required|string|unique:checkin_counters,nomor_counter,'.$checkin_counter->id,
             'area' => 'nullable|string',
             'terminal' => 'required|string',
             'status_counter' => 'required|in:buka,tutup,standby',
@@ -82,17 +81,22 @@ class CheckinCounterController extends Controller
             'remove_idle_image' => 'nullable|boolean',
         ]);
 
-        // Hapus gambar lama jika diminta atau saat diganti dengan yang baru.
-        if (($request->boolean('remove_idle_image') || $request->hasFile('idle_image')) && $checkin_counter->idle_image) {
-            Storage::disk('public')->delete($checkin_counter->idle_image);
-            $validated['idle_image'] = null;
-        }
+        // Form selalu mengirim field idle_image, kosong bila operator tidak memilih
+        // berkas baru. Nilai kosong itu masuk ke $validated sebagai null dan dulu
+        // menimpa kolom, sehingga gambar hilang setiap counter disunting (mis. saat
+        // hanya mengubah status atau assign penerbangan). Kolom hanya boleh disentuh
+        // bila benar-benar ada unggahan baru atau permintaan hapus.
+        unset($validated['idle_image'], $validated['remove_idle_image']);
 
-        if ($request->hasFile('idle_image')) {
-            $validated['idle_image'] = $request->file('idle_image')->store('checkin-counters', 'public');
-        }
+        if ($request->boolean('remove_idle_image') || $request->hasFile('idle_image')) {
+            if ($checkin_counter->idle_image) {
+                Storage::disk('public')->delete($checkin_counter->idle_image);
+            }
 
-        unset($validated['remove_idle_image']);
+            $validated['idle_image'] = $request->hasFile('idle_image')
+                ? $request->file('idle_image')->store('checkin-counters', 'public')
+                : null;
+        }
 
         $checkin_counter->update($validated);
 
@@ -134,6 +138,7 @@ class CheckinCounterController extends Controller
             Storage::disk('public')->delete($checkin_counter->idle_image);
         }
         $checkin_counter->delete();
+
         return redirect()->back()->with('success', 'Check-in Counter berhasil dihapus.');
     }
 }

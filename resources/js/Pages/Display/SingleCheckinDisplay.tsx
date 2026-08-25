@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState, useCallback } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
+import IdleImage from '@/Components/IdleImage';
 import { Clock, Sun, Thermometer } from 'lucide-react';
 import { hexToRgba, t, type Lang } from '@/lib/fids';
 import { useNtpClock } from '@/hooks/useNtpClock';
@@ -116,11 +117,7 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
         return (
             <FidsLayout title={`FIDS - Counter ${identifier}`}>
                 <div className="relative h-screen w-screen overflow-hidden bg-black">
-                    <img
-                        src={counter.idle_image}
-                        alt={`Counter ${counter.nomor_counter}`}
-                        className="absolute inset-0 h-full w-full object-cover"
-                    />
+                    <IdleImage src={counter.idle_image} alt={`Counter ${counter.nomor_counter}`} />
                     {/* Scrim dipertebal: idle_image bebas ditentukan operator dan sering terang,
                         sehingga bg-black/40 membuat badge tidak terbaca dari jarak jauh. */}
                     <div className="absolute top-[2vw] left-[2vw] z-10 flex items-center gap-[1vw] rounded-2xl bg-black/70 px-[2vw] py-[1vw] ring-1 ring-white/10 backdrop-blur-xl">
@@ -210,7 +207,7 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
                         </div>
                         {flight?.airline?.logo && (
                             <div className="bg-white p-[1vw] rounded-3xl shadow-2xl shrink-0">
-                                <img src={flight.airline.logo} alt="Airline Logo" style={{ height: 'min(14vw, 20vh)' }} className="object-contain" />
+                                <img src={flight.airline.logo} alt="Airline Logo" style={{ height: 'min(14vw, 20vh)', maxWidth: '32vw' }} className="object-contain" />
                             </div>
                         )}
                     </div>

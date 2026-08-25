@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState, useCallback } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
+import IdleImage from '@/Components/IdleImage';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { hexToRgba, t, type Lang } from '@/lib/fids';
 import { useNtpClock } from '@/hooks/useNtpClock';
@@ -137,11 +138,7 @@ export default function CheckinCounterDisplay() {
                                                 counter yang tidak dibuka. Samakan dengan SingleCheckinDisplay. */}
                                             {counter.status_counter !== 'buka' ? (
                                                 counter.idle_image ? (
-                                                    <img
-                                                        src={counter.idle_image}
-                                                        alt={`Counter ${counter.nomor_counter}`}
-                                                        className="absolute inset-0 h-full w-full object-cover"
-                                                    />
+                                                    <IdleImage src={counter.idle_image} alt={`Counter ${counter.nomor_counter}`} />
                                                 ) : (
                                                     <div className="text-3xl font-bold tracking-widest uppercase text-yellow-400 text-center">
                                                         {t.closed[lang]}

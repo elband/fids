@@ -418,7 +418,7 @@ export default function Index({ counters, airlines, flights }: Props) {
                                                     <img
                                                         src={`/storage/${counter.idle_image}`}
                                                         alt="Gambar counter saat tutup"
-                                                        className="h-10 w-14 rounded object-cover shrink-0"
+                                                        className="h-10 w-14 shrink-0 rounded bg-black/5 object-contain dark:bg-white/5"
                                                     />
                                                     <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">
                                                         <ImageIcon size={11} /> Gambar saat tutup
