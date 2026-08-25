@@ -49,6 +49,7 @@ interface CheckinCounter {
     area: string | null;
     terminal: string;
     status_counter: 'buka' | 'tutup' | 'standby';
+    dipaksa_tutup: boolean;
     airline_id: number | null;
     idle_image: string | null;
     airline?: Airline;
@@ -183,16 +184,23 @@ export default function Index({ counters, airlines, flights }: Props) {
         post(route('admin.checkin-counters.remove-flight', { checkin_counter: counterId, flight: flightId }));
     };
 
-    const toggleStatus = (counter: CheckinCounter) => {
-        const newStatus = counter.status_counter === 'buka' ? 'tutup' : 'buka';
-        router.put(route('admin.checkin-counters.update', counter.id), {
-            nomor_counter: counter.nomor_counter,
-            area: counter.area || '',
-            terminal: counter.terminal,
-            status_counter: newStatus,
-            airline_id: counter.airline_id?.toString() || '',
+    // Menutup counter = memaksa layar tutup, bukan mengubah status_counter.
+    // Kolom status default-nya 'tutup' di semua counter lama sehingga tidak bisa
+    // dijadikan kendali layar; lihat DisplayApiController::checkinDisplayState().
+    const toggleTutup = (counter: CheckinCounter) => {
+        router.post(route('admin.checkin-counters.toggle-tutup', counter.id), {}, {
+            preserveScroll: true,
         });
     };
+
+    /**
+     * Kondisi yang benar-benar tampil di TV, supaya kartu ini tidak mengklaim
+     * "Buka" untuk counter yang layarnya kosong. Aturannya sama dengan API:
+     * penutupan paksa menang, selebihnya ikut ada/tidaknya penerbangan yang
+     * check-in-nya terbuka.
+     */
+    const layarBuka = (counter: CheckinCounter) =>
+        !counter.dipaksa_tutup && (counter.flights ?? []).some((f) => f.status === 'Check-in Open');
 
     // ----- UI state for filtering / search -----
     const [query, setQuery] = useState('');
@@ -318,7 +326,7 @@ export default function Index({ counters, airlines, flights }: Props) {
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             {filtered.map((counter) => {
-                                const isActive = counter.status_counter === 'buka';
+                                const isActive = layarBuka(counter);
                                 return (
                                     <div
                                         key={counter.id}
@@ -347,9 +355,13 @@ export default function Index({ counters, airlines, flights }: Props) {
                                                             <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-600">
                                                                 <CheckCircle2 size={10} /> Buka
                                                             </span>
+                                                        ) : counter.dipaksa_tutup ? (
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-rose-500">
+                                                                <XCircle size={10} /> Ditutup Petugas
+                                                            </span>
                                                         ) : (
                                                             <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                                                                <XCircle size={10} /> {counter.status_counter === 'standby' ? 'Standby' : 'Tutup'}
+                                                                <XCircle size={10} /> Tutup
                                                             </span>
                                                         )}
                                                     </div>
@@ -365,15 +377,19 @@ export default function Index({ counters, airlines, flights }: Props) {
                                                     </div>
                                                 </div>
                                                 <button
-                                                    onClick={() => toggleStatus(counter)}
+                                                    onClick={() => toggleTutup(counter)}
                                                     className={`p-1.5 rounded-md transition-colors shrink-0 ${
-                                                        isActive
-                                                            ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200 dark:bg-emerald-800 dark:text-emerald-300'
-                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-400'
+                                                        counter.dipaksa_tutup
+                                                            ? 'bg-rose-100 text-rose-600 hover:bg-rose-200 dark:bg-rose-900/50 dark:text-rose-300'
+                                                            : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200 dark:bg-emerald-800 dark:text-emerald-300'
                                                     }`}
-                                                    title={isActive ? 'Tutup Counter' : 'Buka Counter'}
+                                                    title={
+                                                        counter.dipaksa_tutup
+                                                            ? 'Buka counter — layar kembali mengikuti jadwal check-in'
+                                                            : 'Tutup counter — layar berhenti menampilkan penerbangan'
+                                                    }
                                                 >
-                                                    {isActive ? <Power size={14} /> : <PowerOff size={14} />}
+                                                    {counter.dipaksa_tutup ? <PowerOff size={14} /> : <Power size={14} />}
                                                 </button>
                                             </div>
 

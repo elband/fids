@@ -141,21 +141,30 @@ class DisplayApiController extends Controller
      * Kontrak keluaran selalu dua nilai ('buka'/'tutup') supaya kedua varian layar
      * (grid & tunggal) tidak perlu menangani nilai ketiga.
      *
-     * CATATAN PENTING — `checkin_counters.status_counter` yang di-set petugas di modul
-     * Check-in Counter SENGAJA diabaikan di sini; status layar sepenuhnya diturunkan
-     * dari ada/tidaknya penerbangan berstatus "Check-in Open".
+     * Dua masukan, dengan penutupan paksa menang:
+     *  1. `dipaksa_tutup` — tombol Buka/Tutup di kartu counter. Petugas menutup
+     *     counter di lapangan (antrean dialihkan, petugas pindah) walau penerbangan
+     *     yang memakainya masih berstatus "Check-in Open", jadi layar harus ikut
+     *     tutup dan berhenti memajang penerbangan tersebut.
+     *  2. Bila tidak dipaksa tutup, status diturunkan dari ada/tidaknya penerbangan
+     *     berstatus "Check-in Open".
      *
-     * Kolom itu tidak bisa dipakai sebagai penutupan paksa selama nilai default-nya
-     * masih 'tutup' (lihat migrasi create_checkin_counters_table dan default form
-     * admin): hampir semua counter yang sudah ada bernilai 'tutup', jadi menghormati
-     * kolom tersebut akan langsung mematikan seluruh layar counter di lapangan.
-     * Menjadikannya kendali nyata butuh migrasi data lebih dulu — sampai itu
-     * diputuskan, jangan hormati kolom ini di sini.
+     * CATATAN — `status_counter` SENGAJA tidak dibaca di sini. Nilai default kolom itu
+     * 'tutup' untuk seluruh counter yang sudah ada (lihat create_checkin_counters_table),
+     * jadi menghormatinya akan memadamkan semua layar counter sekaligus. Kendali nyata
+     * petugas ada di `dipaksa_tutup` yang default-nya aman (false).
      *
      * @return array{0: string, 1: \Illuminate\Support\Collection}  [status layar, occupant]
      */
     private function checkinDisplayState($counter): array
     {
+        // Occupant ikut dikosongkan, bukan hanya statusnya: layar tunggal membaca
+        // flights[0] untuk warna maskapai dan strip bawah, jadi menyisakannya
+        // membuat counter yang sudah ditutup tetap memamerkan penerbangan.
+        if ($counter->dipaksa_tutup) {
+            return ['tutup', collect()];
+        }
+
         $occupant = $this->checkinOccupant($counter->flights);
 
         return [$occupant->isNotEmpty() ? 'buka' : 'tutup', $occupant];

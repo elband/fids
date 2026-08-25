@@ -117,6 +117,26 @@ class CheckinCounterController extends Controller
         return redirect()->back()->with('success', 'Check-in Counter berhasil diupdate.');
     }
 
+    /**
+     * Tombol Buka/Tutup di kartu counter.
+     *
+     * Yang dibalik adalah `dipaksa_tutup`, bukan `status_counter`: kolom status
+     * default-nya 'tutup' di seluruh counter yang sudah ada, jadi menjadikannya
+     * kendali layar akan memadamkan semua TV counter sekaligus. Lihat
+     * DisplayApiController::checkinDisplayState().
+     */
+    public function toggleTutup(CheckinCounter $checkin_counter)
+    {
+        $checkin_counter->update(['dipaksa_tutup' => ! $checkin_counter->dipaksa_tutup]);
+
+        return redirect()->back()->with(
+            'success',
+            $checkin_counter->dipaksa_tutup
+                ? "Counter {$checkin_counter->nomor_counter} ditutup — layar berhenti menampilkan penerbangan."
+                : "Counter {$checkin_counter->nomor_counter} dibuka — layar kembali mengikuti jadwal check-in."
+        );
+    }
+
     public function removeFlight(Request $request, CheckinCounter $checkin_counter, Flight $flight)
     {
         $detached = $this->flightService->detachCounter(

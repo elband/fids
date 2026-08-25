@@ -121,6 +121,10 @@ Route::middleware(['auth', 'verified', 'role:Super Admin|Admin Operasional'])->p
     });
     // Check-in Counter Custom Routes
     Route::post('checkin-counters/{checkin_counter}/remove-flight/{flight}', [CheckinCounterController::class, 'removeFlight'])->name('checkin-counters.remove-flight');
+    // Endpoint sendiri, bukan lewat update(): tombol tutup hanya boleh menyentuh
+    // satu kolom. Lewat update() ia harus ikut mengirim nomor_counter/terminal/
+    // maskapai, dan payload sebagian seperti itu berisiko menimpa field lain.
+    Route::post('checkin-counters/{checkin_counter}/toggle-tutup', [CheckinCounterController::class, 'toggleTutup'])->name('checkin-counters.toggle-tutup');
     
     // Gate Custom Routes
     Route::post('gates/{gate}/remove-flight/{flight}', [GateController::class, 'removeFlight'])->name('gates.remove-flight');
