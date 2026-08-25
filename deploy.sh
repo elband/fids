@@ -6,6 +6,11 @@
 
 set -e
 
+# Skrip memakai path relatif (.env, storage/, bootstrap/cache). Tanpa ini,
+# memanggilnya dari direktori lain (mis. cron atau `sudo bash /var/www/fids/deploy.sh`)
+# akan menyentuh direktori yang salah atau gagal di tengah jalan.
+cd "$(dirname "$0")"
+
 FRESH=false
 NO_SEED=false
 
@@ -16,10 +21,10 @@ for arg in "$@"; do
     esac
 done
 
-echo "==> [1/9] Installing PHP dependencies..."
-composer install --optimize-autoloader --no-dev
+echo "==> [1/10] Installing PHP dependencies..."
+composer install --optimize-autoloader --no-dev --no-interaction --prefer-dist
 
-echo "==> [2/9] Setting up environment..."
+echo "==> [2/10] Setting up environment..."
 if [ ! -f .env ]; then
     cp .env.example .env
     php artisan key:generate
@@ -27,33 +32,43 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
-echo "==> [3/9] Running database migrations..."
+echo "==> [3/10] Running database migrations..."
 if [ "$FRESH" = true ]; then
     php artisan migrate:fresh --force
 else
     php artisan migrate --force
 fi
 
-echo "==> [4/9] Seeding database..."
+echo "==> [4/10] Seeding database..."
 if [ "$NO_SEED" = false ]; then
     php artisan db:seed --force
 fi
 
-echo "==> [5/9] Linking storage..."
+echo "==> [5/10] Linking storage..."
 php artisan storage:link --force
 
-echo "==> [6/9] Building frontend assets..."
-npm ci
+echo "==> [6/10] Building frontend assets..."
+# --include=dev wajib: vite & plugin-nya ada di devDependencies, sedangkan server
+# produksi umumnya menyetel NODE_ENV=production yang membuat `npm ci` polos
+# melewatkannya — build lalu gagal dengan "vite: not found".
+npm ci --include=dev
 npm run build
 
-echo "==> [7/9] Caching config, routes, and views..."
+# public/build/ tidak ikut di-commit (lihat .gitignore), jadi bila build diam-diam
+# tidak menghasilkan manifest, seluruh layar akan blank saat diakses.
+if [ ! -f public/build/manifest.json ]; then
+    echo "     GAGAL: public/build/manifest.json tidak terbentuk — hentikan deploy."
+    exit 1
+fi
+
+echo "==> [7/10] Caching config, routes, and views..."
 php artisan optimize
 
-echo "==> [8/9] Setting permissions..."
+echo "==> [8/10] Setting permissions..."
 chmod -R 775 storage bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 
-echo "==> [9/9] Memuat ulang PHP-FPM..."
+echo "==> [9/10] Memuat ulang PHP-FPM..."
 # Tanpa ini, OPcache yang disetel validate_timestamps=0 tetap menjalankan bytecode
 # lama walau file di disk sudah diganti: deploy terlihat sukses dan `git log`
 # menunjuk commit baru, tapi perilaku aplikasi tidak berubah sama sekali.
@@ -64,6 +79,12 @@ if [ -n "$FPM_SERVICE" ]; then
 else
     echo "     PHP-FPM tidak terdeteksi (lewati). Bila memakai server lain, muat ulang manual."
 fi
+
+echo "==> [10/10] Memberi tahu queue worker agar memakai kode baru..."
+# Worker adalah proses PHP yang berumur panjang: tanpa ini ia terus menjalankan
+# kode versi lama sampai di-restart manual — masalah yang sama dengan OPcache
+# di langkah sebelumnya, tapi pada sisi antrean.
+php artisan queue:restart
 
 echo ""
 echo "Deployment complete."
