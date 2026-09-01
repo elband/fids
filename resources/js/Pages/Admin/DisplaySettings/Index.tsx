@@ -21,8 +21,6 @@ interface DisplaySetting {
     bahasa: 'id' | 'en';
     timezone: string | null;
     bagasi_durasi_status_menit?: number | null;
-    bagasi_kamera_mulai_menit?: number | null;
-    bagasi_kamera_selesai_menit?: number | null;
     board_hide_after_menit?: number | null;
     auto_reload_jam?: number | null;
     mode_hemat?: boolean | null;
@@ -50,8 +48,6 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
         bahasa: setting?.bahasa || 'id',
         timezone: setting?.timezone || 'Asia/Makassar',
         bagasi_durasi_status_menit: setting?.bagasi_durasi_status_menit ?? 30,
-        bagasi_kamera_mulai_menit: setting?.bagasi_kamera_mulai_menit ?? 10,
-        bagasi_kamera_selesai_menit: setting?.bagasi_kamera_selesai_menit ?? 20,
         board_hide_after_menit: setting?.board_hide_after_menit ?? 180,
         auto_reload_jam: setting?.auto_reload_jam ?? 6,
         mode_hemat: setting?.mode_hemat ?? true,
@@ -258,7 +254,7 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
                                 {/* Pengaturan Baggage Claim */}
                                 <div className="border-t border-gray-200 pt-6">
                                     <h3 className="text-base font-semibold text-gray-800 mb-1">Baggage Claim</h3>
-                                    <p className="text-sm text-gray-500 mb-4">Mengatur berapa lama status penerbangan & kamera CCTV tampil di layar baggage claim setelah pesawat tiba.</p>
+                                    <p className="text-sm text-gray-500 mb-4">Mengatur berapa lama status penerbangan tampil di layar baggage claim setelah pesawat tiba.</p>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div>
                                             <InputLabel htmlFor="bagasi_durasi_status_menit" value="Durasi tampil status (menit)" />
@@ -271,30 +267,6 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
                                             />
                                             <p className="text-xs text-gray-500 mt-1">Teks status penerbangan hilang setelah menit ini.</p>
                                             <InputError message={errors.bagasi_durasi_status_menit} className="mt-2" />
-                                        </div>
-                                        <div>
-                                            <InputLabel htmlFor="bagasi_kamera_mulai_menit" value="Kamera muncul (menit)" />
-                                            <input
-                                                id="bagasi_kamera_mulai_menit"
-                                                type="number" min={0} max={240}
-                                                className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                                value={data.bagasi_kamera_mulai_menit}
-                                                onChange={(e) => setData('bagasi_kamera_mulai_menit', parseInt(e.target.value) || 0)}
-                                            />
-                                            <p className="text-xs text-gray-500 mt-1">Kamera CCTV belt muncul jadi latar setelah menit ini.</p>
-                                            <InputError message={errors.bagasi_kamera_mulai_menit} className="mt-2" />
-                                        </div>
-                                        <div>
-                                            <InputLabel htmlFor="bagasi_kamera_selesai_menit" value="Kamera hilang (menit)" />
-                                            <input
-                                                id="bagasi_kamera_selesai_menit"
-                                                type="number" min={1} max={240}
-                                                className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                                value={data.bagasi_kamera_selesai_menit}
-                                                onChange={(e) => setData('bagasi_kamera_selesai_menit', parseInt(e.target.value) || 0)}
-                                            />
-                                            <p className="text-xs text-gray-500 mt-1">Kamera CCTV berhenti tampil setelah menit ini.</p>
-                                            <InputError message={errors.bagasi_kamera_selesai_menit} className="mt-2" />
                                         </div>
                                     </div>
                                 </div>

@@ -284,25 +284,6 @@ class DisplayApiController extends Controller
         })->values();
     }
 
-    /** Kamera CCTV aktif yang terhubung ke sebuah belt (atau null). */
-    private function beltCamera($belt): ?array
-    {
-        $cam = \App\Models\CctvCamera::where('baggage_claim_id', $belt->id)
-            ->where('aktif', true)
-            ->orderBy('urutan')
-            ->first();
-
-        if (! $cam) {
-            return null;
-        }
-
-        return [
-            'nama'         => $cam->nama,
-            'jenis_stream' => $cam->jenis_stream,
-            'url_stream'   => $cam->url_stream,
-        ];
-    }
-
     public function departures()
     {
         $data = Cache::remember('fids:api:departures', self::TTL_LIST, function () {
@@ -419,10 +400,8 @@ class DisplayApiController extends Controller
         $key = "fids:api:baggage:{$beltNumber}:v{$this->flightCacheVersion()}";
         $data = Cache::remember($key, self::TTL_LIST, function () use ($beltNumber) {
             $settings = DisplaySetting::first();
-            $statusMin = (int) ($settings->bagasi_durasi_status_menit ?? 30);
-            $camEndMin = (int) ($settings->bagasi_kamera_selesai_menit ?? 20);
-            // Belt tetap "aktif" selama teks status ATAU kamera masih relevan.
-            $windowMin = max($statusMin, $camEndMin);
+            // Belt tetap "aktif" selama teks status penerbangan masih relevan.
+            $windowMin = (int) ($settings->bagasi_durasi_status_menit ?? 30);
 
             $belt = \App\Models\BaggageClaim::with(['flights' => function($q) {
                 // Filter jenis_penerbangan disamakan dengan allBaggageClaims().
@@ -446,13 +425,12 @@ class DisplayApiController extends Controller
             $flightsArr = FlightResource::collection($occupant)->resolve();
             if ($occupant->isNotEmpty()) {
                 // arrived_at dipakai frontend untuk menghitung menit sejak tiba
-                // (kapan teks hilang & kapan kamera muncul/hilang).
+                // (kapan teks status berhenti tampil).
                 $flightsArr[0]['arrived_at'] = optional($this->flightArrivedAt($occupant->first()))->toIso8601String();
             }
 
             $arr = $belt->toArray();
             $arr['flights'] = $flightsArr;
-            $arr['camera'] = $this->beltCamera($belt);
             return $arr;
         });
 

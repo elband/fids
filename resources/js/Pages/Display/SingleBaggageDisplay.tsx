@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
-import { Clock, Sun, Thermometer, AlertTriangle } from 'lucide-react';
+import { Clock, Sun, Thermometer } from 'lucide-react';
 import { hexToRgba, t, type Lang } from '@/lib/fids';
 import { useNtpClock } from '@/hooks/useNtpClock';
 
@@ -18,84 +18,17 @@ interface Flight {
     };
 }
 
-interface Camera {
-    nama: string;
-    jenis_stream: 'iframe' | 'mjpeg' | 'youtube';
-    url_stream: string;
-}
-
 interface BaggageClaim {
     id: number;
     nomor_belt: string;
     status_belt: string;
     flights?: Flight[];
-    camera?: Camera | null;
 }
 
 interface WeatherInfo {
     suhu: string;
     kondisi_cuaca: string;
     lokasi: string;
-}
-
-/**
- * Ubah berbagai bentuk URL YouTube menjadi URL embed autoplay.
- *
- * Sengaja berdiri sendiri, tidak berbagi util dengan halaman CCTV: layar
- * bagasi dan layar CCTV adalah dua halaman terpisah yang boleh berkembang
- * sendiri-sendiri.
- *
- * Bentuk selain /embed/ ditolak YouTube lewat X-Frame-Options, jadi link
- * Shorts/Live yang ditempel apa adanya oleh operator harus dikonversi di sini
- * — kalau tidak, latar CCTV hanya tampil sebagai kotak hitam tanpa error.
- */
-function youtubeEmbed(url: string): string {
-    const embed = (id: string) =>
-        `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1`;
-
-    try {
-        const u = new URL(url);
-
-        if (u.hostname.includes('youtu.be')) {
-            const id = u.pathname.split('/').filter(Boolean)[0];
-            return id ? embed(id) : url;
-        }
-
-        if (u.hostname.includes('youtube.com')) {
-            if (u.pathname.startsWith('/embed/')) return url;
-
-            const v = u.searchParams.get('v');
-            if (v) return embed(v);
-
-            const [segment, id] = u.pathname.split('/').filter(Boolean);
-            if (id && ['live', 'shorts', 'v'].includes(segment)) return embed(id);
-        }
-    } catch { /* URL tidak valid → biarkan dipakai apa adanya */ }
-
-    return url;
-}
-
-function CameraStream({ cam }: { cam: Camera }) {
-    const [errored, setErrored] = useState(false);
-    const isRtsp = /^rtsp:\/\//i.test(cam.url_stream);
-
-    if (isRtsp || errored) {
-        return (
-            <div className="flex flex-col items-center justify-center w-full h-full text-amber-300">
-                <AlertTriangle size={48} />
-                <p className="mt-3 text-lg tracking-wider uppercase">
-                    {isRtsp ? 'RTSP tidak didukung browser' : 'Stream tidak tersedia'}
-                </p>
-            </div>
-        );
-    }
-    if (cam.jenis_stream === 'mjpeg') {
-        return <img src={cam.url_stream} alt={cam.nama} onError={() => setErrored(true)} className="w-full h-full object-cover" />;
-    }
-    if (cam.jenis_stream === 'youtube') {
-        return <iframe src={youtubeEmbed(cam.url_stream)} className="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />;
-    }
-    return <iframe src={cam.url_stream} className="w-full h-full bg-black" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />;
 }
 
 export default function SingleBaggageDisplay({ identifier }: { identifier: string }) {
@@ -107,8 +40,6 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
     const [lang, setLang] = useState<Lang>('id');
     // Timing baggage claim (menit) dari Pengaturan Layar FIDS.
     const [durStatusMin, setDurStatusMin] = useState(30);
-    const [camStartMin, setCamStartMin] = useState(10);
-    const [camEndMin, setCamEndMin] = useState(20);
 
     const fetchData = useCallback(async () => {
         try {
@@ -135,8 +66,6 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
                 if (s?.background_header) setBgImage(s.background_header);
                 if (s?.bahasa) setLang(s.bahasa);
                 if (typeof s?.bagasi_durasi_status_menit === 'number') setDurStatusMin(s.bagasi_durasi_status_menit);
-                if (typeof s?.bagasi_kamera_mulai_menit === 'number') setCamStartMin(s.bagasi_kamera_mulai_menit);
-                if (typeof s?.bagasi_kamera_selesai_menit === 'number') setCamEndMin(s.bagasi_kamera_selesai_menit);
             }
         } catch (err) {
             console.error('Failed to fetch data:', err);
@@ -150,7 +79,6 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
     }, [fetchData]);
 
     const flight = belt?.flights && belt.flights.length > 0 ? belt.flights[0] : null;
-    const camera = belt?.camera ?? null;
 
     // Menit sejak pesawat tiba (arrived_at dari server, dihitung dgn jam NTP).
     const elapsedMin = flight?.arrived_at
@@ -166,8 +94,6 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
     // Aturan: teks status tampil s/d durasi status; kamera tampil antara
     // menit "kamera muncul" s/d "kamera hilang".
     const showText = isBeltActive && !!flight && (!flight.arrived_at || elapsedMin < durStatusMin);
-    const showCamera = isBeltActive && !!flight && !!camera && !!flight.arrived_at
-        && elapsedMin >= camStartMin && elapsedMin < camEndMin;
 
     const airlineColor = showText ? (flight?.airline?.warna ?? null) : null;
 
@@ -193,16 +119,10 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
 
     return (
         <FidsLayout title={`FIDS - Baggage Belt ${identifier}`}>
-            <div className={`h-screen text-white font-sans select-none overflow-hidden relative ${showCamera ? 'bg-black' : 'bg-black'}`}>
-                {/* Background: kamera CCTV (fase 10–20 mnt) atau latar biasa */}
-                {showCamera && camera ? (
-                    <div className="absolute inset-0 z-0">
-                        <CameraStream cam={camera} />
-                        <div className="absolute inset-0 bg-black/45" />
-                    </div>
-                ) : (
-                    <div className="absolute inset-0 z-0" style={bgStyle} />
-                )}
+            <div className="h-screen text-white font-sans select-none overflow-hidden relative bg-black">
+                {/* Latar layar bagasi. CCTV sengaja tidak ditampilkan di sini:
+                    layar CCTV adalah halaman tersendiri (/public/cctv/baggage). */}
+                <div className="absolute inset-0 z-0" style={bgStyle} />
 
                 <div className="relative z-10 h-full flex flex-col">
                     {/* Header */}
@@ -268,7 +188,7 @@ export default function SingleBaggageDisplay({ identifier }: { identifier: strin
                                 <div style={{ fontSize: 'min(10vw, 14vh)' }} className="font-black text-yellow-400 tracking-widest text-center">
                                     {t.closed[lang]}
                                 </div>
-                            ) : showCamera ? null : (
+                            ) : (
                                 <div style={{ fontSize: 'min(8vw, 11vh)' }} className="font-bold text-yellow-400 tracking-widest text-center leading-tight whitespace-pre-line drop-shadow-lg">
                                     {t.awaitingBaggageBig[lang]}
                                 </div>

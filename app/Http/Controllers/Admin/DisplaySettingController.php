@@ -110,8 +110,6 @@ class DisplaySettingController extends Controller
             'bahasa'            => 'required|string|in:id,en',
             'timezone'          => 'nullable|string|max:64',
             'bagasi_durasi_status_menit'  => 'nullable|integer|min:1|max:240',
-            'bagasi_kamera_mulai_menit'   => 'nullable|integer|min:0|max:240',
-            'bagasi_kamera_selesai_menit' => 'nullable|integer|min:1|max:240',
             'board_hide_after_menit'      => 'nullable|integer|min:0|max:1440',
             'auto_reload_jam'             => 'nullable|integer|min:0|max:168',
             'mode_hemat'                  => 'nullable|boolean',
@@ -127,12 +125,6 @@ class DisplaySettingController extends Controller
 
         if (isset($validated['bagasi_durasi_status_menit'])) {
             $setting->bagasi_durasi_status_menit = (int) $validated['bagasi_durasi_status_menit'];
-        }
-        if (isset($validated['bagasi_kamera_mulai_menit'])) {
-            $setting->bagasi_kamera_mulai_menit = (int) $validated['bagasi_kamera_mulai_menit'];
-        }
-        if (isset($validated['bagasi_kamera_selesai_menit'])) {
-            $setting->bagasi_kamera_selesai_menit = (int) $validated['bagasi_kamera_selesai_menit'];
         }
         if (array_key_exists('board_hide_after_menit', $validated) && $validated['board_hide_after_menit'] !== null) {
             $setting->board_hide_after_menit = (int) $validated['board_hide_after_menit'];

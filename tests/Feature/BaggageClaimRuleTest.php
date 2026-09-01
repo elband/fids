@@ -16,7 +16,8 @@ use Tests\TestCase;
  * Regresi aturan Baggage Claim:
  *  - Tampil hanya bila status penerbangan "sudah tiba".
  *  - Hilang setelah jendela waktu (durasi status di Pengaturan Layar FIDS).
- *  - Sertakan arrived_at + kamera CCTV belt untuk logika timeline frontend.
+ *  - Sertakan arrived_at untuk logika timeline frontend.
+ *  - TIDAK menyiarkan kamera CCTV: itu halaman terpisah.
  */
 class BaggageClaimRuleTest extends TestCase
 {
@@ -98,13 +99,16 @@ class BaggageClaimRuleTest extends TestCase
 
     public function test_hides_flight_after_window(): void
     {
-        // Tiba 40 menit lalu > jendela max(durasi status 30, kamera selesai 20).
+        // Tiba 40 menit lalu > jendela durasi status (30 menit).
         $this->makeFlight('IU652', 'Arrived', '09:20:00');
         $this->assertCount(0, $this->beltData()['flights']);
     }
 
-    public function test_returns_linked_cctv_camera(): void
+    public function test_does_not_expose_cctv_camera(): void
     {
+        // Layar CCTV adalah halaman tersendiri (/public/cctv/baggage). Layar
+        // baggage claim tidak boleh ikut menyiarkan kamera, walau ada kamera
+        // aktif yang tertaut ke belt ini.
         $this->makeFlight('IU652', 'Arrived', '09:55:00');
         CctvCamera::create([
             'nama'         => 'Belt 1 Cam',
@@ -117,7 +121,7 @@ class BaggageClaimRuleTest extends TestCase
 
         $data = $this->beltData();
 
-        $this->assertNotNull($data['camera']);
-        $this->assertSame('http://cam.local/belt1', $data['camera']['url_stream']);
+        $this->assertArrayNotHasKey('camera', $data);
+        $this->assertStringNotContainsString('cam.local', json_encode($data));
     }
 }
