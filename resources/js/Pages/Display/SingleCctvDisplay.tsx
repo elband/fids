@@ -4,6 +4,7 @@ import FidsLayout from '@/Layouts/FidsLayout';
 import { Camera as CameraIcon, Clock, AlertTriangle, Maximize2, MapPin, Radio, Plane, Megaphone } from 'lucide-react';
 import AdSlide, { AdItem } from '@/Components/AdSlide';
 import { useNtpClock } from '@/hooks/useNtpClock';
+import { youtubeEmbed } from '@/lib/streamEmbed';
 
 type ActiveFlight = {
     id: number;
@@ -44,25 +45,6 @@ type Props = {
     utc_now: string;
 };
 
-function youtubeEmbed(url: string): string {
-    try {
-        const u = new URL(url);
-        if (u.hostname.includes('youtu.be')) {
-            const id = u.pathname.replace('/', '');
-            return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1`;
-        }
-        if (u.hostname.includes('youtube.com')) {
-            if (u.pathname.startsWith('/embed/')) return url;
-            const id = u.searchParams.get('v');
-            if (id) return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1`;
-            if (u.pathname.startsWith('/live/')) {
-                const id2 = u.pathname.split('/')[2];
-                return `https://www.youtube.com/embed/${id2}?autoplay=1&mute=1&controls=0&playsinline=1`;
-            }
-        }
-    } catch { /* fallthrough */ }
-    return url;
-}
 
 const GLASS = 'bg-black/45 backdrop-blur-xl ring-1 ring-pink-300/20 shadow-2xl';
 
@@ -144,7 +126,7 @@ export default function SingleCctvDisplay({ camera, advertisements, settings, se
 
     return (
         <FidsLayout title={`FIDS - ${camera.nama}`}>
-            <Head title={`CCTV â€” ${camera.nama}`} />
+            <Head title={`CCTV — ${camera.nama}`} />
 
             <style>{`
                 @keyframes scan { 0% { transform: translateY(-100%);} 100% { transform: translateY(100vh);} }
@@ -157,7 +139,7 @@ export default function SingleCctvDisplay({ camera, advertisements, settings, se
                 className="relative h-screen w-screen overflow-hidden text-white font-sans select-none"
                 style={{ background: '#050309' }}
             >
-                {/* Hero â€” CCTV / Ads / Standby */}
+                {/* Hero — CCTV / Ads / Standby */}
                 <div className="absolute inset-0">
                     {showCctv ? (
                         <CameraStream camera={camera} />
@@ -172,7 +154,7 @@ export default function SingleCctvDisplay({ camera, advertisements, settings, se
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-black/85 via-black/50 to-transparent" />
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/90 via-black/55 to-transparent" />
 
-                {/* corner brackets â€” only when in CCTV mode */}
+                {/* corner brackets — only when in CCTV mode */}
                 {showCctv && (
                     <>
                         <div className="pointer-events-none absolute inset-6 ring-1 ring-pink-300/10 rounded-2xl" aria-hidden />
@@ -202,7 +184,7 @@ export default function SingleCctvDisplay({ camera, advertisements, settings, se
 
                 {/* TOP BAR */}
                 <div className="absolute top-6 inset-x-6 flex items-start justify-between gap-4 z-20">
-                    {/* left â€” clock */}
+                    {/* left — clock */}
                     <div className={`${GLASS} rounded-2xl px-5 py-3 flex items-center gap-4`}>
                         <div className="p-2 rounded-xl bg-white/5 text-pink-200">
                             <Clock size={26} strokeWidth={2} />
@@ -213,7 +195,7 @@ export default function SingleCctvDisplay({ camera, advertisements, settings, se
                         </div>
                     </div>
 
-                    {/* center â€” title (changes by mode) */}
+                    {/* center — title (changes by mode) */}
                     <div className={`${GLASS} rounded-2xl px-6 py-3 flex flex-col items-center text-center min-w-[20rem]`}>
                         <div className="flex items-center gap-2 text-pink-200/80 text-[0.65rem] font-bold uppercase tracking-[0.32em]">
                             {showCctv ? (
@@ -238,7 +220,7 @@ export default function SingleCctvDisplay({ camera, advertisements, settings, se
                         )}
                     </div>
 
-                    {/* right â€” airport */}
+                    {/* right — airport */}
                     <div className={`${GLASS} rounded-2xl px-5 py-3 flex items-center gap-4`}>
                         <div className="text-pink-300 drop-shadow-[0_0_10px_rgba(236,72,153,0.7)]">
                             <Radio size={26} />
@@ -254,7 +236,7 @@ export default function SingleCctvDisplay({ camera, advertisements, settings, se
 
                 {/* BOTTOM BAR */}
                 <div className="absolute bottom-6 inset-x-6 flex items-end justify-between gap-4 z-20">
-                    {/* left â€” LIVE/STANDBY indicator + flight info */}
+                    {/* left — LIVE/STANDBY indicator + flight info */}
                     <div className={`${GLASS} rounded-2xl px-5 py-3 flex items-center gap-4`}>
                         {showCctv ? (
                             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/90 text-white text-xs font-semibold tracking-[0.24em]">
@@ -293,7 +275,7 @@ export default function SingleCctvDisplay({ camera, advertisements, settings, se
                         )}
                     </div>
 
-                    {/* right â€” fullscreen */}
+                    {/* right — fullscreen */}
                     <div className="flex items-center gap-3">
                         <button
                             onClick={handleFullscreen}
@@ -321,7 +303,7 @@ function StandbyView({ belt }: { belt?: string | number | null }) {
                 <div className="absolute inset-0 rounded-full" style={{ boxShadow: '0 0 80px rgba(236,72,153,0.45)' }} />
             </div>
             <p className="mt-8 text-3xl font-black tracking-[0.32em] uppercase text-pink-100">
-                Belt {belt ?? '-'} â€” Standby
+                Belt {belt ?? '-'} — Standby
             </p>
             <p className="mt-3 text-sm text-pink-100/60 tracking-wider uppercase">
                 Belum ada penerbangan tiba di belt ini

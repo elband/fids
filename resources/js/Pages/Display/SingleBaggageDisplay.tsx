@@ -38,22 +38,40 @@ interface WeatherInfo {
     lokasi: string;
 }
 
-/** Ubah berbagai bentuk URL YouTube menjadi URL embed autoplay. */
+/**
+ * Ubah berbagai bentuk URL YouTube menjadi URL embed autoplay.
+ *
+ * Sengaja berdiri sendiri, tidak berbagi util dengan halaman CCTV: layar
+ * bagasi dan layar CCTV adalah dua halaman terpisah yang boleh berkembang
+ * sendiri-sendiri.
+ *
+ * Bentuk selain /embed/ ditolak YouTube lewat X-Frame-Options, jadi link
+ * Shorts/Live yang ditempel apa adanya oleh operator harus dikonversi di sini
+ * — kalau tidak, latar CCTV hanya tampil sebagai kotak hitam tanpa error.
+ */
 function youtubeEmbed(url: string): string {
+    const embed = (id: string) =>
+        `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1`;
+
     try {
         const u = new URL(url);
+
         if (u.hostname.includes('youtu.be')) {
-            return `https://www.youtube.com/embed/${u.pathname.replace('/', '')}?autoplay=1&mute=1&controls=0&playsinline=1`;
+            const id = u.pathname.split('/').filter(Boolean)[0];
+            return id ? embed(id) : url;
         }
+
         if (u.hostname.includes('youtube.com')) {
             if (u.pathname.startsWith('/embed/')) return url;
-            const id = u.searchParams.get('v');
-            if (id) return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1`;
-            if (u.pathname.startsWith('/live/')) {
-                return `https://www.youtube.com/embed/${u.pathname.split('/')[2]}?autoplay=1&mute=1&controls=0&playsinline=1`;
-            }
+
+            const v = u.searchParams.get('v');
+            if (v) return embed(v);
+
+            const [segment, id] = u.pathname.split('/').filter(Boolean);
+            if (id && ['live', 'shorts', 'v'].includes(segment)) return embed(id);
         }
-    } catch { /* fallthrough */ }
+    } catch { /* URL tidak valid → biarkan dipakai apa adanya */ }
+
     return url;
 }
 

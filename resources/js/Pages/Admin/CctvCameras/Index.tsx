@@ -10,6 +10,7 @@ import {
     Search, MapPin, Layers, Hash, Sparkles, Wifi, Film, Monitor as MonitorIcon, Image as ImageIcon,
 } from 'lucide-react';
 import { appConfirm } from '@/lib/confirm';
+import { youtubeEmbed } from '@/lib/streamEmbed';
 
 interface Cam {
     id: number;
@@ -51,25 +52,6 @@ const JENIS_STREAM_OPTIONS = [
     { value: 'youtube', label: 'YouTube Live',                  icon: Film },
 ];
 
-function youtubeEmbed(url: string): string {
-    try {
-        const u = new URL(url);
-        if (u.hostname.includes('youtu.be')) {
-            const id = u.pathname.replace('/', '');
-            return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1`;
-        }
-        if (u.hostname.includes('youtube.com')) {
-            if (u.pathname.startsWith('/embed/')) return url;
-            const id = u.searchParams.get('v');
-            if (id) return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1`;
-            if (u.pathname.startsWith('/live/')) {
-                const id2 = u.pathname.split('/')[2];
-                return `https://www.youtube.com/embed/${id2}?autoplay=1&mute=1&controls=0&playsinline=1`;
-            }
-        }
-    } catch { /* fallthrough */ }
-    return url;
-}
 
 function grupOf(g: string) {
     return GRUP_OPTIONS.find((o) => o.value === g) ?? { value: g, label: g, short: g.toUpperCase(), tone: 'slate' };

@@ -4,6 +4,7 @@ import FidsLayout from '@/Layouts/FidsLayout';
 import { Camera, Maximize2, AlertTriangle, Plane, Megaphone } from 'lucide-react';
 import AdSlide, { AdItem } from '@/Components/AdSlide';
 import { useNtpClock } from '@/hooks/useNtpClock';
+import { youtubeEmbed } from '@/lib/streamEmbed';
 
 type ActiveFlight = {
     id: number;
@@ -42,25 +43,6 @@ type Props = {
     utc_now: string;
 };
 
-function youtubeEmbed(url: string): string {
-    try {
-        const u = new URL(url);
-        if (u.hostname.includes('youtu.be')) {
-            const id = u.pathname.replace('/', '');
-            return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1`;
-        }
-        if (u.hostname.includes('youtube.com')) {
-            if (u.pathname.startsWith('/embed/')) return url;
-            const id = u.searchParams.get('v');
-            if (id) return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1`;
-            if (u.pathname.startsWith('/live/')) {
-                const id2 = u.pathname.split('/')[2];
-                return `https://www.youtube.com/embed/${id2}?autoplay=1&mute=1&controls=0&playsinline=1`;
-            }
-        }
-    } catch { /* fallthrough */ }
-    return url;
-}
 
 function CameraStreamInline({ cam }: { cam: CctvCamera }) {
     const [errored, setErrored] = useState(false);
@@ -171,7 +153,7 @@ function CameraTile({ cam, ads }: { cam: CctvCamera; ads: AdItem[] }) {
                 </div>
                 {!showCctv && (
                     <p className="text-pink-100/70 text-xs mt-1">
-                        Menampilkan iklan â€” menunggu pesawat tiba
+                        Menampilkan iklan — menunggu pesawat tiba
                     </p>
                 )}
             </div>
