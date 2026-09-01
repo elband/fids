@@ -550,11 +550,10 @@ function CameraCard({
     const tone = TONE_MAP[grup.tone];
     const StreamIcon = jenisIconOf(cam.jenis_stream);
     const isRtsp = /^rtsp:\/\//i.test(cam.url_stream);
-    // Kamera bagasi kini menyatu dengan layar baggage claim: tombol "Lihat"
-    // mengarah ke halaman belt-nya sendiri (yang otomatis menampilkan kamera).
-    const beltUrl = cam.grup === 'baggage' && cam.baggage_claim
-        ? `/public/gate/baggageclaim/details?id=belt-${cam.baggage_claim.nomor_belt}`
-        : null;
+    // Layar CCTV dan layar baggage claim adalah dua halaman berbeda. "Lihat"
+    // membuka layar CCTV yang live — sebelumnya ia melempar operator ke halaman
+    // belt, yang membuat kedua layar itu terasa seperti satu fitur yang sama.
+    const cctvUrl = cam.grup === 'baggage' ? '/public/cctv/baggage' : null;
 
     return (
         <div className="group relative rounded-2xl bg-white dark:bg-gray-900 ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-fuchsia-300 dark:hover:ring-fuchsia-500 hover:shadow-xl hover:-translate-y-0.5 transition-all overflow-hidden">
@@ -608,13 +607,13 @@ function CameraCard({
 
                 {/* hover actions */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 opacity-0 group-hover:opacity-100 transition flex items-end justify-center p-3 gap-2 z-20">
-                    {beltUrl ? (
+                    {cctvUrl ? (
                         <a
-                            href={beltUrl}
+                            href={cctvUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-3 py-1.5 rounded-md bg-white/95 text-fuchsia-700 hover:bg-white text-xs font-bold flex items-center gap-1.5"
-                            title="Buka layar baggage claim (belt)"
+                            title="Buka layar CCTV (semua kamera, live)"
                         >
                             <Eye size={13} /> Lihat
                         </a>
@@ -632,7 +631,7 @@ function CameraCard({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-1.5 rounded-md bg-white/95 text-emerald-700 hover:bg-white text-xs font-bold flex items-center gap-1.5"
-                        title="Buka di tab baru"
+                        title="Buka layar CCTV kamera ini saja (live)"
                     >
                         <ExternalLink size={13} /> Single
                     </a>
