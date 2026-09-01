@@ -217,22 +217,8 @@ class DisplayController extends Controller
             ->orderBy('id')
             ->get();
 
-        // Status yang menandakan pesawat sudah tiba / bagasi sedang dilayani
-        $activeStatuses = ['Landed', 'Arrived', 'Baggage Claim'];
-
-        $cameras = $cameras->map(function ($cam) use ($activeStatuses) {
-            $activeFlight = null;
-            if ($cam->baggage_claim_id) {
-                $activeFlight = Flight::with(['airline:id,kode_maskapai,nama_maskapai,logo,warna_identitas', 'airportAsal:id,kota,kode_iata,nama_bandara'])
-                    ->where('jenis_penerbangan', 'arrival')
-                    ->whereDate('tanggal_penerbangan', \App\Support\DisplayTimezone::now()->toDateString())
-                    ->where('baggage_claim_id', $cam->baggage_claim_id)
-                    ->whereIn('status', $activeStatuses)
-                    ->orderByRaw("FIELD(status, 'Baggage Claim', 'Arrived', 'Landed')")
-                    ->orderBy('jam_aktual', 'desc')
-                    ->orderBy('jam_estimasi', 'desc')
-                    ->first();
-            }
+        $cameras = $cameras->map(function ($cam) {
+            $activeFlight = $this->cctvActiveFlight($cam);
 
             return [
                 'id' => $cam->id,
@@ -282,20 +268,7 @@ class DisplayController extends Controller
             ->with('baggageClaim:id,nomor_belt,terminal,area')
             ->find($id);
 
-        $activeStatuses = ['Landed', 'Arrived', 'Baggage Claim'];
-        $activeFlight = null;
-
-        if ($camera && $camera->baggage_claim_id) {
-            $activeFlight = Flight::with(['airline:id,kode_maskapai,nama_maskapai,logo,warna_identitas', 'airportAsal:id,kota,kode_iata,nama_bandara'])
-                ->where('jenis_penerbangan', 'arrival')
-                ->whereDate('tanggal_penerbangan', \App\Support\DisplayTimezone::now()->toDateString())
-                ->where('baggage_claim_id', $camera->baggage_claim_id)
-                ->whereIn('status', $activeStatuses)
-                ->orderByRaw("FIELD(status, 'Baggage Claim', 'Arrived', 'Landed')")
-                ->orderBy('jam_aktual', 'desc')
-                ->orderBy('jam_estimasi', 'desc')
-                ->first();
-        }
+        $activeFlight = $camera ? $this->cctvActiveFlight($camera) : null;
 
         $advertisements = \App\Models\Advertisement::where('status', 'active')
             ->orderBy('order_index')
@@ -334,6 +307,93 @@ class DisplayController extends Controller
             'server_timezone' => $timezone,
             'utc_now' => \Carbon\Carbon::now('UTC')->toIso8601String(),
         ]);
+    }
+
+    /**
+     * Penerbangan yang membuat sebuah kamera CCTV menyala, atau null.
+     *
+     * Pemicunya penerbangan arrival hari ini pada belt yang ditautkan ke kamera,
+     * berstatus "sudah tiba". Bila ada lebih dari satu, yang paling relevan
+     * dimenangkan: Baggage Claim > Arrived > Landed, lalu jam aktual terbaru.
+     *
+     * Dipakai bersama oleh layar CCTV multi-kamera dan layar kamera tunggal
+     * supaya keduanya tidak bisa berbeda aturan.
+     */
+    private function cctvActiveFlight(\App\Models\CctvCamera $cam): ?Flight
+    {
+        if (! $cam->baggage_claim_id) {
+            return null;
+        }
+
+        $flight = Flight::with(['airline:id,kode_maskapai,nama_maskapai,logo,warna_identitas', 'airportAsal:id,kota,kode_iata,nama_bandara'])
+            ->where('jenis_penerbangan', 'arrival')
+            ->whereDate('tanggal_penerbangan', \App\Support\DisplayTimezone::now()->toDateString())
+            ->where('baggage_claim_id', $cam->baggage_claim_id)
+            ->whereIn('status', \App\Support\FlightStatus::ARRIVED)
+            // CASE, bukan FIELD(): FIELD() hanya ada di MySQL sehingga kueri ini
+            // gagal total di SQLite — termasuk di test suite.
+            ->orderByRaw("CASE status WHEN 'Baggage Claim' THEN 0 WHEN 'Arrived' THEN 1 WHEN 'Landed' THEN 2 ELSE 3 END")
+            ->orderBy('jam_aktual', 'desc')
+            ->orderBy('jam_estimasi', 'desc')
+            ->first();
+
+        if (! $flight) {
+            return null;
+        }
+
+        return $this->withinCctvWindow($cam, $flight) ? $flight : null;
+    }
+
+    /**
+     * Apakah kamera masih berada dalam jendela tampilnya sendiri?
+     *
+     * Jendela dihitung dalam menit sejak pesawat tiba. tampil_selesai_menit
+     * NULL berarti tanpa batas akhir — kamera ikut umur status penerbangan,
+     * yaitu perilaku sebelum jendela ini ada.
+     */
+    private function withinCctvWindow(\App\Models\CctvCamera $cam, Flight $flight): bool
+    {
+        $startMin = (int) ($cam->tampil_mulai_menit ?? 0);
+        $endMin   = $cam->tampil_selesai_menit;
+
+        // Jendela terbuka penuh: tidak perlu menghitung jam tiba sama sekali.
+        if ($startMin <= 0 && $endMin === null) {
+            return true;
+        }
+
+        // Tanpa ATA, patokannya updated_at — yaitu saat operator mengubah status
+        // menjadi "sudah tiba", yang dalam praktik mendekati jam tiba sebenarnya.
+        $arrivedAt = $this->cctvArrivedAt($flight);
+
+        // Benar-benar tak ada patokan waktu: tampilkan saja. Kamera yang mati
+        // diam-diam lebih sulit didiagnosis daripada yang menyala kelamaan.
+        if (! $arrivedAt) {
+            return true;
+        }
+
+        $elapsedMin = $arrivedAt->diffInMinutes(\App\Support\DisplayTimezone::now(), false);
+
+        if ($elapsedMin < $startMin) {
+            return false;
+        }
+
+        return $endMin === null || $elapsedMin < (int) $endMin;
+    }
+
+    /** Waktu tiba penerbangan: utamakan ATA (jam_aktual), fallback updated_at. */
+    private function cctvArrivedAt(Flight $flight): ?\Carbon\Carbon
+    {
+        $tz = \App\Support\DisplayTimezone::get();
+
+        if (! empty($flight->jam_aktual)) {
+            $date = $flight->tanggal_penerbangan
+                ? \Carbon\Carbon::parse($flight->tanggal_penerbangan)->toDateString()
+                : \Carbon\Carbon::now($tz)->toDateString();
+
+            return \Carbon\Carbon::parse("{$date} {$flight->jam_aktual}", $tz);
+        }
+
+        return $flight->updated_at ? $flight->updated_at->copy()->setTimezone($tz) : null;
     }
 
     private function formatFlightSummary(Flight $flight): array

@@ -7,7 +7,7 @@ import InputLabel from '@/Components/InputLabel';
 import InputError from '@/Components/InputError';
 import {
     Camera, Plus, Pencil, Trash2, ExternalLink, Power, PowerOff, Eye, AlertTriangle, X,
-    Search, MapPin, Layers, Hash, Sparkles, Wifi, Film, Monitor as MonitorIcon, Image as ImageIcon,
+    Search, MapPin, Layers, Hash, Sparkles, Wifi, Film, Monitor as MonitorIcon, Image as ImageIcon, Clock,
 } from 'lucide-react';
 import { appConfirm } from '@/lib/confirm';
 import { youtubeEmbed } from '@/lib/streamEmbed';
@@ -23,6 +23,8 @@ interface Cam {
     url_stream: string;
     aktif: boolean;
     urutan: number;
+    tampil_mulai_menit: number;
+    tampil_selesai_menit: number | null;
 }
 
 interface BaggageClaimOption {
@@ -55,6 +57,16 @@ const JENIS_STREAM_OPTIONS = [
 
 function grupOf(g: string) {
     return GRUP_OPTIONS.find((o) => o.value === g) ?? { value: g, label: g, short: g.toUpperCase(), tone: 'slate' };
+}
+
+/** Ringkasan jendela tampil kamera untuk chip di kartu. */
+function windowLabel(cam: Cam): string {
+    const start = cam.tampil_mulai_menit ?? 0;
+    const end = cam.tampil_selesai_menit;
+
+    if (start === 0 && end === null) return 'Selama status aktif';
+    if (end === null) return `Menit ${start}+`;
+    return `Menit ${start}–${end}`;
 }
 
 function jenisIconOf(j: 'iframe' | 'mjpeg' | 'youtube') {
@@ -135,6 +147,9 @@ export default function Index({ cameras, baggageClaims }: { cameras: Cam[]; bagg
         url_stream: '',
         aktif: true,
         urutan: 0,
+        tampil_mulai_menit: 0,
+        // '' = tanpa batas akhir; dikirim sebagai null ke server.
+        tampil_selesai_menit: '' as number | '',
     });
 
     const stats = useMemo(() => {
@@ -162,7 +177,7 @@ export default function Index({ cameras, baggageClaims }: { cameras: Cam[]; bagg
     const openCreate = () => {
         setEditing(null);
         reset();
-        setData({ nama: '', lokasi: '', grup: 'baggage', baggage_claim_id: '', jenis_stream: 'iframe', url_stream: '', aktif: true, urutan: 0 });
+        setData({ nama: '', lokasi: '', grup: 'baggage', baggage_claim_id: '', jenis_stream: 'iframe', url_stream: '', aktif: true, urutan: 0, tampil_mulai_menit: 0, tampil_selesai_menit: '' });
         setOpen(true);
     };
 
@@ -177,6 +192,8 @@ export default function Index({ cameras, baggageClaims }: { cameras: Cam[]; bagg
             url_stream: cam.url_stream,
             aktif: cam.aktif,
             urutan: cam.urutan,
+            tampil_mulai_menit: cam.tampil_mulai_menit ?? 0,
+            tampil_selesai_menit: cam.tampil_selesai_menit ?? '',
         });
         setOpen(true);
     };
@@ -217,6 +234,10 @@ export default function Index({ cameras, baggageClaims }: { cameras: Cam[]; bagg
             jenis_stream: cam.jenis_stream,
             url_stream: cam.url_stream,
             urutan: cam.urutan,
+            // Wajib ikut dikirim: request ini menimpa seluruh baris, jadi tanpa
+            // dua field ini tombol On/Off diam-diam mereset jendela tampil.
+            tampil_mulai_menit: cam.tampil_mulai_menit,
+            tampil_selesai_menit: cam.tampil_selesai_menit,
             aktif: !cam.aktif,
         }, { preserveScroll: true });
     };
@@ -393,6 +414,50 @@ export default function Index({ cameras, baggageClaims }: { cameras: Cam[]; bagg
                                     <InputLabel htmlFor="urutan" value="Urutan" />
                                     <TextInput id="urutan" type="number" min={0} className="mt-1 w-full" value={data.urutan} onChange={(e: any) => setData('urutan', parseInt(e.target.value) || 0)} />
                                     <InputError message={errors.urutan} className="mt-1" />
+                                </div>
+
+                                <div className="md:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                                    <div className="flex items-center gap-2">
+                                        <Clock size={15} className="text-fuchsia-500" />
+                                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Jendela Tampil</span>
+                                    </div>
+                                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        Dihitung dalam menit sejak pesawat tiba di belt yang ditautkan. Kamera baru
+                                        menyala bila belt tersebut punya penerbangan berstatus Landed, Arrived, atau
+                                        Baggage Claim.
+                                    </p>
+
+                                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <InputLabel htmlFor="tampil_mulai_menit" value="Mulai tampil (menit)" />
+                                            <TextInput
+                                                id="tampil_mulai_menit"
+                                                type="number" min={0} max={1440}
+                                                className="mt-1 w-full"
+                                                value={data.tampil_mulai_menit}
+                                                onChange={(e: any) => setData('tampil_mulai_menit', parseInt(e.target.value) || 0)}
+                                            />
+                                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">0 = langsung tampil begitu pesawat tiba.</p>
+                                            <InputError message={errors.tampil_mulai_menit} className="mt-1" />
+                                        </div>
+
+                                        <div>
+                                            <InputLabel htmlFor="tampil_selesai_menit" value="Berhenti tampil (menit)" />
+                                            <TextInput
+                                                id="tampil_selesai_menit"
+                                                type="number" min={1} max={1440}
+                                                className="mt-1 w-full"
+                                                value={data.tampil_selesai_menit}
+                                                onChange={(e: any) => {
+                                                    const v = e.target.value;
+                                                    setData('tampil_selesai_menit', v === '' ? '' : (parseInt(v) || 0));
+                                                }}
+                                                placeholder="Kosongkan = tanpa batas"
+                                            />
+                                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Kosong = ikut status penerbangan sampai status diubah.</p>
+                                            <InputError message={errors.tampil_selesai_menit} className="mt-1" />
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="md:col-span-2">
@@ -674,6 +739,14 @@ function CameraCard({
                     {isRtsp && (
                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 font-bold">
                             <AlertTriangle size={11} /> RTSP
+                        </span>
+                    )}
+                    {cam.baggage_claim && (
+                        <span
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-fuchsia-50 dark:bg-fuchsia-900/20 text-fuchsia-700 dark:text-fuchsia-300 font-bold"
+                            title="Jendela tampil, dihitung sejak pesawat tiba"
+                        >
+                            <Clock size={11} /> {windowLabel(cam)}
                         </span>
                     )}
                 </div>

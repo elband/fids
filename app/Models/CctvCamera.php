@@ -15,12 +15,16 @@ class CctvCamera extends Model
         'url_stream',
         'aktif',
         'urutan',
+        'tampil_mulai_menit',
+        'tampil_selesai_menit',
     ];
 
     protected $casts = [
         'aktif' => 'boolean',
         'urutan' => 'integer',
         'baggage_claim_id' => 'integer',
+        'tampil_mulai_menit' => 'integer',
+        'tampil_selesai_menit' => 'integer',
     ];
 
     public function scopeActive($query)
