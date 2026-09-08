@@ -201,7 +201,7 @@ export default function CctvBaggageDisplay({ cameras, advertisements, settings, 
                 style={{ background: 'linear-gradient(135deg,#0b0617 0%,#160a26 50%,#0b0617 100%)' }}
             >
                 <header
-                    className="relative w-full h-24 flex items-center justify-between px-8 overflow-hidden shadow-lg border-b border-pink-300/20 bg-cover bg-center"
+                    className="relative w-full min-h-24 shrink-0 flex items-center justify-between gap-4 px-8 py-3 overflow-hidden shadow-lg border-b border-pink-300/20 bg-cover bg-center"
                     style={{
                         backgroundImage: settings.background_header
                             ? `url(${settings.background_header})`
@@ -209,16 +209,16 @@ export default function CctvBaggageDisplay({ cameras, advertisements, settings, 
                     }}
                 >
                     <div className="absolute inset-0 bg-black/45"></div>
-                    <div className="relative z-10">
-                        <p className="text-xs uppercase tracking-[0.36em] text-pink-100/80">CCTV Live</p>
-                        <h1 className="mt-1 text-3xl font-extrabold tracking-tight drop-shadow">
+                    <div className="relative z-10 min-w-0 flex-1">
+                        <p className="text-[clamp(0.55rem,0.7vw,0.75rem)] leading-tight uppercase tracking-[0.36em] text-pink-100/80 whitespace-nowrap overflow-hidden text-ellipsis">CCTV Live</p>
+                        <h1 className="mt-1 text-[clamp(1.1rem,2.2vw,1.875rem)] leading-tight font-extrabold tracking-tight drop-shadow whitespace-nowrap overflow-hidden text-ellipsis">
                             Pengambilan Bagasi
                         </h1>
                     </div>
-                    <div className="relative z-10 text-right">
-                        <p className="text-xs uppercase tracking-[0.32em] text-pink-100/80">{settings.nama_bandara ?? 'FIDS'}</p>
-                        <p className="text-2xl font-bold tabular-nums tracking-tight drop-shadow">{time}</p>
-                        <p className="text-xs text-pink-100/80">{dateStr}</p>
+                    <div className="relative z-10 shrink-0 text-right">
+                        <p className="text-[clamp(0.55rem,0.7vw,0.75rem)] leading-tight uppercase tracking-[0.32em] text-pink-100/80 whitespace-nowrap">{settings.nama_bandara ?? 'FIDS'}</p>
+                        <p className="text-[clamp(0.9rem,1.7vw,1.5rem)] leading-tight font-bold tabular-nums tracking-tight drop-shadow whitespace-nowrap">{time}</p>
+                        <p className="text-[clamp(0.55rem,0.7vw,0.75rem)] leading-tight text-pink-100/80 whitespace-nowrap">{dateStr}</p>
                     </div>
                 </header>
 

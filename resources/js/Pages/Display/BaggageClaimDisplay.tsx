@@ -73,23 +73,23 @@ export default function BaggageClaimDisplay() {
         <FidsLayout title="FIDS - Baggage Claim">
             <div className="h-screen bg-black text-white font-sans select-none overflow-hidden flex flex-col">
                 <header
-                    className="relative w-full h-24 flex items-center justify-between px-8 bg-gradient-to-r from-purple-900 via-fuchsia-900 to-slate-900 overflow-hidden shadow-lg border-b-2 border-black bg-cover bg-center"
+                    className="relative w-full min-h-24 shrink-0 flex items-center justify-between gap-4 px-8 py-3 bg-gradient-to-r from-purple-900 via-fuchsia-900 to-slate-900 overflow-hidden shadow-lg border-b-2 border-black bg-cover bg-center"
                     style={{ backgroundImage: bgImage ? `url(${bgImage})` : undefined }}
                 >
                     {!bgImage && <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>}
                     <div className="absolute inset-0 bg-black/30"></div>
-                    <div className="relative z-10 w-1/3">
-                        <h1 className="text-4xl font-extrabold tracking-tighter text-white drop-shadow-lg">
+                    <div className="relative z-10 min-w-0 flex-1">
+                        <h1 className="text-[clamp(1.25rem,2.6vw,2.25rem)] leading-tight font-extrabold tracking-tighter text-white drop-shadow-lg whitespace-nowrap overflow-hidden text-ellipsis">
                             {t.baggageClaim[lang]}
                         </h1>
                     </div>
-                    <div className="relative z-10 w-1/3 text-right">
+                    <div className="relative z-10 shrink-0 text-right">
                         {weather && (
-                            <div className="text-xl font-medium text-yellow-400 drop-shadow">
+                            <div className="text-[clamp(0.75rem,1.3vw,1.25rem)] leading-tight font-medium text-yellow-400 drop-shadow whitespace-nowrap">
                                 {weather.suhu}°C <span className="mx-2">•</span> {weather.kondisi_cuaca}
                             </div>
                         )}
-                        <div className="text-2xl font-bold tracking-wide mt-1 drop-shadow">
+                        <div className="text-[clamp(0.9rem,1.7vw,1.5rem)] leading-tight font-bold tracking-wide mt-1 drop-shadow whitespace-nowrap">
                             {dateText} <span className="mx-2">|</span> {timeText}
                         </div>
                     </div>
