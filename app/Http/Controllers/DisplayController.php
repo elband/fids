@@ -254,9 +254,10 @@ class DisplayController extends Controller
                     ? \Storage::url($settings->background_header)
                     : null,
                 'teks_ticker' => $settings->teks_ticker,
+                'kecepatan_running_text' => (int) ($settings->kecepatan_running_text ?: 6),
                 'bahasa' => $settings->bahasa ?? 'id',
                 'timezone' => $timezone,
-            ] : ['nama_bandara' => null, 'background_header' => null, 'teks_ticker' => '', 'bahasa' => 'id', 'timezone' => $timezone],
+            ] : ['nama_bandara' => null, 'background_header' => null, 'teks_ticker' => '', 'kecepatan_running_text' => 6, 'bahasa' => 'id', 'timezone' => $timezone],
             'server_timezone' => $timezone,
             'utc_now' => \Carbon\Carbon::now('UTC')->toIso8601String(),
         ]);

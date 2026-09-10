@@ -15,6 +15,7 @@ interface DisplaySetting {
     tema_warna: string;
     interval_refresh: number;
     kecepatan_scroll: number;
+    kecepatan_running_text: number;
     teks_ticker: string | null;
     lokasi_google_maps: string | null;
     kode_bmkg: string | null;
@@ -42,6 +43,7 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
         tema_warna: setting?.tema_warna || 'dark',
         interval_refresh: setting?.interval_refresh || 15,
         kecepatan_scroll: setting?.kecepatan_scroll || 1,
+        kecepatan_running_text: setting?.kecepatan_running_text || 6,
         teks_ticker: setting?.teks_ticker || '',
         lokasi_google_maps: setting?.lokasi_google_maps || '',
         kode_bmkg: setting?.kode_bmkg || '',
@@ -135,6 +137,28 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
                                         <span className="font-bold text-gray-700 text-lg w-8 text-center">{data.kecepatan_scroll}</span>
                                     </div>
                                     <InputError message={errors.kecepatan_scroll} className="mt-2" />
+                                </div>
+
+                                <div>
+                                    <InputLabel htmlFor="kecepatan_running_text" value="Kecepatan Running Text / Ticker (1 = Lambat, 10 = Sangat Cepat)" />
+                                    <div className="flex items-center gap-4 mt-1">
+                                        <input
+                                            id="kecepatan_running_text"
+                                            type="range"
+                                            min="1"
+                                            max="10"
+                                            step="1"
+                                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                                            value={data.kecepatan_running_text}
+                                            onChange={(e) => setData('kecepatan_running_text', parseInt(e.target.value))}
+                                        />
+                                        <span className="font-bold text-gray-700 text-lg w-8 text-center">{data.kecepatan_running_text}</span>
+                                    </div>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        Lama satu putaran teks berjalan di footer: {55 - data.kecepatan_running_text * 5} detik.
+                                        Terpisah dari auto-scroll di atas.
+                                    </p>
+                                    <InputError message={errors.kecepatan_running_text} className="mt-2" />
                                 </div>
 
                                 <div>

@@ -66,15 +66,22 @@ class DisplayApiController extends Controller
     private const GATE_ACTIVE_STATUSES = \App\Support\FlightStatus::GATE_ACTIVE;
 
     /**
-     * Tentukan penerbangan yang sedang "memakai" sebuah gate menurut aturan operasional:
+     * Tentukan penerbangan yang tampil di sebuah kartu gate, menurut aturan operasional:
      *  - Status aktif (check-in dibuka dst.) langsung tampil; selain itu mulai
      *    1 jam sebelum jam jadwal (GATE_LEAD_MINUTES).
-     *  - Hanya SATU penerbangan memakai gate pada satu waktu (yang paling awal jadwalnya);
-     *    gate baru bisa dipakai penerbangan berikutnya setelah penghuni sebelumnya hilang.
      *  - Hilang 5 menit setelah statusnya "Departed" (GATE_LINGER_MINUTES).
      *
+     * SEMUA penerbangan yang lolos dikembalikan, bukan hanya satu: bila beberapa
+     * penerbangan terdaftar di gate yang sama, penumpang perlu melihat miliknya
+     * ikut terdaftar. Elemen PERTAMA adalah penghuni gate saat ini (ditampilkan
+     * besar oleh layar), sisanya antrian berikutnya (baris kecil).
+     *
+     * Urutannya prioritas status dulu, baru jam jadwal — bukan jam jadwal saja.
+     * Tanpa itu penerbangan 07:00 yang Delayed akan mengalahkan penerbangan 07:30
+     * yang sedang Boarding, sehingga gate menampilkan penerbangan yang salah.
+     *
      * @param  \Illuminate\Support\Collection  $flights  penerbangan hari ini untuk satu gate
-     * @return \Illuminate\Support\Collection             berisi 0 atau 1 penerbangan
+     * @return \Illuminate\Support\Collection             penghuni + antrian, terurut
      */
     private function gateOccupant($flights)
     {
@@ -115,8 +122,36 @@ class DisplayApiController extends Controller
             return $eligible;
         }
 
-        // Satu gate hanya dipakai satu penerbangan: penghuni saat ini = jadwal paling awal.
-        return collect([$eligible->sortBy('jam_jadwal')->first()]);
+        // Penghuni gate ditentukan prioritas status; sisanya diurut jam jadwal saja,
+        // karena daftar "BERIKUTNYA" dibaca penumpang sebagai urutan waktu.
+        $sorted = $eligible->sortBy(fn ($f) => [$this->gateStatusRank($f->status), (string) $f->jam_jadwal])->values();
+        $occupant = $sorted->first();
+
+        return collect([$occupant])
+            ->concat($sorted->slice(1)->sortBy('jam_jadwal')->values())
+            ->values();
+    }
+
+    /**
+     * Peringkat status untuk menentukan siapa penghuni gate saat ini (angka kecil
+     * = lebih berhak tampil besar). Penerbangan yang sedang diproses di gate
+     * mengalahkan yang masih menunggu, berapa pun jam jadwalnya.
+     */
+    private function gateStatusRank(?string $status): int
+    {
+        if ($status === 'Departed') {
+            return 3;
+        }
+        if ($status === \App\Support\FlightStatus::CHECKIN_OPEN) {
+            // Check-in dibuka berarti penumpang masih di counter, belum di gate:
+            // kalah dari penerbangan yang benar-benar sedang boarding.
+            return 1;
+        }
+        if (in_array($status, self::GATE_ACTIVE_STATUSES, true)) {
+            return 0;
+        }
+
+        return 2; // Scheduled / On Time / Delayed
     }
 
     /**
@@ -339,8 +374,8 @@ class DisplayApiController extends Controller
 
             if (!$gate) return null;
 
-            // Aturan operasional: 1 jam sebelum jadwal, satu penerbangan per gate,
-            // hilang 5 menit setelah berangkat.
+            // Aturan operasional: 1 jam sebelum jadwal, hilang 5 menit setelah
+            // berangkat. Elemen pertama = penghuni gate, sisanya antrian.
             $occupant = $this->gateOccupant($gate->flights);
 
             $arr = $gate->toArray();
@@ -566,8 +601,8 @@ class DisplayApiController extends Controller
             }, ...self::nestedFlightRelations()])->orderBy('kode_gate', 'asc')->get();
 
             return $gates->map(function ($gate) {
-                // Aturan operasional: 1 jam sebelum jadwal, satu penerbangan per gate,
-                // hilang 5 menit setelah berangkat.
+                // Aturan operasional: 1 jam sebelum jadwal, hilang 5 menit setelah
+                // berangkat. Elemen pertama = penghuni gate, sisanya antrian.
                 $occupant = $this->gateOccupant($gate->flights);
                 $arr = $gate->toArray();
                 $arr['flights'] = FlightResource::collection($occupant)->resolve();

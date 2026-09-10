@@ -24,6 +24,8 @@ class SettingResource extends JsonResource
             'tema_warna' => $this->tema_warna,
             'teks_ticker' => $this->teks_ticker,
             'kecepatan_scroll' => $this->kecepatan_scroll,
+            // Kecepatan running text footer, skala 1-10 (10 = paling cepat).
+            'kecepatan_running_text' => (int) ($this->kecepatan_running_text ?: 6),
             'durasi_tampilan' => $this->durasi_tampilan,
             // Warna teks papan: utama (jam/no.pnb/gate) & aksen (judul/header/tujuan).
             'warna_utama' => $this->warna_utama ?: '#ffffff',

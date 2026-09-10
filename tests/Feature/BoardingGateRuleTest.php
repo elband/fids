@@ -14,7 +14,8 @@ use Tests\TestCase;
 /**
  * Regresi aturan operasional Boarding Gate:
  *  - Penerbangan muncul mulai 1 jam sebelum jam jadwal.
- *  - Satu gate hanya dipakai satu penerbangan (jadwal paling awal).
+ *  - Semua penerbangan yang lolos ikut tampil; elemen pertama adalah penghuni
+ *    gate (dipilih prioritas status), sisanya antrian terurut jam jadwal.
  *  - Hilang 5 menit setelah status "Departed".
  */
 class BoardingGateRuleTest extends TestCase
@@ -127,14 +128,46 @@ class BoardingGateRuleTest extends TestCase
         $this->assertCount(0, $this->gateFlights());
     }
 
-    public function test_only_earliest_flight_occupies_the_gate(): void
+    public function test_all_eligible_flights_are_listed_earliest_first(): void
     {
         $this->makeFlight('IU610', '10:45:00'); // jendela buka 09:45 → eligible
         $this->makeFlight('IU600', '10:15:00'); // jendela buka 09:15 → eligible & lebih awal
 
         $flights = $this->gateFlights();
 
-        $this->assertCount(1, $flights);
-        $this->assertSame('IU600', $flights[0]['nomor_penerbangan']);
+        // Keduanya terdaftar di gate yang sama, jadi keduanya harus terlihat
+        // penumpang — bukan hanya yang paling awal.
+        $this->assertCount(2, $flights);
+        $this->assertSame(['IU600', 'IU610'], array_column($flights, 'nomor_penerbangan'));
+    }
+
+    public function test_boarding_flight_outranks_earlier_delayed_flight(): void
+    {
+        // Kasus yang dulu salah: jam jadwal lebih awal tetapi ditunda, sementara
+        // penerbangan berikutnya sudah benar-benar boarding di gate tersebut.
+        $this->makeFlight('IU700', '10:15:00', 'Delayed');
+        $this->makeFlight('IU710', '10:45:00', 'Boarding');
+
+        $flights = $this->gateFlights();
+
+        $this->assertCount(2, $flights);
+        $this->assertSame('IU710', $flights[0]['nomor_penerbangan'], 'penghuni gate harus yang sedang boarding');
+    }
+
+    public function test_queue_after_occupant_is_sorted_by_schedule(): void
+    {
+        // Antrian dibaca penumpang sebagai urutan waktu, jadi setelah penghuni
+        // gate ditentukan, sisanya harus urut jam — bukan urut prioritas status.
+        $this->makeFlight('IU800', '10:50:00', 'Boarding');       // penghuni
+        $this->makeFlight('IU810', '10:40:00', 'Check-in Open');
+        $this->makeFlight('IU820', '10:20:00', 'Delayed');
+        $this->makeFlight('IU830', '10:55:00');                   // Scheduled
+
+        $flights = $this->gateFlights();
+
+        $this->assertSame(
+            ['IU800', 'IU820', 'IU810', 'IU830'],
+            array_column($flights, 'nomor_penerbangan')
+        );
     }
 }

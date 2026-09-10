@@ -67,8 +67,9 @@ class DisplaySettingController extends Controller
             'remove_background'  => 'nullable|boolean',
         ]);
 
-        // Catatan: nama_bandara, kecepatan_scroll, dan teks_ticker TIDAK diatur di sini
-        // (dipindahkan ke halaman "Pengaturan Layar FIDS" agar tidak dobel).
+        // Catatan: nama_bandara, kecepatan_scroll, kecepatan_running_text, dan
+        // teks_ticker TIDAK diatur di sini (dipindahkan ke halaman
+        // "Pengaturan Layar FIDS" agar tidak dobel).
         $setting->mode_default       = $validated['mode_default'];
         $setting->tema_warna         = $validated['tema_warna'];
         $setting->warna_utama        = $validated['warna_utama'] ?? '#ffffff';
@@ -104,6 +105,7 @@ class DisplaySettingController extends Controller
             'logo_bandara'      => 'nullable|image|max:2048',
             'background_header' => 'nullable|image|max:5120',
             'kecepatan_scroll'  => 'required|integer|min:1|max:10',
+            'kecepatan_running_text' => 'required|integer|min:1|max:10',
             'teks_ticker'       => 'nullable|string|max:500',
             'lokasi_google_maps' => 'nullable|string',
             'kode_bmkg'         => 'nullable|string',
@@ -117,6 +119,7 @@ class DisplaySettingController extends Controller
 
         $setting->nama_bandara     = $validated['nama_bandara'];
         $setting->kecepatan_scroll = $validated['kecepatan_scroll'];
+        $setting->kecepatan_running_text = $validated['kecepatan_running_text'];
         $setting->teks_ticker      = $validated['teks_ticker'] ?? null;
         $setting->lokasi_google_maps = $validated['lokasi_google_maps'] ?? null;
         $setting->kode_bmkg        = $validated['kode_bmkg'] ?? null;

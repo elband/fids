@@ -92,6 +92,15 @@ if [ ! -f public/build/manifest.json ]; then
     exit 1
 fi
 
+# Sisa `npm run dev` yang pernah dijalankan di server. Selama berkas ini ada,
+# Laravel mengarahkan SELURUH aset ke http://127.0.0.1:5173 dan setiap layar
+# blank — padahal manifest di atas lolos dan deploy tampak sukses. Berkas ini
+# ada di .gitignore, jadi `git pull` tidak akan pernah membersihkannya sendiri.
+if [ -f public/hot ]; then
+    rm -f public/hot
+    echo "     public/hot ditemukan dan dihapus (sisa 'npm run dev')."
+fi
+
 echo "==> [5/$TOTAL] Running database migrations..."
 if [ "$FRESH" = true ]; then
     php artisan migrate:fresh --force

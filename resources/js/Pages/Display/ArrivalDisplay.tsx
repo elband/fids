@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState, useCallback, useRef } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
 import { PlaneLanding } from 'lucide-react';
-import { t, type Lang } from '@/lib/fids';
+import { tickerDuration, TICKER_SPEED_DEFAULT, t, type Lang } from '@/lib/fids';
 import { themeGradient, scoreboardVars } from '@/lib/theme';
 import { useNtpClock } from '@/hooks/useNtpClock';
 import { useStatusChanges } from '@/hooks/useStatusChanges';
@@ -58,6 +58,7 @@ export default function Arrivals() {
     // supaya perangkat lemah tidak sempat menggambar animasi berat saat start.
     const [eco, setEco] = useState(true);
     const [tickerText, setTickerText] = useState('');
+    const [tickerSpeed, setTickerSpeed] = useState(TICKER_SPEED_DEFAULT);
     const [lang, setLang] = useState<Lang>('id');
 
     // Bilingual header: alternates ID ↔ EN every 5s, all columns in sync
@@ -94,6 +95,7 @@ export default function Arrivals() {
             if (jsonSettings.data?.warna_aksen) setAccentColor(jsonSettings.data.warna_aksen);
             if (jsonSettings.data?.kecepatan_scroll !== undefined) setScrollSpeed(jsonSettings.data.kecepatan_scroll);
             if (jsonSettings.data?.teks_ticker) setTickerText(jsonSettings.data.teks_ticker);
+            if (jsonSettings.data?.kecepatan_running_text) setTickerSpeed(jsonSettings.data.kecepatan_running_text);
             if (jsonSettings.data?.bahasa) setLang(jsonSettings.data.bahasa);
             if (jsonSettings.data?.mode_hemat !== undefined) setEco(!!jsonSettings.data.mode_hemat);
         } catch (err) {
@@ -327,7 +329,7 @@ export default function Arrivals() {
                         {t.info[lang]}
                     </div>
                     <div className="w-full relative h-full flex items-center">
-                        <div style={{ fontSize: '1.2vw', color: textColor }} className="whitespace-nowrap absolute font-semibold tracking-widest animate-[ticker_25s_linear_infinite]">
+                        <div style={{ fontSize: '1.2vw', color: textColor, animationDuration: tickerDuration(tickerSpeed) }} className="whitespace-nowrap absolute font-semibold tracking-widest animate-[ticker_linear_infinite]">
                             {tickerText}
                         </div>
                     </div>

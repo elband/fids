@@ -5,6 +5,7 @@ import { Camera, Maximize2, AlertTriangle, Plane, Megaphone } from 'lucide-react
 import AdSlide, { AdItem } from '@/Components/AdSlide';
 import { useNtpClock } from '@/hooks/useNtpClock';
 import { youtubeEmbed } from '@/lib/streamEmbed';
+import { tickerDuration } from '@/lib/fids';
 
 type ActiveFlight = {
     id: number;
@@ -36,6 +37,7 @@ type Props = {
         nama_bandara: string | null;
         background_header: string | null;
         teks_ticker: string | null;
+        kecepatan_running_text?: number | null;
         bahasa: 'id' | 'en';
         timezone: string;
     };
@@ -246,7 +248,7 @@ export default function CctvBaggageDisplay({ cameras, advertisements, settings, 
                             INFO
                         </div>
                         <div className="w-full relative h-full flex items-center">
-                            <div className="whitespace-nowrap absolute font-semibold text-pink-100 tracking-widest text-sm animate-[ticker_30s_linear_infinite]">
+                            <div style={{ animationDuration: tickerDuration(settings.kecepatan_running_text) }} className="whitespace-nowrap absolute font-semibold text-pink-100 tracking-widest text-sm animate-[ticker_linear_infinite]">
                                 {settings.teks_ticker}
                             </div>
                         </div>

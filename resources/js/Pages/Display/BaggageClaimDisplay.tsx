@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState, useCallback } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
-import { hexToRgba, t, type Lang } from '@/lib/fids';
+import { hexToRgba, tickerDuration, TICKER_SPEED_DEFAULT, t, type Lang } from '@/lib/fids';
 import { useNtpClock } from '@/hooks/useNtpClock';
 
 interface Flight {
@@ -34,6 +34,7 @@ export default function BaggageClaimDisplay() {
     const [weather, setWeather] = useState<{ suhu: string; kondisi_cuaca: string } | null>(null);
     const [bgImage, setBgImage] = useState<string | null>(null);
     const [tickerText, setTickerText] = useState('');
+    const [tickerSpeed, setTickerSpeed] = useState(TICKER_SPEED_DEFAULT);
     const [lang, setLang] = useState<Lang>('id');
 
     const fetchData = useCallback(async () => {
@@ -55,6 +56,7 @@ export default function BaggageClaimDisplay() {
             if (jsonSettings.data?.background_header) setBgImage(jsonSettings.data.background_header);
             if (jsonSettings.data?.kecepatan_scroll !== undefined) setScrollSpeed(jsonSettings.data.kecepatan_scroll);
             if (jsonSettings.data?.teks_ticker) setTickerText(jsonSettings.data.teks_ticker);
+            if (jsonSettings.data?.kecepatan_running_text) setTickerSpeed(jsonSettings.data.kecepatan_running_text);
             if (jsonSettings.data?.bahasa) setLang(jsonSettings.data.bahasa);
         } catch (err) {
             console.error('Failed to fetch baggage claims:', err);
@@ -178,7 +180,7 @@ export default function BaggageClaimDisplay() {
                             {t.info[lang]}
                         </div>
                         <div className="w-full relative h-full flex items-center">
-                            <div className="whitespace-nowrap absolute font-semibold text-white tracking-widest text-lg animate-[ticker_25s_linear_infinite]">
+                            <div style={{ animationDuration: tickerDuration(tickerSpeed) }} className="whitespace-nowrap absolute font-semibold text-white tracking-widest text-lg animate-[ticker_linear_infinite]">
                                 {tickerText}
                             </div>
                         </div>

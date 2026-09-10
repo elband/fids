@@ -1,10 +1,25 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
-import { hexToRgba, t, type Lang } from '@/lib/fids';
+import { hexToRgba, tickerDuration, TICKER_SPEED_DEFAULT, t, type Lang } from '@/lib/fids';
 import { useNtpClock } from '@/hooks/useNtpClock';
 
 const DEPARTED_HIDE_MS = 5 * 60 * 1000; // 5 menit
+
+/**
+ * Chip status untuk penerbangan yang sedang memakai gate. 'Check-in Open' dan
+ * 'Departed' punya blok sendiri di bawah, jadi tidak masuk peta ini.
+ * Status pasif (Scheduled/On Time) sengaja tanpa chip: tidak ada yang perlu
+ * diberitahukan ke penumpang selain jam yang sudah tampil besar.
+ */
+const OCCUPANT_BADGE: Record<string, { id: string; en: string; cls: string }> = {
+    'Boarding':        { id: 'BOARDING',      en: 'BOARDING',      cls: 'bg-green-400 text-black' },
+    'Gate Open':       { id: 'GATE DIBUKA',   en: 'GATE OPEN',     cls: 'bg-green-400 text-black' },
+    'Final Call':      { id: 'PANGGILAN AKHIR', en: 'FINAL CALL',  cls: 'bg-orange-400 text-black animate-pulse' },
+    'Gate Closed':     { id: 'GATE DITUTUP',  en: 'GATE CLOSED',   cls: 'bg-gray-300 text-black' },
+    'Check-in Closed': { id: 'CHECK-IN TUTUP', en: 'CHECK-IN CLOSED', cls: 'bg-gray-300 text-black' },
+    'Delayed':         { id: 'DITUNDA',       en: 'DELAYED',       cls: 'bg-red-500 text-white' },
+};
 
 interface Flight {
     id: number;
@@ -39,6 +54,7 @@ export default function BoardingGateDisplay() {
     const [weather, setWeather] = useState<{ suhu: string; kondisi_cuaca: string } | null>(null);
     const [bgImage, setBgImage] = useState<string | null>(null);
     const [tickerText, setTickerText] = useState('');
+    const [tickerSpeed, setTickerSpeed] = useState(TICKER_SPEED_DEFAULT);
     const [lang, setLang] = useState<Lang>('id');
 
     // Track kapan flight pertama kali berstatus "Departed" { flightId: timestamp }
@@ -100,6 +116,7 @@ export default function BoardingGateDisplay() {
             if (jsonSettings.data?.background_header) setBgImage(jsonSettings.data.background_header);
             if (jsonSettings.data?.kecepatan_scroll !== undefined) setScrollSpeed(jsonSettings.data.kecepatan_scroll);
             if (jsonSettings.data?.teks_ticker) setTickerText(jsonSettings.data.teks_ticker);
+            if (jsonSettings.data?.kecepatan_running_text) setTickerSpeed(jsonSettings.data.kecepatan_running_text);
             if (jsonSettings.data?.bahasa) setLang(jsonSettings.data.bahasa);
         } catch (err) {
             console.error('Failed to fetch gates:', err);
@@ -137,8 +154,8 @@ export default function BoardingGateDisplay() {
                     animation: checkin-badge-in 0.4s ease both;
                 }
                 .departed-card {
-                    opacity: 0.4;
-                    filter: grayscale(60%);
+                    opacity: 0.65;
+                    filter: grayscale(45%);
                     transition: opacity 0.5s;
                 }
             `}</style>
@@ -150,7 +167,12 @@ export default function BoardingGateDisplay() {
                     {!bgImage && <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>}
                     <div className="absolute inset-0 bg-black/30"></div>
                     <div className="relative z-10 min-w-0 flex-1">
-                        <h1 className="text-[clamp(1.25rem,2.6vw,2.25rem)] leading-tight font-extrabold tracking-tighter text-white drop-shadow-lg whitespace-nowrap overflow-hidden text-ellipsis">
+                        <h1
+                            className="text-[clamp(1.25rem,2.6vw,2.25rem)] leading-tight font-extrabold tracking-tighter text-yellow-400 whitespace-nowrap overflow-hidden text-ellipsis"
+                            /* Foto header bisa terang (langit siang); tanpa garis luar gelap
+                               teks emas ikut tenggelam saat dilihat dari jauh. */
+                            style={{ textShadow: '0 0 6px rgba(0,0,0,0.95), 0 2px 4px rgba(0,0,0,0.9)' }}
+                        >
                             {t.boardingGates[lang]}
                         </h1>
                     </div>
@@ -178,24 +200,28 @@ export default function BoardingGateDisplay() {
                                 const hasCheckin  = visibleFlights.some(f => f.status === 'Check-in Open');
                                 const hasActive   = visibleFlights.some(f => !['Check-in Open', 'Departed'].includes(f.status));
                                 const allDeparted = visibleFlights.length > 0 && visibleFlights.every(f => f.status === 'Departed');
-                                const primaryFlight =
-                                    visibleFlights.find(f => !['Check-in Open', 'Departed'].includes(f.status)) ??
-                                    visibleFlights.find(f => f.status === 'Check-in Open') ??
-                                    visibleFlights[0] ?? null;
+                                // Backend sudah mengurutkan penghuni gate di posisi pertama
+                                // (prioritas status, baru jam jadwal), jadi warna kartu cukup
+                                // mengikuti elemen pertama.
+                                const primaryFlight = visibleFlights[0] ?? null;
 
+                                // Kartu dibaca penumpang dari belasan meter: yang menentukan
+                                // keterbacaan adalah beda terang kartu vs latar hitam, bukan
+                                // saturasi. Alpha rendah membuat tepi kartu lenyap dari jauh,
+                                // jadi setiap keadaan dipatok ke blok warna yang jelas padat.
                                 const rowColor = (() => {
                                     if (!gate.status_gate || gate.status_gate !== 'aktif') return '';
-                                    if (hasCheckin && !hasActive) return 'rgba(14, 116, 144, 0.55)';
-                                    if (allDeparted) return 'rgba(30, 30, 40, 0.8)';
-                                    if (primaryFlight?.maskapai?.warna) return hexToRgba(primaryFlight.maskapai.warna, 0.4);
-                                    return 'rgba(13, 148, 136, 0.2)';
+                                    if (hasCheckin && !hasActive) return 'rgba(8, 145, 178, 0.75)';
+                                    if (allDeparted) return 'rgba(51, 55, 68, 0.85)';
+                                    if (primaryFlight?.maskapai?.warna) return hexToRgba(primaryFlight.maskapai.warna, 0.65);
+                                    return 'rgba(13, 148, 136, 0.7)';
                                 })();
 
                                 const borderClass = (() => {
-                                    if (gate.status_gate !== 'aktif') return 'bg-gray-900 border-gray-800';
-                                    if (hasCheckin && !hasActive) return 'border-cyan-400/60 shadow-lg shadow-cyan-500/20';
-                                    if (allDeparted) return 'border-gray-700/40';
-                                    return 'border-teal-900/50 shadow-lg shadow-teal-900/20';
+                                    if (gate.status_gate !== 'aktif') return 'bg-gray-900 border-gray-500';
+                                    if (hasCheckin && !hasActive) return 'border-cyan-300 shadow-lg shadow-cyan-400/40';
+                                    if (allDeparted) return 'border-gray-400/70';
+                                    return 'border-teal-300/80 shadow-lg shadow-teal-400/30';
                                 })();
 
                                 return (
@@ -208,7 +234,7 @@ export default function BoardingGateDisplay() {
                                     >
                                         {/* Panel kiri — kode gate */}
                                         <div className="w-1/4 bg-black flex flex-col items-center justify-center border-r border-black/50 p-4 gap-1">
-                                            <span className="text-sm text-gray-400 font-bold tracking-widest uppercase">{t.gate[lang]}</span>
+                                            <span className="text-base text-gray-200 font-bold tracking-widest uppercase">{t.gate[lang]}</span>
                                             <span className={`text-6xl font-black leading-none ${
                                                 hasCheckin && !hasActive ? 'text-cyan-300' :
                                                 gate.status_gate === 'aktif' ? 'text-yellow-400' : 'text-gray-600'
@@ -230,117 +256,115 @@ export default function BoardingGateDisplay() {
                                                     {t.closed[lang]}
                                                 </div>
                                             ) : visibleFlights.length === 0 ? (
-                                                <div className="text-2xl font-bold tracking-widest uppercase text-gray-400 text-center">
+                                                <div className="text-3xl font-bold tracking-widest uppercase text-teal-50 text-center">
                                                     {t.noAssignedFlights[lang]}
                                                 </div>
-                                            ) : visibleFlights.length === 1 ? (
-                                                // ── Satu penerbangan: tampilan besar ──
-                                                (() => {
-                                                    const fl = visibleFlights[0];
-                                                    const isCO = fl.status === 'Check-in Open';
-                                                    const isDep = fl.status === 'Departed';
-                                                    return (
-                                                        <>
-                                                            <div className="flex justify-between items-center">
-                                                                <div className="bg-white rounded py-1 px-3 h-12 flex items-center shadow-inner max-w-[160px]">
-                                                                    {fl.maskapai?.logo ? (
-                                                                        <img src={fl.maskapai.logo} className="max-h-8 w-auto object-contain" alt="logo" />
-                                                                    ) : (
-                                                                        <span className="font-bold text-gray-800 text-sm">{fl.maskapai?.nama}</span>
-                                                                    )}
-                                                                </div>
-                                                                <div className="text-3xl font-black tracking-widest">
-                                                                    {fl.nomor_penerbangan}
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex justify-between items-end">
-                                                                <div className={`text-4xl font-bold truncate pr-4 drop-shadow-md ${
-                                                                    isCO ? 'text-cyan-200' : 'text-yellow-400'
-                                                                }`}>
-                                                                    {fl.tujuan}
-                                                                </div>
-                                                                <div className="text-2xl font-bold tracking-wider">
-                                                                    {fl.jam_jadwal?.substring(0, 5) ?? '--:--'}
-                                                                </div>
-                                                            </div>
-                                                            {isCO && (
-                                                                <div className="checkin-badge flex items-center gap-3 mt-1 pt-2 border-t border-cyan-400/30">
-                                                                    <span className="px-3 py-1 rounded-full bg-cyan-400 text-black text-xs font-black tracking-widest uppercase animate-pulse">
-                                                                        {lang === 'id' ? 'CHECK-IN DIBUKA' : 'CHECK-IN OPEN'}
-                                                                    </span>
-                                                                    {fl.checkin_counter && (
-                                                                        <span className="text-cyan-200 text-sm font-bold tracking-wide">
-                                                                            {lang === 'id' ? 'Menuju Counter' : 'Proceed to Counter'}{' '}
-                                                                            <span className="text-white font-black text-base">{fl.checkin_counter}</span>
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                            {isDep && (
-                                                                <div className="mt-1">
-                                                                    <span className="text-xs font-black tracking-widest uppercase text-gray-500 border border-gray-700 px-2 py-0.5 rounded">
-                                                                        {lang === 'id' ? 'BERANGKAT' : 'DEPARTED'}
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                        </>
-                                                    );
-                                                })()
                                             ) : (
-                                                // ── Beberapa penerbangan: daftar kompak ──
-                                                <div className="flex flex-col gap-2 w-full">
-                                                    {visibleFlights.map((fl, idx) => {
-                                                        const isCO  = fl.status === 'Check-in Open';
+                                                <>
+                                                    {/* -- Penghuni gate saat ini: elemen pertama dari API,
+                                                         sudah diurutkan prioritas status oleh backend. -- */}
+                                                    {(() => {
+                                                        const fl = visibleFlights[0];
+                                                        const isCO = fl.status === 'Check-in Open';
                                                         const isDep = fl.status === 'Departed';
                                                         return (
-                                                            <div
-                                                                key={fl.id}
-                                                                className={`flex flex-col gap-0.5 ${idx > 0 ? 'border-t border-white/10 pt-2' : ''} ${isDep ? 'opacity-40 grayscale' : ''}`}
-                                                            >
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="bg-white rounded py-0.5 px-2 h-8 flex items-center shadow-inner max-w-[100px] shrink-0">
+                                                            <>
+                                                                <div className="flex justify-between items-center">
+                                                                    <div className="bg-white rounded py-1 px-3 h-12 flex items-center shadow-inner max-w-[160px]">
                                                                         {fl.maskapai?.logo ? (
-                                                                            <img src={fl.maskapai.logo} className="max-h-6 w-auto object-contain" alt="logo" />
+                                                                            <img src={fl.maskapai.logo} className="max-h-8 w-auto object-contain" alt="logo" />
                                                                         ) : (
-                                                                            <span className="font-bold text-gray-800 text-xs">{fl.maskapai?.nama}</span>
+                                                                            <span className="font-bold text-gray-800 text-sm">{fl.maskapai?.nama}</span>
                                                                         )}
                                                                     </div>
-                                                                    <span className="text-lg font-black tracking-widest shrink-0">
+                                                                    <div className="text-3xl font-black tracking-widest">
                                                                         {fl.nomor_penerbangan}
-                                                                    </span>
-                                                                    <span className={`text-xl font-bold truncate flex-1 ${
-                                                                        isCO ? 'text-cyan-200' : isDep ? 'text-gray-400' : 'text-yellow-400'
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex justify-between items-end">
+                                                                    <div className={`text-4xl font-bold truncate pr-4 drop-shadow-md ${
+                                                                        isCO ? 'text-cyan-50' : 'text-yellow-300'
                                                                     }`}>
                                                                         {fl.tujuan}
-                                                                    </span>
-                                                                    <span className="text-lg font-bold tracking-wider shrink-0">
+                                                                    </div>
+                                                                    <div className="text-2xl font-bold tracking-wider">
                                                                         {fl.jam_jadwal?.substring(0, 5) ?? '--:--'}
-                                                                    </span>
+                                                                    </div>
                                                                 </div>
+                                                                {OCCUPANT_BADGE[fl.status] && (
+                                                                    <div className="mt-1">
+                                                                        <span className={`px-3 py-1 rounded-full text-sm font-black tracking-widest uppercase ${OCCUPANT_BADGE[fl.status].cls}`}>
+                                                                            {OCCUPANT_BADGE[fl.status][lang]}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
                                                                 {isCO && (
-                                                                    <div className="checkin-badge flex items-center gap-2 flex-wrap pl-1">
-                                                                        <span className="px-2 py-0.5 rounded-full bg-cyan-400 text-black text-xs font-black tracking-widest uppercase animate-pulse">
+                                                                    <div className="checkin-badge flex items-center gap-3 mt-1 pt-2 border-t border-cyan-400/30">
+                                                                        <span className="px-3 py-1 rounded-full bg-cyan-400 text-black text-xs font-black tracking-widest uppercase animate-pulse">
                                                                             {lang === 'id' ? 'CHECK-IN DIBUKA' : 'CHECK-IN OPEN'}
                                                                         </span>
                                                                         {fl.checkin_counter && (
-                                                                            <span className="text-cyan-200 text-xs font-bold tracking-wide">
-                                                                                {lang === 'id' ? 'Counter' : 'Counter'}{' '}
-                                                                                <span className="text-white font-black text-sm">{fl.checkin_counter}</span>
+                                                                            <span className="text-cyan-50 text-base font-bold tracking-wide">
+                                                                                {lang === 'id' ? 'Menuju Counter' : 'Proceed to Counter'}{' '}
+                                                                                <span className="text-white font-black text-base">{fl.checkin_counter}</span>
                                                                             </span>
                                                                         )}
                                                                     </div>
                                                                 )}
                                                                 {isDep && (
-                                                                    <div className="pl-1">
-                                                                        <span className="text-xs font-black tracking-widest uppercase text-gray-500 border border-gray-700 px-2 py-0.5 rounded">
+                                                                    <div className="mt-1">
+                                                                        <span className="text-sm font-black tracking-widest uppercase text-gray-100 bg-gray-600/80 border border-gray-300/70 px-3 py-1 rounded">
                                                                             {lang === 'id' ? 'BERANGKAT' : 'DEPARTED'}
                                                                         </span>
                                                                     </div>
                                                                 )}
-                                                            </div>
+                                                            </>
                                                         );
-                                                    })}
-                                                </div>
+                                                    })()}
+
+                                                    {/* -- Antrian: penerbangan lain di gate yang sama. Sengaja
+                                                         jauh lebih kecil dari penghuni di atas supaya penumpang
+                                                         tidak salah membaca siapa yang boarding sekarang. -- */}
+                                                    {visibleFlights.length > 1 && (
+                                                        <div className="mt-2 pt-2 border-t-2 border-white/30 flex flex-col gap-1.5">
+                                                            <span className="text-xs font-black tracking-[0.2em] uppercase text-white/80">
+                                                                {t.nextUp[lang]}
+                                                            </span>
+                                                            {visibleFlights.slice(1).map(fl => {
+                                                                const isCO = fl.status === 'Check-in Open';
+                                                                const isDep = fl.status === 'Departed';
+                                                                return (
+                                                                    <div
+                                                                        key={fl.id}
+                                                                        className={`flex items-center gap-3 ${isDep ? 'opacity-70' : ''}`}
+                                                                    >
+                                                                        <span className="text-lg font-bold tracking-wider shrink-0 tabular-nums">
+                                                                            {fl.jam_jadwal?.substring(0, 5) ?? '--:--'}
+                                                                        </span>
+                                                                        <span className="text-lg font-black tracking-widest shrink-0">
+                                                                            {fl.nomor_penerbangan}
+                                                                        </span>
+                                                                        <span className={`text-lg font-bold truncate flex-1 ${
+                                                                            isCO ? 'text-cyan-50' : isDep ? 'text-gray-200' : 'text-yellow-100'
+                                                                        }`}>
+                                                                            {fl.tujuan}
+                                                                        </span>
+                                                                        {isCO && (
+                                                                            <span className="shrink-0 px-2 py-0.5 rounded-full bg-cyan-400 text-black text-xs font-black tracking-widest uppercase">
+                                                                                CHECK-IN
+                                                                            </span>
+                                                                        )}
+                                                                        {isDep && (
+                                                                            <span className="shrink-0 text-xs font-black tracking-widest uppercase text-gray-100 bg-gray-600/80 border border-gray-300/70 px-2 py-0.5 rounded">
+                                                                                {lang === 'id' ? 'BERANGKAT' : 'DEPARTED'}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -356,7 +380,7 @@ export default function BoardingGateDisplay() {
                             {t.info[lang]}
                         </div>
                         <div className="w-full relative h-full flex items-center">
-                            <div className="whitespace-nowrap absolute font-semibold text-white tracking-widest text-lg animate-[ticker_25s_linear_infinite]">
+                            <div style={{ animationDuration: tickerDuration(tickerSpeed) }} className="whitespace-nowrap absolute font-semibold text-white tracking-widest text-lg animate-[ticker_linear_infinite]">
                                 {tickerText}
                             </div>
                         </div>

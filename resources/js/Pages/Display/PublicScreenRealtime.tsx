@@ -5,6 +5,7 @@ import { useAutoScroll } from '@/hooks/useAutoScroll';
 import AdSlide from '@/Components/AdSlide';
 import { useAnnouncementPlayer } from '@/hooks/useAnnouncementPlayer';
 import { useNtpClock } from '@/hooks/useNtpClock';
+import { tickerDuration } from '@/lib/fids';
 
 type Flight = {
     id: number;
@@ -39,6 +40,7 @@ type PublicScreenProps = {
         theme_color: string;
         kecepatan_scroll: number;
         ticker_text: string;
+        kecepatan_running_text?: number | null;
         background_header_url: string | null;
         timezone?: string | null;
     };
@@ -426,8 +428,8 @@ export default function PublicScreenRealtime({ settings, departures, arrivals, w
                 {settings.show_ticker && (
                     <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/10 overflow-hidden z-50"
                         style={{ height: '5vh', display: 'flex', alignItems: 'center' }}>
-                        <div style={{ fontSize: '1.3vw' }}
-                            className="whitespace-nowrap animate-[marquee_30s_linear_infinite] px-8 font-bold tracking-wide">
+                        <div style={{ fontSize: '1.3vw', animationDuration: tickerDuration(settings.kecepatan_running_text) }}
+                            className="whitespace-nowrap animate-[marquee_linear_infinite] px-8 font-bold tracking-wide">
                             {settings.ticker_text}
                         </div>
                     </div>

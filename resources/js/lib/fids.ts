@@ -22,6 +22,20 @@ export function formatDate(date: Date): string {
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+export const TICKER_SPEED_DEFAULT = 6;
+
+/**
+ * Durasi satu putaran running text footer, dari `kecepatan_running_text`
+ * (skala 1-10 di Pengaturan Layar FIDS). 1 = paling lambat (50 dtk),
+ * 10 = paling cepat (5 dtk). Nilai 6 = 25 dtk, sama seperti sebelum
+ * kecepatan ticker bisa diatur dari admin.
+ */
+export function tickerDuration(speed?: number | null): string {
+    const raw = Number(speed);
+    const level = Number.isFinite(raw) ? Math.min(10, Math.max(1, Math.round(raw))) : TICKER_SPEED_DEFAULT;
+    return `${55 - level * 5}s`;
+}
+
 export type Lang = 'id' | 'en';
 
 export const t = {
@@ -29,6 +43,7 @@ export const t = {
     arrivals:   { id: 'KEDATANGAN',    en: 'ARRIVALS' },
     checkinCounters: { id: 'COUNTER CHECK-IN', en: 'CHECK-IN COUNTERS' },
     boardingGates:   { id: 'GATE KEBERANGKATAN', en: 'BOARDING GATES' },
+    nextUp:          { id: 'BERIKUTNYA',        en: 'NEXT' },
     baggageClaim:    { id: 'PENGAMBILAN BAGASI', en: 'BAGGAGE CLAIM' },
 
     colAirline:     { id: 'Maskapai',     en: 'Airline' },
