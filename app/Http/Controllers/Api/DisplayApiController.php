@@ -133,6 +133,54 @@ class DisplayApiController extends Controller
     }
 
     /**
+     * Payload 'upcoming_flight' untuk satu gate: diisi HANYA bila gate sedang
+     * kosong. Saat gate terisi, antrian sudah tampil di daftar "BERIKUTNYA"
+     * sehingga informasi ini justru dobel.
+     *
+     * @param  \Illuminate\Support\Collection  $occupant
+     */
+    private function gateUpcomingPayload($gate, $occupant): ?array
+    {
+        if ($occupant->isNotEmpty()) {
+            return null;
+        }
+
+        $upcoming = $this->gateUpcoming($gate->flights);
+
+        return $upcoming ? (new FlightResource($upcoming))->resolve() : null;
+    }
+
+    /**
+     * Penerbangan terjadwal berikutnya di sebuah gate, SEKALIPUN masih di luar
+     * jendela GATE_LEAD_MINUTES. Dipakai hanya ketika gate sedang kosong: bagi
+     * penumpang yang berdiri di depan gate kosong, jam penerbangan berikutnya
+     * jauh lebih berguna daripada kalimat "tidak ada penerbangan".
+     *
+     * Tidak menambah kueri: memakai koleksi flights yang sudah di-eager-load,
+     * yang memang sudah memuat seluruh jadwal hari ini untuk gate tersebut.
+     *
+     * @param  \Illuminate\Support\Collection  $flights
+     * @return \App\Models\Flight|null
+     */
+    private function gateUpcoming($flights)
+    {
+        $tz = \App\Support\DisplayTimezone::get();
+        $now = Carbon::now($tz);
+        $today = $now->toDateString();
+
+        return $flights
+            ->filter(function ($f) use ($now, $today, $tz) {
+                if (empty($f->jam_jadwal) || $f->status === 'Departed' || $f->status === 'Cancelled') {
+                    return false;
+                }
+
+                return Carbon::parse("{$today} {$f->jam_jadwal}", $tz)->gt($now);
+            })
+            ->sortBy('jam_jadwal')
+            ->first();
+    }
+
+    /**
      * Peringkat status untuk menentukan siapa penghuni gate saat ini (angka kecil
      * = lebih berhak tampil besar). Penerbangan yang sedang diproses di gate
      * mengalahkan yang masih menunggu, berapa pun jam jadwalnya.
@@ -380,6 +428,7 @@ class DisplayApiController extends Controller
 
             $arr = $gate->toArray();
             $arr['flights'] = FlightResource::collection($occupant)->resolve();
+            $arr['upcoming_flight'] = $this->gateUpcomingPayload($gate, $occupant);
             return $arr;
         });
 
@@ -606,6 +655,7 @@ class DisplayApiController extends Controller
                 $occupant = $this->gateOccupant($gate->flights);
                 $arr = $gate->toArray();
                 $arr['flights'] = FlightResource::collection($occupant)->resolve();
+                $arr['upcoming_flight'] = $this->gateUpcomingPayload($gate, $occupant);
                 return $arr;
             })->all();
         });

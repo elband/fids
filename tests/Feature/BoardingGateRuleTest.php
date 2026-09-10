@@ -76,6 +76,13 @@ class BoardingGateRuleTest extends TestCase
             ->json('data.flights') ?? [];
     }
 
+    private function gateUpcoming(): ?array
+    {
+        return $this->getJson("/api/fids/gate/{$this->gateCode}")
+            ->assertOk()
+            ->json('data.upcoming_flight');
+    }
+
     public function test_flight_appears_only_within_one_hour_before_schedule(): void
     {
         // 10:30 → jendela buka 09:30, sekarang 10:00 → tampil.
@@ -152,6 +159,37 @@ class BoardingGateRuleTest extends TestCase
 
         $this->assertCount(2, $flights);
         $this->assertSame('IU710', $flights[0]['nomor_penerbangan'], 'penghuni gate harus yang sedang boarding');
+    }
+
+    public function test_empty_gate_announces_next_scheduled_flight(): void
+    {
+        // 15:00 masih jauh di luar jendela 60 menit, jadi gate tetap kosong —
+        // tapi jamnya berguna bagi penumpang yang berdiri di depan gate.
+        $this->makeFlight('IU900', '15:00:00');
+
+        $this->assertCount(0, $this->gateFlights());
+        $this->assertSame('IU900', $this->gateUpcoming()['nomor_penerbangan'] ?? null);
+    }
+
+    public function test_occupied_gate_does_not_repeat_next_flight(): void
+    {
+        // Gate terisi: antrian sudah tampil di daftar "BERIKUTNYA", jadi
+        // upcoming_flight harus kosong agar informasinya tidak dobel.
+        $this->makeFlight('IU910', '10:30:00');
+        $this->makeFlight('IU920', '15:00:00');
+
+        $this->assertCount(1, $this->gateFlights());
+        $this->assertNull($this->gateUpcoming());
+    }
+
+    public function test_gate_without_any_remaining_flight_has_no_next(): void
+    {
+        // Sudah berangkat lebih dari 5 menit lalu: gate kosong dan memang tidak
+        // ada lagi jadwal berikutnya hari ini.
+        $this->makeFlight('IU930', '09:00:00', 'Departed', '09:50:00');
+
+        $this->assertCount(0, $this->gateFlights());
+        $this->assertNull($this->gateUpcoming());
     }
 
     public function test_queue_after_occupant_is_sorted_by_schedule(): void

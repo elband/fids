@@ -43,6 +43,8 @@ interface Gate {
     terminal: string;
     petunjuk_arah: string | null;
     flights?: Flight[];
+    /** Penerbangan terjadwal berikutnya; hanya dikirim saat gate sedang kosong. */
+    upcoming_flight?: Flight | null;
 }
 
 export default function BoardingGateDisplay() {
@@ -256,9 +258,31 @@ export default function BoardingGateDisplay() {
                                                     {t.closed[lang]}
                                                 </div>
                                             ) : visibleFlights.length === 0 ? (
-                                                <div className="text-3xl font-bold tracking-widest uppercase text-teal-50 text-center">
-                                                    {t.noAssignedFlights[lang]}
-                                                </div>
+                                                // Gate kosong. Bila masih ada jadwal berikutnya hari ini,
+                                                // jamnya jauh lebih berguna bagi penumpang yang berdiri di
+                                                // depan gate daripada sekadar kalimat menunggu.
+                                                gate.upcoming_flight ? (
+                                                    <div className="flex flex-col items-center justify-center gap-2 text-center">
+                                                        <span className="text-sm font-black tracking-[0.2em] uppercase text-teal-100/80">
+                                                            {t.nextFlight[lang]}
+                                                        </span>
+                                                        <div className="flex items-baseline justify-center gap-4 flex-wrap">
+                                                            <span className="text-4xl font-black tracking-wider tabular-nums text-white">
+                                                                {gate.upcoming_flight.jam_jadwal?.substring(0, 5) ?? '--:--'}
+                                                            </span>
+                                                            <span className="text-2xl font-black tracking-widest text-teal-50">
+                                                                {gate.upcoming_flight.nomor_penerbangan}
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-2xl font-bold truncate max-w-full text-yellow-200">
+                                                            {gate.upcoming_flight.tujuan}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-2xl font-bold tracking-widest uppercase text-teal-50 text-center">
+                                                        {t.awaitingNextFlight[lang]}
+                                                    </div>
+                                                )
                                             ) : (
                                                 <>
                                                     {/* -- Penghuni gate saat ini: elemen pertama dari API,
