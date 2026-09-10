@@ -110,8 +110,19 @@ fi
 
 echo "==> [6/$TOTAL] Seeding database..."
 if [ "$NO_SEED" = false ]; then
-    # Seeder memakai firstOrCreate, jadi aman dijalankan ulang tiap deploy.
+    # DatabaseSeeder hanya berisi role & permission: idempotent penuh dan tidak
+    # menyentuh data operasional. Data master contoh (bandara, maskapai, gate,
+    # counter, belt) sengaja TIDAK di dalamnya — di server, semua itu sudah
+    # dikelola operator lewat panel admin, dan menulisinya ulang tiap deploy
+    # memunculkan gate palsu serta penerbangan dummy di layar publik.
     php artisan db:seed --force
+
+    # Database baru masih kosong, jadi di sinilah data master contoh dipasang —
+    # sekali, bukan di setiap deploy.
+    if [ "$FRESH" = true ]; then
+        echo "     database baru — memasang data master contoh..."
+        php artisan db:seed --class=MasterDataSeeder --force
+    fi
 else
     echo "     dilewati (--no-seed)"
 fi

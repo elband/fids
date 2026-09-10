@@ -13,6 +13,16 @@ use App\Models\BaggageClaim;
 use App\Models\Flight;
 use Carbon\Carbon;
 
+/**
+ * Data contoh untuk instalasi baru: bandara, maskapai, rute, gate, counter,
+ * belt, dan dua penerbangan dummy.
+ *
+ * SENGAJA tidak dipanggil DatabaseSeeder, sehingga tidak ikut berjalan pada
+ * `php artisan db:seed` di setiap deploy. Jalankan manual saat memasang
+ * instalasi baru:
+ *
+ *   php artisan db:seed --class=MasterDataSeeder
+ */
 class MasterDataSeeder extends Seeder
 {
     public function run(): void
@@ -42,21 +52,29 @@ class MasterDataSeeder extends Seeder
         Route::firstOrCreate(['airport_asal_id' => $cgk->id, 'airport_tujuan_id' => $aptPranoto->id], ['tipe_layanan' => 'domestik']);
 
         // 4. Gates
+        $gates = [];
         for ($i = 1; $i <= 4; $i++) {
-            Gate::firstOrCreate(['kode_gate' => "G$i"], ['nama_gate' => "Gate $i", 'terminal' => 'Domestik']);
+            $gates[] = Gate::firstOrCreate(['kode_gate' => "G$i"], ['nama_gate' => "Gate $i", 'terminal' => 'Domestik']);
         }
 
         // 5. Check-in Counters
+        $counters = [];
         for ($i = 1; $i <= 12; $i++) {
-            CheckinCounter::firstOrCreate(['nomor_counter' => str_pad($i, 2, '0', STR_PAD_LEFT)], ['area' => 'Keberangkatan', 'terminal' => 'Domestik']);
+            $counters[] = CheckinCounter::firstOrCreate(['nomor_counter' => str_pad($i, 2, '0', STR_PAD_LEFT)], ['area' => 'Keberangkatan', 'terminal' => 'Domestik']);
         }
 
         // 6. Baggage Claims
+        $belts = [];
         for ($i = 1; $i <= 3; $i++) {
-            BaggageClaim::firstOrCreate(['nomor_belt' => "B$i"], ['area' => 'Kedatangan', 'terminal' => 'Domestik']);
+            $belts[] = BaggageClaim::firstOrCreate(['nomor_belt' => "B$i"], ['area' => 'Kedatangan', 'terminal' => 'Domestik']);
         }
 
         // 7. Dummy Flights
+        //
+        // Rujukan gate/counter/belt WAJIB diambil dari record di atas, bukan
+        // ditulis `=> 1`. Pada database yang gate-nya pernah dihapus atau diganti
+        // nama, id 1 sudah tidak ada dan seeder gagal dengan pelanggaran foreign
+        // key `flights_gate_id_foreign` — menghentikan deploy di tengah jalan.
         $today = Carbon::today();
         
         // Departure
@@ -67,8 +85,8 @@ class MasterDataSeeder extends Seeder
             'jam_jadwal' => '10:00:00',
             'jenis_penerbangan' => 'departure',
             'tipe_layanan' => 'domestik',
-            'gate_id' => 1,
-            'checkin_counter_id' => 1,
+            'gate_id' => $gates[0]->id,
+            'checkin_counter_id' => $counters[0]->id,
             'status' => 'Boarding'
         ]);
 
@@ -80,7 +98,7 @@ class MasterDataSeeder extends Seeder
             'jam_jadwal' => '11:30:00',
             'jenis_penerbangan' => 'arrival',
             'tipe_layanan' => 'domestik',
-            'baggage_claim_id' => 1,
+            'baggage_claim_id' => $belts[0]->id,
             'status' => 'Landed'
         ]);
     }
