@@ -2,7 +2,7 @@ import { Head, usePage } from '@inertiajs/react';
 import {
     PlaneTakeoff, PlaneLanding, ClipboardCheck, Building2, Luggage,
     MonitorPlay, LayoutDashboard, Camera as CameraIcon,
-    Tv, Globe, Plane, Radio, ShieldAlert, Info,
+    Tv, Globe, Plane, Radio, ShieldAlert, Info, Wind,
 } from 'lucide-react';
 import { useNtpClock } from '@/hooks/useNtpClock';
 
@@ -96,6 +96,7 @@ const DISPLAYS: Item[] = [
     { title: 'Advertisement',       badge: 'Ads',        icon: <Tv size={26} />,            href: '/public/advertisement',            ic: 'text-orange-600',  bg: 'bg-orange-50'  },
     { title: 'Layar All-in-One',    badge: 'All-in-One', icon: <MonitorPlay size={26} />,   href: '/public/screen',                   ic: 'text-indigo-600',  bg: 'bg-indigo-50'  },
     { title: 'World Clock',         badge: 'Clock',      icon: <Globe size={26} />,         href: '/public/world-clock',              ic: 'text-cyan-600',    bg: 'bg-cyan-50'    },
+    { title: 'AMC Master Clock',    badge: 'AMC',        icon: <Wind size={26} />,          href: '/amc',                             ic: 'text-blue-600',    bg: 'bg-blue-50'    },
 ];
 
 // ─── Component ─────────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
  * menampilkan data terakhir dari cache (mode luring). Mendengarkan event
  * 'fids:net' yang dipancarkan oleh offlineCache.
  *
- * Hanya tampil di halaman publik (path diawali /public, /mclock, /display).
+ * Hanya tampil di halaman publik (path diawali /public, /mclock, /display, /amc).
  */
 export default function OfflineIndicator() {
     const [offline, setOffline] = useState(false);
@@ -15,7 +15,7 @@ export default function OfflineIndicator() {
 
     useEffect(() => {
         const path = window.location.pathname;
-        const isPublic = /^\/(public|display|mclock)/.test(path);
+        const isPublic = /^\/(public|display|mclock|amc)/.test(path);
         if (!isPublic) return;
 
         const onNet = (e: Event) => {

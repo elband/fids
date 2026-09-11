@@ -25,7 +25,7 @@ interface State {
 
 function isPublicScreen(): boolean {
     if (typeof window === 'undefined') return false;
-    return /^\/(public|display|mclock)/.test(window.location.pathname);
+    return /^\/(public|display|mclock|amc)/.test(window.location.pathname);
 }
 
 export default class ErrorBoundary extends Component<Props, State> {

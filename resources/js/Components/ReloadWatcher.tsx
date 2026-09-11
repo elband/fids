@@ -12,7 +12,7 @@ import { useEffect } from 'react';
  * setelah memuat ulang nilainya sudah sama dan tidak reload lagi. Layar yang
  * baru pertama kali melihat token langsung mengadopsinya tanpa reload.
  *
- * Hanya aktif di halaman publik (path diawali /public, /display, /mclock).
+ * Hanya aktif di halaman publik (path diawali /public, /display, /mclock, /amc).
  */
 const TOKEN_KEY = 'fids:reloadToken';
 const POLL_MS = 12000;
@@ -30,7 +30,7 @@ const STALE_GUARD_KEY = 'fids:lastStaleReload';
 export default function ReloadWatcher() {
     useEffect(() => {
         const path = window.location.pathname;
-        const isPublic = /^\/(public|display|mclock)/.test(path);
+        const isPublic = /^\/(public|display|mclock|amc)/.test(path);
         if (!isPublic) return;
 
         let cancelled = false;
