@@ -54,6 +54,30 @@ class AmcClockTest extends TestCase
             ->assertJsonPath('data.tutupan_awan', 36);
     }
 
+    /**
+     * Regresi: pemilihan baris cuaca harus memakai updated_at, bukan created_at.
+     * Saat kode wilayah BMKG diganti lalu dikembalikan, baris lokasi lama punya
+     * created_at paling tua tetapi justru datanya yang paling baru; mengurutkan
+     * dengan created_at membuat layar memajang lokasi basi tanpa batas.
+     */
+    public function test_api_cuaca_memilih_baris_yang_paling_baru_diperbarui(): void
+    {
+        $lama = WeatherInfo::create([
+            'lokasi' => 'Sungai Siring', 'suhu' => 26, 'kondisi_cuaca' => 'Cerah',
+        ]);
+        $baru = WeatherInfo::create([
+            'lokasi' => 'Bugis', 'suhu' => 31, 'kondisi_cuaca' => 'Berawan',
+        ]);
+        // Baris "Bugis" dibuat lebih dulu tetapi baru saja di-update oleh fetch.
+        $baru->forceFill(['created_at' => now()->subMonths(2), 'updated_at' => now()])->save();
+        $lama->forceFill(['created_at' => now(), 'updated_at' => now()->subHour()])->save();
+        Cache::forget('fids:api:weather');
+
+        $this->getJson('/api/fids/weather')
+            ->assertOk()
+            ->assertJsonPath('data.lokasi', 'Bugis');
+    }
+
     /** Runway dipakai layar AMC untuk menghitung headwind/crosswind. */
     public function test_api_settings_mengirim_runway(): void
     {

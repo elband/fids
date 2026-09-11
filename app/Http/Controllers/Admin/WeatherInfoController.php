@@ -13,7 +13,7 @@ class WeatherInfoController extends Controller
      */
     public function index()
     {
-        $weather = \App\Models\WeatherInfo::latest()->first();
+        $weather = \App\Models\WeatherInfo::latest('updated_at')->first();
         return Inertia::render('Admin/Weather/Index', [
             'weather' => $weather
         ]);

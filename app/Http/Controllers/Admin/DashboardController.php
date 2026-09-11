@@ -102,7 +102,7 @@ class DashboardController extends Controller
             ],
             'hourly_data' => $hourlyData,
             'recent_flights' => $recentFlights,
-            'weather' => \App\Models\WeatherInfo::latest()->first(),
+            'weather' => \App\Models\WeatherInfo::latest('updated_at')->first(),
             'server_time' => $serverTime->toIso8601String(),
             'server_timezone' => $timezone,
             'utc_time' => $utcTime->toIso8601String(),

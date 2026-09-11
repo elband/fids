@@ -593,7 +593,11 @@ class DisplayApiController extends Controller
     public function weather()
     {
         $data = Cache::remember('fids:api:weather', self::TTL_SETTINGS, function () {
-            $weather = WeatherInfo::latest()->first();
+            // Diurutkan menurut updated_at, bukan created_at: satu baris cuaca dibuat
+            // sekali lalu terus di-update tiap fetch. Saat kode wilayah BMKG diganti,
+            // baris lokasi lama tetap punya created_at paling baru bila ia yang dibuat
+            // belakangan, sehingga layar bisa memajang data basi tanpa batas.
+            $weather = WeatherInfo::latest('updated_at')->first();
             return $weather ? (new WeatherResource($weather))->resolve() : null;
         });
 

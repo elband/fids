@@ -124,7 +124,7 @@ class DisplayController extends Controller
             'departures' => $departures,
             'arrivals' => $arrivals,
             'pendingAnnouncements' => $pendingAnnouncements,
-            'weather' => \App\Models\WeatherInfo::latest()->first(),
+            'weather' => \App\Models\WeatherInfo::latest('updated_at')->first(),
             'advertisements' => $advertisements,
             'server_timezone' => $timezone,
             'utc_now' => \Carbon\Carbon::now('UTC')->toIso8601String(),
