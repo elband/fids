@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
+import '@/../css/amc-clock.css';
 import FidsLayout from '@/Layouts/FidsLayout';
 import { useNtpClock } from '@/hooks/useNtpClock';
 import { getNtpStatus } from '@/lib/timezoneClock';
@@ -78,7 +79,7 @@ function WeatherIcon({ desc, className }: { desc: string | null; className?: str
 function WindRose({ deg, runwayHeading, color }: { deg: number | null; runwayHeading: number | null; color: string }) {
     const size = 'min(12vw,23vh)';
     return (
-        <div className="relative shrink-0" style={{ width: size, height: size }}>
+        <div className="amc-compass relative shrink-0" style={{ width: size, height: size }}>
             <div className="absolute inset-0 rounded-full border-2 border-white/15" />
             <div className="absolute inset-[14%] rounded-full border border-white/10" />
 
@@ -129,8 +130,8 @@ function Card({ label, icon, accent, children }: {
     label: string; icon: ReactNode; accent: string; children: ReactNode;
 }) {
     return (
-        <section className="flex flex-col min-h-0 min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-black/40 px-[1.3vw] py-[1.2vh] backdrop-blur-xl">
-            <div className="flex shrink-0 items-center gap-[0.6vw]" style={{ color: accent }}>
+        <section className="amc-card flex flex-col min-h-0 min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-black/40 px-[1.3vw] py-[1.2vh] backdrop-blur-xl">
+            <div className="amc-card-heading flex shrink-0 items-center gap-[0.6vw]" style={{ color: accent }}>
                 {icon}
                 <span style={{ fontSize: 'min(1vw,1.7vh)' }} className="font-black uppercase tracking-[0.3em]">
                     {label}
@@ -225,10 +226,10 @@ export default function AmcClockDisplay() {
 
     return (
         <FidsLayout title="FIDS - AMC Master Clock">
-            <div className="flex h-screen w-screen select-none flex-col overflow-hidden bg-[#050b16] font-sans text-white">
+            <div className="amc-display flex h-screen w-screen select-none flex-col overflow-hidden bg-[#050b16] font-sans text-white">
 
-                <header className="flex shrink-0 items-center justify-between px-[2vw] pb-[0.8vh] pt-[1.4vh]">
-                    <div className="flex min-w-0 items-baseline gap-[1vw]">
+                <header className="amc-header flex shrink-0 items-center justify-between px-[2vw] pb-[0.8vh] pt-[1.4vh]">
+                    <div className="amc-brand flex min-w-0 items-baseline gap-[1vw]">
                         <h1 style={{ fontSize: 'min(1.7vw,2.8vh)' }} className="truncate font-black tracking-[0.2em]">
                             {settings?.nama_bandara ?? 'FIDS'}
                         </h1>
@@ -250,13 +251,13 @@ export default function AmcClockDisplay() {
                 </header>
 
                 {/* Jam: lokal sebagai tokoh utama, UTC sebagai pendamping. */}
-                <div className="flex shrink-0 items-center gap-[2vw] px-[2vw]" style={{ height: '40vh' }}>
+                <div className="amc-hero flex shrink-0 items-center gap-[2vw] px-[2vw]" style={{ height: '40vh' }}>
                     <div className="min-w-0 flex-1">
                         <div style={{ fontSize: 'min(1vw,1.7vh)' }} className="font-bold uppercase tracking-[0.4em] text-white/40">
-                            {L.localTime[lang]}
+                            {L.localTime[lang]} <span className="amc-timezone">{timezone}</span>
                         </div>
                         <div style={{ fontSize: 'min(16vw,24vh)', lineHeight: 0.95 }}
-                             className="font-black tabular-nums tracking-tighter drop-shadow-[0_0_25px_rgba(56,189,248,0.25)]">
+                             className="amc-local-digits font-black tabular-nums tracking-tighter drop-shadow-[0_0_25px_rgba(56,189,248,0.25)]">
                             {time24h}
                         </div>
                         <div style={{ fontSize: 'min(1.5vw,2.4vh)' }} className="font-bold uppercase tracking-[0.15em] text-white/70">
@@ -265,7 +266,7 @@ export default function AmcClockDisplay() {
                     </div>
 
                     {/* Warna berbeda supaya UTC tidak pernah terbaca sebagai jam lokal. */}
-                    <div className="shrink-0 rounded-2xl border px-[1.6vw] py-[1.2vh] text-right"
+                    <div className="amc-utc shrink-0 rounded-2xl border px-[1.6vw] py-[1.2vh] text-right"
                          style={{ borderColor: `${accent}55`, background: `${accent}12` }}>
                         <div style={{ fontSize: 'min(1vw,1.7vh)', color: accent }} className="font-black tracking-[0.4em]">
                             UTC
@@ -280,7 +281,7 @@ export default function AmcClockDisplay() {
                     </div>
                 </div>
 
-                <main className="grid min-h-0 flex-1 grid-cols-[1.25fr_1fr_1fr] gap-[1.2vw] overflow-hidden px-[2vw] pb-[0.8vh]">
+                <main className="amc-panels grid min-h-0 flex-1 grid-cols-[1.25fr_1fr_1fr] gap-[1.2vw] overflow-hidden px-[2vw] pb-[0.8vh]">
 
                     <Card label={L.wind[lang]} accent={accent} icon={<Wind style={iconSize} />}>
                         <div className="flex min-h-0 items-center gap-[1.2vw]">
@@ -340,7 +341,7 @@ export default function AmcClockDisplay() {
 
                     <Card label={L.weather[lang]} accent={accent} icon={<Thermometer style={iconSize} />}>
                         <div className="flex min-w-0 items-center gap-[1vw]">
-                            <WeatherIcon desc={weather?.kondisi_cuaca ?? null} className="shrink-0 text-yellow-300" />
+                            <WeatherIcon desc={weather?.kondisi_cuaca ?? null} className="amc-weather-icon shrink-0 text-yellow-300" />
                             <div className="min-w-0">
                                 <div className="flex items-baseline gap-[0.3vw]">
                                     <span style={{ fontSize: 'min(4vw,7vh)', lineHeight: 1 }} className="font-black tabular-nums">
@@ -353,7 +354,7 @@ export default function AmcClockDisplay() {
                                 </div>
                             </div>
                         </div>
-                        <div className="mt-[0.9vh] grid grid-cols-2 gap-[1vw]">
+                        <div className="amc-weather-stats mt-[0.9vh] grid grid-cols-2 gap-[1vw]">
                             {[
                                 { label: L.humidity[lang], value: weather?.kelembapan ?? null },
                                 { label: L.clouds[lang], value: weather?.tutupan_awan ?? null },
@@ -375,7 +376,7 @@ export default function AmcClockDisplay() {
                     </Card>
                 </main>
 
-                <footer className="flex shrink-0 items-center justify-between gap-[1vw] border-t border-white/10 bg-black/40 px-[2vw] py-[0.7vh]">
+                <footer className="amc-footer flex shrink-0 items-center justify-between gap-[1vw] border-t border-white/10 bg-black/40 px-[2vw] py-[0.7vh]">
                     <div style={{ fontSize: 'min(0.8vw,1.4vh)' }} className="truncate font-bold tracking-[0.15em] text-white/50">
                         {L.source[lang]}
                         {weather?.lokasi ? ` · ${weather.lokasi}` : ''}

@@ -1,0 +1,112 @@
+.amc-display {
+    background: radial-gradient(ellipse at 23% 12%, #16334c80, transparent 52%),
+        radial-gradient(ellipse at 95% 85%, #10354345, transparent 45%), #080f1b;
+    padding: 0 0.5vw;
+}
+
+.amc-header {
+    min-height: 9vh;
+    border-bottom: 1px solid #9bc9ed18;
+    margin: 0 2vw;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.amc-brand { flex-direction: column; gap: 0.5vh; }
+.amc-brand h1 { letter-spacing: 0.08em; font-weight: 700; }
+.amc-brand > span { font-size: min(0.75vw, 1.3vh) !important; letter-spacing: 0.28em; }
+.amc-hero { position: relative; }
+.amc-timezone {
+    display: inline-block;
+    margin-left: 1vw;
+    padding: 0.45vh 0.65vw;
+    border: 1px solid #7dd3fc26;
+    border-radius: 5px;
+    color: #9abbd2;
+    font-size: 0.75em;
+    letter-spacing: 0.1em;
+    vertical-align: middle;
+}
+.amc-local-digits {
+    margin: 1.4vh 0 1.8vh;
+    font-size: min(15vw, 23vh) !important;
+    font-weight: 600;
+    letter-spacing: -0.055em;
+    color: #f0f7ff;
+    filter: none;
+    text-shadow: 0 4px 40px #74b9ee12;
+}
+.amc-utc {
+    min-width: 23vw;
+    padding: 2.5vh 1.6vw;
+    background: linear-gradient(135deg, #16324b80, #0c1b2ba0) !important;
+    border-color: #74bbeb30 !important;
+    box-shadow: inset 0 1px 0 #c6e9ff0a, 0 12px 35px #00000020;
+}
+.amc-utc > :first-child { margin-bottom: 1.5vh; }
+.amc-utc > :last-child { margin-top: 1.5vh; }
+.amc-utc > :nth-child(2) { font-weight: 500; }
+.amc-panels { padding-bottom: 2vh; gap: 1.2vw; }
+.amc-card {
+    position: relative;
+    padding: 2.2vh 1.5vw;
+    border: 1px solid #91b6d324;
+    border-radius: 1.2vw;
+    background: linear-gradient(145deg, #152537c9, #0d1725e8);
+    box-shadow: inset 0 1px 0 #e3f3ff06, 0 12px 35px #00000018;
+}
+.amc-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 1.5vw;
+    width: 3vw;
+    height: 2px;
+    background: #65c6f4;
+}
+.amc-card:nth-child(2)::before { background: #72dca0; }
+.amc-card:nth-child(3)::before { background: #f5cc75; }
+.amc-card-heading {
+    padding-bottom: 1.8vh;
+    border-bottom: 1px solid #afcde512;
+}
+.amc-card-heading > svg {
+    box-sizing: content-box;
+    padding: 0.6vw;
+    border-radius: 0.6vw;
+    background: #58bdf310;
+}
+.amc-card-heading > span { letter-spacing: 0.2em; color: #b4cce0; }
+.amc-compass {
+    border-radius: 50%;
+    background: radial-gradient(circle, #2a63852b, #0a162b30 65%);
+    box-shadow: 0 0 35px #38bdf808;
+}
+.amc-weather-icon {
+    width: min(4.5vw, 8vh);
+    height: min(4.5vw, 8vh);
+    filter: drop-shadow(0 0 14px #facc1530);
+}
+.amc-weather-stats { margin-top: 2.8vh; gap: 0.8vw; }
+.amc-weather-stats > div {
+    padding: 1.2vh 0.8vw;
+    border: 1px solid #a8c9e010;
+    border-radius: 0.6vw;
+    background: #06111f40;
+}
+.amc-weather-stats > div > :last-child > div { background: #76bfe0; }
+.amc-weather-stats > div:last-child > :last-child > div { background: #a7a9df; }
+.amc-footer { min-height: 4.5vh; background: #060c1680; border-color: #9bc9ed18; }
+
+@media (max-aspect-ratio: 1/1) {
+    .amc-display { height: auto; min-height: 100dvh; overflow: auto; }
+    .amc-header { min-height: 8vh; }
+    .amc-hero { height: 27vh !important; }
+    .amc-panels { flex: none; grid-template-columns: 1fr; }
+    .amc-card { min-height: 23vh; }
+    .amc-card-heading > span { font-size: 2vw !important; }
+    .amc-card-heading { padding-bottom: 1vh; }
+    .amc-card > :last-child { padding: 2vh 0; }
+    .amc-compass { width: 22vw !important; height: 22vw !important; }
+    .amc-footer { flex-wrap: wrap; }
+}
