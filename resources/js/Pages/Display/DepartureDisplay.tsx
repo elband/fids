@@ -169,7 +169,7 @@ export default function Departures() {
             <div className={`h-screen text-white font-sans select-none overflow-hidden flex flex-col ${eco ? 'fids-eco' : ''}`} style={{ background: themeGradient(themeColor), ...scoreboardVars(themeColor), ['--row-marker' as string]: accentColor }}>
 
                 <header
-                    className="relative w-full flex items-center justify-between bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 overflow-hidden shadow-lg border-b-4 border-black bg-cover bg-center"
+                    className="relative w-full shrink-0 flex items-center justify-between bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 overflow-hidden shadow-lg border-b-4 border-black bg-cover bg-center"
                     style={{
                         height: '12vh',
                         paddingLeft: '2.5vw',
@@ -211,7 +211,7 @@ export default function Departures() {
                 </header>
 
                 {/* Header kolom */}
-                <div className="board-font w-full bg-gradient-to-b from-gray-900 to-black border-b border-yellow-500/30">
+                <div className="board-font w-full shrink-0 bg-gradient-to-b from-gray-900 to-black border-b border-yellow-500/30">
                     <div className="grid grid-cols-12 gap-4" style={{ paddingLeft: '2.5vw', paddingRight: '2.5vw', paddingTop: '1vh', paddingBottom: '1vh' }}>
                         <div style={{ fontSize: '0.9vw', color: accentColor }} className="col-span-2 font-black text-yellow-500 tracking-[0.3em] uppercase header-col-wrap">
                             <span key={`airline-${headerKey}`} className="header-col-text">{t.colAirline[headerLang]}</span>
@@ -235,7 +235,7 @@ export default function Departures() {
                 </div>
 
                 {/* Baris penerbangan â€” animasi scoreboard badminton */}
-                <div ref={scrollRef} className={`board-font flex-1 relative ${eco ? 'overflow-y-auto board-scroll' : 'overflow-hidden'}`}>
+                <div ref={scrollRef} className={`board-font flex-1 min-h-0 relative ${eco ? 'overflow-y-auto board-scroll' : 'overflow-hidden'}`}>
                     {/* Kilau lambat melintasi papan — dimatikan otomatis di mode hemat. */}
                     <div className="board-sweep" aria-hidden="true" />
                     {loading ? (
@@ -332,7 +332,7 @@ export default function Departures() {
                 </div>
 
                 {/* Ticker */}
-                <footer className="bg-black border-t-2 border-yellow-500/30 flex items-center overflow-hidden" style={{ height: '5vh' }}>
+                <footer className="bg-black border-t-2 border-yellow-500/30 shrink-0 flex items-center overflow-hidden" style={{ height: '5vh' }}>
                     <div style={{ fontSize: '1.2vw', padding: '0 1.5vw' }} className="bg-yellow-500 text-black font-black h-full flex items-center shrink-0 z-10 shadow-lg tracking-widest">
                         {t.info[lang]}
                     </div>

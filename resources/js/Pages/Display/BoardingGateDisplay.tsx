@@ -190,7 +190,7 @@ export default function BoardingGateDisplay() {
                     </div>
                 </header>
 
-                <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-hide relative bg-black">
+                <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-hide relative bg-black">
                     {loading ? (
                         <div className="flex h-full items-center justify-center text-yellow-500 font-bold text-xl animate-pulse tracking-widest">
                             {t.loading[lang]}
@@ -399,7 +399,7 @@ export default function BoardingGateDisplay() {
                 </div>
 
                 {tickerText && (
-                    <footer className="h-12 bg-black border-t border-gray-800 flex items-center overflow-hidden">
+                    <footer className="h-12 shrink-0 bg-black border-t border-gray-800 flex items-center overflow-hidden">
                         <div className="bg-yellow-500 text-black font-bold px-6 h-full flex items-center shrink-0 z-10 shadow-lg">
                             {t.info[lang]}
                         </div>

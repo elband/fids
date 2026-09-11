@@ -349,7 +349,7 @@ export default function PublicScreenRealtime({ settings, departures, arrivals, w
                         : undefined,
                 }}
             >
-                <div style={{ padding: '2vh 3vw' }}>
+                <div style={{ padding: '2vh 3vw', paddingBottom: settings.show_ticker ? '7vh' : '2vh' }}>
 
                     {/* â”€â”€ Header â”€â”€ */}
                     <header className="mb-[2vh] rounded-2xl bg-black/30 border border-white/10 backdrop-blur-lg shadow-2xl flex items-center justify-between"

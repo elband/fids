@@ -154,16 +154,16 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
                     backgroundPosition: 'center'
                 } : (airlineColor ? { backgroundColor: hexToRgba(airlineColor, 0.2) } : {})}
             >
-                <div className="relative z-50 shrink-0 mx-[2vw] mt-[2vw] flex items-start justify-between pointer-events-none">
-                    <div className="flex items-center gap-[1vw] bg-black/40 backdrop-blur-xl px-[2vw] py-[1vw] rounded-2xl border border-white/10 shadow-2xl pointer-events-auto">
+                <div className="relative z-50 shrink-0 mx-[2vw] mt-[min(2vw,2vh)] flex items-start justify-between pointer-events-none">
+                    <div className="flex items-center gap-[1vw] bg-black/40 backdrop-blur-xl px-[min(2vw,2.5vh)] py-[min(1vw,1.5vh)] rounded-2xl border border-white/10 shadow-2xl pointer-events-auto">
                         <div className="p-[0.5vw] bg-white/5 rounded-xl text-[#FFD700]">
                             <Clock size={32} strokeWidth={2} />
                         </div>
                         <div className="flex flex-col">
-                            <span style={{ fontSize: '3.5vw' }} className="font-black tracking-tighter text-[#FFD700] drop-shadow-md leading-none">
+                            <span style={{ fontSize: 'min(3.5vw,6vh)' }} className="font-black tracking-tighter text-[#FFD700] drop-shadow-md leading-none">
                                 {time24h}
                             </span>
-                            <span style={{ fontSize: '0.9vw' }} className="font-bold text-[#FFD700]/70 uppercase tracking-[0.2em] mt-1">
+                            <span style={{ fontSize: 'min(0.9vw,1.6vh)' }} className="font-bold text-[#FFD700]/70 uppercase tracking-[0.2em] mt-1">
                                 {dateFullId}
                             </span>
                         </div>
@@ -171,24 +171,24 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
 
                     {weather && (
                         <div className="flex items-center bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl divide-x divide-white/10 overflow-hidden pointer-events-auto">
-                            <div className="flex items-center gap-[1vw] px-[2vw] py-[1vw] hover:bg-white/5 transition-colors">
+                            <div className="flex items-center gap-[1vw] px-[min(2vw,2.5vh)] py-[min(1vw,1.5vh)] hover:bg-white/5 transition-colors">
                                 <div className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)] animate-pulse">
                                     <Sun size={32} fill="currentColor" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span style={{ fontSize: '0.7vw' }} className="font-black text-white/40 uppercase tracking-[0.2em]">{t.weatherLabel[lang]}</span>
-                                    <span style={{ fontSize: '1.5vw' }} className="font-bold text-white whitespace-nowrap leading-tight">
+                                    <span style={{ fontSize: 'min(0.7vw,1.2vh)' }} className="font-black text-white/40 uppercase tracking-[0.2em]">{t.weatherLabel[lang]}</span>
+                                    <span style={{ fontSize: 'min(1.5vw,2.6vh)' }} className="font-bold text-white whitespace-nowrap leading-tight">
                                         {weather.kondisi_cuaca}
                                     </span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-[1vw] px-[2vw] py-[1vw] hover:bg-white/5 transition-colors">
+                            <div className="flex items-center gap-[1vw] px-[min(2vw,2.5vh)] py-[min(1vw,1.5vh)] hover:bg-white/5 transition-colors">
                                 <div className="text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.4)]">
                                     <Thermometer size={32} />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span style={{ fontSize: '0.7vw' }} className="font-black text-white/40 uppercase tracking-[0.2em]">{t.tempLabel[lang]}</span>
-                                    <span style={{ fontSize: '1.8vw' }} className="font-black text-white leading-tight">
+                                    <span style={{ fontSize: 'min(0.7vw,1.2vh)' }} className="font-black text-white/40 uppercase tracking-[0.2em]">{t.tempLabel[lang]}</span>
+                                    <span style={{ fontSize: 'min(1.8vw,3vh)' }} className="font-black text-white leading-tight">
                                         {weather.suhu}°C
                                     </span>
                                 </div>
@@ -197,44 +197,44 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
                     )}
                 </div>
 
-                <div className="flex-1 flex flex-col p-[2vw] min-h-0">
+                <div className="flex-1 flex flex-col px-[2vw] py-[min(2vw,2vh)] min-h-0 overflow-hidden">
                     <div className="flex justify-between items-start gap-[2vw] mb-[2vh]">
                         <div className="min-w-0">
-                            <div style={{ fontSize: 'min(1.8vw, 2.4vh)' }} className="text-gray-400 tracking-[0.5em] font-medium uppercase mb-2">{t.checkinCounterLabel[lang]}</div>
-                            <div style={{ fontSize: 'min(16vw, 19vh)', lineHeight: 1 }} className="font-black text-[#FFD700] drop-shadow-[0_0_15px_rgba(255,215,0,0.4)]">
+                            <div style={{ fontSize: 'min(1.8vw,2.2vh)' }} className="text-gray-400 tracking-[0.5em] font-medium uppercase mb-[0.5vh]">{t.checkinCounterLabel[lang]}</div>
+                            <div style={{ fontSize: 'min(16vw,15vh)', lineHeight: 1 }} className="font-black text-[#FFD700] drop-shadow-[0_0_15px_rgba(255,215,0,0.4)]">
                                 {counter.nomor_counter}
                             </div>
                         </div>
                         {flight?.airline?.logo && (
                             <div className="bg-white p-[1vw] rounded-3xl shadow-2xl shrink-0">
-                                <img src={flight.airline.logo} alt="Airline Logo" style={{ height: 'min(14vw, 20vh)', maxWidth: '32vw' }} className="object-contain" />
+                                <img src={flight.airline.logo} alt="Airline Logo" style={{ height: 'min(14vw,16vh)', maxWidth: '32vw' }} className="object-contain" />
                             </div>
                         )}
                     </div>
 
-                    <div className="flex-1 flex flex-col justify-center min-h-0">
+                    <div className="flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
                         {counter.status_counter !== 'buka' ? (
-                            <div style={{ fontSize: 'min(10vw, 14vh)' }} className="font-black text-yellow-400 tracking-widest text-center">
+                            <div style={{ fontSize: 'min(10vw,12vh)' }} className="font-black text-yellow-400 tracking-widest text-center">
                                 {t.closed[lang]}
                             </div>
                         ) : (
                             <>
                                 {flight ? (
-                                    <div className="space-y-[1.5vh]">
-                                        <div style={{ fontSize: 'min(2.5vw, 3.2vh)' }} className="text-yellow-400 tracking-widest font-bold">{t.flightLabel[lang]}</div>
-                                        <div style={{ fontSize: 'min(9vw, 12vh)', lineHeight: 1 }} className="font-bold text-[#FFD700] drop-shadow-md">
+                                    <div className="space-y-[1vh]">
+                                        <div style={{ fontSize: 'min(2.5vw,2.6vh)' }} className="text-yellow-400 tracking-widest font-bold">{t.flightLabel[lang]}</div>
+                                        <div style={{ fontSize: 'min(9vw,10vh)', lineHeight: 1 }} className="font-bold text-[#FFD700] drop-shadow-md">
                                             {flight.nomor_penerbangan}
                                         </div>
 
-                                        <div className="h-[2vh]"></div>
+                                        <div className="h-[1vh]"></div>
 
-                                        <div style={{ fontSize: 'min(2.5vw, 3.2vh)' }} className="text-yellow-400 tracking-widest font-bold">{t.destinationLabel[lang]}</div>
-                                        <div style={{ fontSize: 'min(10vw, 14vh)', lineHeight: 1 }} className="font-black text-[#FFD700] truncate drop-shadow-lg uppercase">
+                                        <div style={{ fontSize: 'min(2.5vw,2.6vh)' }} className="text-yellow-400 tracking-widest font-bold">{t.destinationLabel[lang]}</div>
+                                        <div style={{ fontSize: 'min(10vw,12vh)', lineHeight: 1 }} className="font-black text-[#FFD700] truncate drop-shadow-lg uppercase">
                                             {flight.tujuan}
                                         </div>
                                     </div>
                                 ) : (
-                                    <div style={{ fontSize: 'min(8vw, 11vh)' }} className="font-bold text-gray-400 tracking-widest text-center leading-tight whitespace-pre-line">
+                                    <div style={{ fontSize: 'min(8vw,9vh)' }} className="font-bold text-gray-400 tracking-widest text-center leading-tight whitespace-pre-line">
                                         {t.checkinOpen[lang]}
                                     </div>
                                 )}
@@ -242,9 +242,9 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
                         )}
                     </div>
 
-                    <div style={{ height: '10vh', ...(airlineColor ? { borderColor: airlineColor } : {}) }} className={`mt-auto shrink-0 rounded-2xl flex items-center justify-center border-4 ${borderColor} ${counter.status_counter === 'buka' && flight ? 'bg-white/10' : 'bg-transparent border-transparent'}`}>
+                    <div style={{ height: '9vh', ...(airlineColor ? { borderColor: airlineColor } : {}) }} className={`mt-auto shrink-0 rounded-2xl flex items-center justify-center border-4 ${borderColor} ${counter.status_counter === 'buka' && flight ? 'bg-white/10' : 'bg-transparent border-transparent'}`}>
                         {counter.status_counter === 'buka' && flight && (
-                            <div style={{ fontSize: 'min(4vw, 5.5vh)' }} className="font-black tracking-widest text-yellow-300 uppercase animate-pulse">
+                            <div style={{ fontSize: 'min(4vw,4.5vh)' }} className="font-black tracking-widest text-yellow-300 uppercase animate-pulse">
                                 {t.proceedToCounter[lang]} {counter.nomor_counter}
                             </div>
                         )}
