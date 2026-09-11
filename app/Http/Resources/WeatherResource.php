@@ -8,19 +8,31 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class WeatherResource extends JsonResource
 {
     /**
-     * Transform the resource into an array.
+     * Nama field di sini mengikuti nama kolom (bahasa Indonesia), sama seperti
+     * resource FIDS lainnya.
      *
-     * @return array<string, mixed>
+     * Sebelumnya resource ini mengirim 'humidity', 'wind_speed' dan 'icon' —
+     * tidak satu pun merupakan kolom tabel maupun accessor model, sehingga
+     * ketiganya selalu bernilai null dan data angin yang sudah tersimpan tidak
+     * pernah sampai ke layar.
      */
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
-            'suhu' => round($this->suhu),
+            'lokasi' => $this->lokasi,
+            'suhu' => round((float) $this->suhu),
             'kondisi_cuaca' => $this->kondisi_cuaca,
-            'icon' => $this->icon,
-            'humidity' => $this->humidity,
-            'wind_speed' => $this->wind_speed,
+            'kelembapan' => $this->kelembapan !== null ? (int) $this->kelembapan : null,
+            // BMKG mengirim kecepatan angin dalam km/jam.
+            'kecepatan_angin' => $this->kecepatan_angin !== null ? (float) $this->kecepatan_angin : null,
+            'arah_angin' => $this->arah_angin,
+            'arah_angin_derajat' => $this->arah_angin_derajat !== null ? (int) $this->arah_angin_derajat : null,
+            'jarak_pandang' => $this->jarak_pandang !== null ? (int) $this->jarak_pandang : null,
+            'jarak_pandang_teks' => $this->jarak_pandang_teks,
+            'tutupan_awan' => $this->tutupan_awan !== null ? (int) $this->tutupan_awan : null,
+            // Jam berlaku slot prakiraan (ISO 8601, UTC) — beda dengan waktu ambil data.
+            'berlaku_pada' => optional($this->berlaku_pada)->toIso8601String(),
             'last_updated' => $this->updated_at,
         ];
     }

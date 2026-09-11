@@ -109,6 +109,10 @@ class DisplaySettingController extends Controller
             'teks_ticker'       => 'nullable|string|max:500',
             'lokasi_google_maps' => 'nullable|string',
             'kode_bmkg'         => 'nullable|string',
+            'runway_kode'       => 'nullable|string|max:16',
+            // 0-359: 360 dan 0 menunjuk arah yang sama, jadi hanya satu yang diterima
+            // supaya hitungan crosswind tidak punya dua representasi untuk satu arah.
+            'runway_heading'    => 'nullable|integer|min:0|max:359',
             'bahasa'            => 'required|string|in:id,en',
             'timezone'          => 'nullable|string|max:64',
             'bagasi_durasi_status_menit'  => 'nullable|integer|min:1|max:240',
@@ -123,6 +127,8 @@ class DisplaySettingController extends Controller
         $setting->teks_ticker      = $validated['teks_ticker'] ?? null;
         $setting->lokasi_google_maps = $validated['lokasi_google_maps'] ?? null;
         $setting->kode_bmkg        = $validated['kode_bmkg'] ?? null;
+        $setting->runway_kode      = $validated['runway_kode'] ?? null;
+        $setting->runway_heading   = isset($validated['runway_heading']) ? (int) $validated['runway_heading'] : null;
         $setting->bahasa           = $validated['bahasa'];
         $setting->timezone         = $validated['timezone'] ?? null;
 

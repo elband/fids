@@ -57,11 +57,14 @@ Route::prefix('public')->group(function () {
     Route::get('/screen',        [DisplayController::class, 'publicScreen'])->name('public.screen');
     Route::get('/advertisement', [DisplayController::class, 'advertisementDisplay'])->name('public.advertisement');
     Route::get('/world-clock',   [DisplayController::class, 'worldClock'])->name('public.world-clock');
+    Route::get('/amc-clock',     [DisplayController::class, 'amcClock'])->name('public.amc-clock');
 
     Route::get('/taxi',          [DisplayController::class, 'taxiSignage'])->name('public.taxi');
 });
 
 Route::get('/mclock', [DisplayController::class, 'worldClock'])->name('mclock');
+// Alias pendek supaya mudah diketik di kios AMC.
+Route::get('/amc', [DisplayController::class, 'amcClock'])->name('amc');
 
 // Backward-compat: nama route lama display.* tetap aktif → redirect 301 ke URL baru.
 // Saat user buka /display/* di browser, otomatis ter-redirect ke /public/*.

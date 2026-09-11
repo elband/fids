@@ -19,6 +19,8 @@ interface DisplaySetting {
     teks_ticker: string | null;
     lokasi_google_maps: string | null;
     kode_bmkg: string | null;
+    runway_kode: string | null;
+    runway_heading: number | null;
     bahasa: 'id' | 'en';
     timezone: string | null;
     bagasi_durasi_status_menit?: number | null;
@@ -47,6 +49,8 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
         teks_ticker: setting?.teks_ticker || '',
         lokasi_google_maps: setting?.lokasi_google_maps || '',
         kode_bmkg: setting?.kode_bmkg || '',
+        runway_kode: setting?.runway_kode || '',
+        runway_heading: setting?.runway_heading ?? ('' as number | ''),
         bahasa: setting?.bahasa || 'id',
         timezone: setting?.timezone || 'Asia/Makassar',
         bagasi_durasi_status_menit: setting?.bagasi_durasi_status_menit ?? 30,
@@ -225,6 +229,42 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
                                             </p>
                                         </div>
                                         <InputError message={errors.kode_bmkg} className="mt-2" />
+                                    </div>
+                                </div>
+
+                                {/* Runway — dipakai layar AMC (/amc) untuk menghitung
+                                    komponen headwind & crosswind dari arah angin BMKG. */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <InputLabel htmlFor="runway_kode" value="Kode Runway (opsional)" />
+                                        <TextInput
+                                            id="runway_kode"
+                                            className="mt-1 block w-full"
+                                            value={data.runway_kode}
+                                            onChange={(e: any) => setData('runway_kode', e.target.value)}
+                                            placeholder="04/22"
+                                        />
+                                        <p className="text-sm text-gray-500 mt-1">Label runway yang ditampilkan di layar AMC.</p>
+                                        <InputError message={errors.runway_kode} className="mt-2" />
+                                    </div>
+
+                                    <div>
+                                        <InputLabel htmlFor="runway_heading" value="Arah Runway (derajat, opsional)" />
+                                        <TextInput
+                                            id="runway_heading"
+                                            type="number"
+                                            min={0}
+                                            max={359}
+                                            className="mt-1 block w-full"
+                                            value={data.runway_heading}
+                                            onChange={(e: any) => setData('runway_heading', e.target.value === '' ? '' : Number(e.target.value))}
+                                            placeholder="040"
+                                        />
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            Arah lepas landas utama, 0-359 derajat (runway 04 = 40 derajat).
+                                            Kosongkan bila tidak dipakai — layar AMC akan menyembunyikan hitungan headwind/crosswind.
+                                        </p>
+                                        <InputError message={errors.runway_heading} className="mt-2" />
                                     </div>
                                 </div>
 

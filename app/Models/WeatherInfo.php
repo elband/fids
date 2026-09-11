@@ -14,7 +14,17 @@ class WeatherInfo extends Model
         static::deleted($flush);
     }
 
-    protected $fillable = ['lokasi', 'suhu', 'kondisi_cuaca', 'kelembapan', 'kecepatan_angin', 'arah_angin', 'arah_angin_derajat', 'updated_by'];
+    protected $fillable = ['lokasi', 'suhu', 'kondisi_cuaca', 'kelembapan', 'kecepatan_angin', 'arah_angin', 'arah_angin_derajat',
+        'jarak_pandang', 'jarak_pandang_teks', 'tutupan_awan', 'berlaku_pada', 'updated_by'];
+
+    protected $casts = [
+        'suhu' => 'float',
+        'kelembapan' => 'integer',
+        'arah_angin_derajat' => 'integer',
+        'jarak_pandang' => 'integer',
+        'tutupan_awan' => 'integer',
+        'berlaku_pada' => 'datetime',
+    ];
 
     public function updatedBy()
     {

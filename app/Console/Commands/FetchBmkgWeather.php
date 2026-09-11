@@ -70,6 +70,7 @@ class FetchBmkgWeather extends Command
             // zona waktu stasiun. Fallback ke local_datetime pada zona waktu tampilan FIDS.
             $now = Carbon::now('UTC');
             $currentForecast = null;
+            $currentForecastTime = null;
             $minDiff = PHP_INT_MAX;
 
             foreach ($allForecasts as $f) {
@@ -85,6 +86,7 @@ class FetchBmkgWeather extends Command
                 if ($diff < $minDiff) {
                     $minDiff = $diff;
                     $currentForecast = $f;
+                    $currentForecastTime = $forecastTime;
                 }
             }
 
@@ -98,6 +100,17 @@ class FetchBmkgWeather extends Command
                         'kecepatan_angin' => (float)$currentForecast['ws'],
                         'arah_angin' => isset($currentForecast['wd']) ? (string)$currentForecast['wd'] : null,
                         'arah_angin_derajat' => isset($currentForecast['wd_deg']) ? (int)$currentForecast['wd_deg'] : null,
+                        // Dipakai layar AMC. 'vs' dalam meter; 'vs_text' adalah rentang
+                        // kasar versi BMKG (mis. "< 10 km") dan disimpan apa adanya
+                        // sebagai cadangan bila 'vs' tidak terisi.
+                        'jarak_pandang' => isset($currentForecast['vs']) ? (int)$currentForecast['vs'] : null,
+                        'jarak_pandang_teks' => isset($currentForecast['vs_text']) ? (string)$currentForecast['vs_text'] : null,
+                        'tutupan_awan' => isset($currentForecast['tcc']) ? (int)round((float)$currentForecast['tcc']) : null,
+                        // Dikonversi ke zona waktu aplikasi lebih dulu: Eloquent menulis
+                        // Carbon apa adanya (tanpa konversi) tetapi membacanya kembali
+                        // dengan config('app.timezone'), jadi menyimpan objek UTC membuat
+                        // jam berlaku tampil meleset sebesar offset zona waktu.
+                        'berlaku_pada' => $currentForecastTime->copy()->setTimezone(config('app.timezone')),
                     ]
                 );
                 $this->info("Successfully updated weather: {$currentForecast['weather_desc']}, {$currentForecast['t']}°C");

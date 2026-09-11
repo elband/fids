@@ -433,6 +433,19 @@ class DisplayController extends Controller
     }
 
     /**
+     * Master clock untuk AMC: jam lokal besar + UTC, ditambah angin, jarak
+     * pandang, dan tutupan awan dari BMKG.
+     *
+     * Data cuaca sengaja tidak dikirim sebagai props: layar ini menyala
+     * berhari-hari, jadi seluruh isinya di-refresh lewat polling API yang sama
+     * dengan layar publik lain.
+     */
+    public function amcClock()
+    {
+        return Inertia::render('Display/AmcClockDisplay');
+    }
+
+    /**
      * Layar "Taxi Information & Digital Signage".
      *
      * Props awal sengaja berisi payload lengkap supaya layar langsung tampil

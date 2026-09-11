@@ -29,6 +29,8 @@ class WeatherInfoController extends Controller
             'kecepatan_angin' => 'nullable|numeric',
             'arah_angin' => 'nullable|string|max:8',
             'arah_angin_derajat' => 'nullable|integer|min:0|max:360',
+            'jarak_pandang' => 'nullable|integer|min:0|max:100000',
+            'tutupan_awan' => 'nullable|integer|min:0|max:100',
         ]);
 
         $validated['updated_by'] = \Illuminate\Support\Facades\Auth::id();

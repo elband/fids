@@ -38,6 +38,8 @@ class DisplaySetting extends Model
         'mode_default',
         'lokasi_google_maps',
         'kode_bmkg',
+        'runway_kode',
+        'runway_heading',
         'bahasa',
         'timezone',
         'force_reload_at',
@@ -58,5 +60,6 @@ class DisplaySetting extends Model
         'board_hide_after_menit' => 'integer',
         'auto_reload_jam' => 'integer',
         'mode_hemat' => 'boolean',
+        'runway_heading' => 'integer',
     ];
 }

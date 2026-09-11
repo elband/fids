@@ -31,6 +31,10 @@ class SettingResource extends JsonResource
             'warna_utama' => $this->warna_utama ?: '#ffffff',
             'warna_aksen' => $this->warna_aksen ?: '#fbbf24',
             'kode_bmkg' => $this->kode_bmkg,
+            // Runway untuk layar AMC: null bila operator belum mengisinya, dan
+            // layar menyembunyikan hitungan headwind/crosswind saat itu terjadi.
+            'runway_kode' => $this->runway_kode,
+            'runway_heading' => $this->runway_heading !== null ? (int) $this->runway_heading : null,
             'lokasi_google_maps' => $this->lokasi_google_maps,
             'bahasa' => $this->bahasa ?? 'id',
             // Pengaturan timing baggage claim (menit).
