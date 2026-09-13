@@ -1,3 +1,4 @@
+import CameraEmbed from '@/Components/CameraEmbed';
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import FidsLayout from '@/Layouts/FidsLayout';
@@ -28,6 +29,7 @@ type Camera = {
     baggage_claim: { id: number; nomor_belt: string | number; terminal: string | null; area: string | null } | null;
     is_active: boolean;
     active_flight: ActiveFlight | null;
+    display_ends_at: string | null;
 };
 
 type Settings = {
@@ -77,16 +79,16 @@ function CameraStream({ camera }: { camera: Camera }) {
     if (camera.jenis_stream === 'youtube') {
         return <iframe src={youtubeEmbed(camera.url_stream)} className="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />;
     }
-    return <iframe src={camera.url_stream} className="w-full h-full bg-black" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />;
+    return <CameraEmbed src={camera.url_stream} title={camera.nama} />;
 }
 
 export default function SingleCctvDisplay({ camera, advertisements, settings, server_timezone, utc_now }: Props) {
-    const { time24h, dateFullId } = useNtpClock();
+    const { now, time24h, dateFullId } = useNtpClock();
     const [uptime, setUptime] = useState(0);
 
     useEffect(() => {
         // refresh data lebih sering supaya status flight terupdate cepat
-        const refresh = setInterval(() => router.reload({ only: ['camera'] }), 20000);
+        const refresh = setInterval(() => router.reload({ only: ['camera', 'advertisements'] }), 20000);
         const ticker = setInterval(() => {
             setUptime((u) => u + 1);
         }, 1000);
@@ -120,7 +122,8 @@ export default function SingleCctvDisplay({ camera, advertisements, settings, se
     };
 
     // Mode: cctv â†” ads
-    const showCctv = camera.is_active && !!camera.active_flight;
+    const showCctv = camera.is_active && !!camera.active_flight
+        && (!camera.display_ends_at || now.getTime() < Date.parse(camera.display_ends_at));
     const hasAds = advertisements && advertisements.length > 0;
     const flight = camera.active_flight;
 

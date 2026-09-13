@@ -234,6 +234,7 @@ class DisplayController extends Controller
                     'area' => $cam->baggageClaim->area,
                 ] : null,
                 'is_active' => (bool) $activeFlight,
+                'display_ends_at' => $activeFlight ? $this->cctvEndsAt($cam, $activeFlight) : null,
                 'active_flight' => $activeFlight ? $this->formatFlightSummary($activeFlight) : null,
             ];
         })->values();
@@ -294,6 +295,7 @@ class DisplayController extends Controller
                     'area' => $camera->baggageClaim->area,
                 ] : null,
                 'is_active' => (bool) $activeFlight,
+                'display_ends_at' => $activeFlight ? $this->cctvEndsAt($camera, $activeFlight) : null,
                 'active_flight' => $activeFlight ? $this->formatFlightSummary($activeFlight) : null,
             ] : null,
             'advertisements' => $advertisements,
@@ -379,6 +381,15 @@ class DisplayController extends Controller
         }
 
         return $endMin === null || $elapsedMin < (int) $endMin;
+    }
+
+    private function cctvEndsAt(\App\Models\CctvCamera $cam, Flight $flight): ?string
+    {
+        if ($cam->tampil_selesai_menit === null) {
+            return null;
+        }
+
+        return $this->cctvArrivedAt($flight)?->addMinutes((int) $cam->tampil_selesai_menit)->toIso8601String();
     }
 
     /** Waktu tiba penerbangan: utamakan ATA (jam_aktual), fallback updated_at. */

@@ -1,3 +1,4 @@
+import CameraEmbed from '@/Components/CameraEmbed';
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import FidsLayout from '@/Layouts/FidsLayout';
@@ -28,6 +29,7 @@ type CctvCamera = {
     baggage_claim: { id: number; nomor_belt: string | number; terminal: string | null; area: string | null } | null;
     is_active: boolean;
     active_flight: ActiveFlight | null;
+    display_ends_at: string | null;
 };
 
 type Props = {
@@ -75,11 +77,12 @@ function CameraStreamInline({ cam }: { cam: CctvCamera }) {
     if (cam.jenis_stream === 'youtube') {
         return <iframe src={youtubeEmbed(cam.url_stream)} className="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />;
     }
-    return <iframe src={cam.url_stream} className="w-full h-full bg-black" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />;
+    return <CameraEmbed src={cam.url_stream} title={cam.nama} />;
 }
 
-function CameraTile({ cam, ads }: { cam: CctvCamera; ads: AdItem[] }) {
-    const showCctv = cam.is_active && !!cam.active_flight;
+function CameraTile({ cam, ads, now }: { cam: CctvCamera; ads: AdItem[]; now: Date }) {
+    const showCctv = cam.is_active && !!cam.active_flight
+        && (!cam.display_ends_at || now.getTime() < Date.parse(cam.display_ends_at));
     const flight = cam.active_flight;
     const hasAds = ads && ads.length > 0;
 
@@ -175,11 +178,11 @@ function StandbyTile({ belt }: { belt?: string | number | null }) {
 }
 
 export default function CctvBaggageDisplay({ cameras, advertisements, settings, server_timezone, utc_now }: Props) {
-    const { time24h, dateFullId } = useNtpClock();
+    const { now, time24h, dateFullId } = useNtpClock();
 
     useEffect(() => {
         const refresh = setInterval(() => {
-            router.reload({ only: ['cameras'] });
+            router.reload({ only: ['cameras', 'advertisements'] });
         }, 20000);
         return () => { clearInterval(refresh); };
     }, []);
@@ -236,7 +239,7 @@ export default function CctvBaggageDisplay({ cameras, advertisements, settings, 
                     ) : (
                         <div className={`grid gap-5 h-full ${colsClass}`}>
                             {cameras.map((cam) => (
-                                <CameraTile key={cam.id} cam={cam} ads={advertisements} />
+                                <CameraTile key={cam.id} cam={cam} ads={advertisements} now={now} />
                             ))}
                         </div>
                     )}

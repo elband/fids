@@ -88,6 +88,15 @@ class CctvDisplayWindowTest extends TestCase
         return (bool) $props['cameras'][0]['is_active'];
     }
 
+    public function test_camera_exposes_exact_end_time_for_client_transition(): void
+    {
+        $this->makeFlight('Arrived', '09:55:00');
+        $this->makeCamera(0, 45);
+        $props = $this->get('/public/cctv/baggage')->assertOk()->viewData('page')['props'];
+        $expected = $this->now->copy()->setTime(10, 40)->toIso8601String();
+        $this->assertSame($expected, $props['cameras'][0]['display_ends_at']);
+    }
+
     public function test_camera_is_live_inside_window(): void
     {
         $this->makeFlight('Arrived', '09:55:00'); // tiba 5 menit lalu

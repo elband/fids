@@ -1,3 +1,4 @@
+import CameraEmbed from '@/Components/CameraEmbed';
 import { useMemo, useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -77,6 +78,7 @@ function jenisIconOf(j: 'iframe' | 'mjpeg' | 'youtube') {
 
 function CamPreviewModal({ cam, onClose }: { cam: Cam; onClose: () => void }) {
     const isRtsp = /^rtsp:\/\//i.test(cam.url_stream);
+    const [attempt, setAttempt] = useState(0);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
@@ -88,17 +90,21 @@ function CamPreviewModal({ cam, onClose }: { cam: Cam; onClose: () => void }) {
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
                             </span>
-                            LIVE
+                            PREVIEW
                         </div>
                         <h3 className="font-semibold">{cam.nama}</h3>
                         {cam.lokasi && <span className="text-xs text-white/50">— {cam.lokasi}</span>}
                     </div>
-                    <button onClick={onClose} className="text-white/70 hover:text-white p-1 rounded">
+                    <button onClick={onClose} aria-label="Tutup preview" className="text-white/70 hover:text-white p-1 rounded">
                         <X size={18} />
                     </button>
                 </div>
 
-                <div className="aspect-video bg-black flex items-center justify-center">
+                <div className="px-5 py-3 text-xs text-slate-300 flex flex-wrap items-center justify-between gap-3">
+                    <p>{cam.aktif ? 'Diaktifkan' : 'Dinonaktifkan'} di layar publik. Preview tetap membuka stream untuk pengecekan. Pastikan gambar bergerak untuk memeriksa kondisi kamera.</p>
+                    <button type="button" onClick={() => setAttempt(value => value + 1)} className="rounded border border-white/20 px-3 py-1.5 hover:bg-white/10">Muat ulang</button>
+                </div>
+                <div key={attempt} className="aspect-video bg-black flex items-center justify-center">
                     {isRtsp ? (
                         <div className="flex flex-col items-center justify-center text-amber-300 text-center px-6">
                             <AlertTriangle size={42} />
@@ -117,7 +123,7 @@ function CamPreviewModal({ cam, onClose }: { cam: Cam; onClose: () => void }) {
                     ) : cam.jenis_stream === 'youtube' ? (
                         <iframe src={youtubeEmbed(cam.url_stream)} className="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
                     ) : (
-                        <iframe src={cam.url_stream} className="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
+                        <CameraEmbed src={cam.url_stream} title={cam.nama} />
                     )}
                 </div>
 
@@ -646,12 +652,12 @@ function CameraCard({
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80"></span>
                                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
                             </span>
-                            LIVE
+                            AKTIF
                         </div>
                     ) : (
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-700/85 backdrop-blur text-gray-200 text-[10px] font-black tracking-widest uppercase">
                             <PowerOff size={11} />
-                            OFFLINE
+                            NONAKTIF
                         </div>
                     )}
                 </div>
@@ -755,6 +761,12 @@ function CameraCard({
                 <div className="rounded-lg bg-gray-50 dark:bg-gray-800/50 ring-1 ring-gray-100 dark:ring-gray-700 px-2.5 py-1.5 text-[10px] font-mono text-gray-500 dark:text-gray-400 truncate" title={cam.url_stream}>
                     {cam.url_stream}
                 </div>
+
+                <button type="button" onClick={onPreview}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-800 px-3 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600"
+                    aria-label={`Preview kamera ${cam.nama}`}>
+                    <Eye size={16} /> Preview Kamera
+                </button>
 
                 {/* actions */}
                 <div className="flex items-center gap-2 pt-1">
