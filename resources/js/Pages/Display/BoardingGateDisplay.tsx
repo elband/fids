@@ -1,3 +1,4 @@
+import AirlineLogo from '@/Components/AirlineLogo';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
@@ -294,9 +295,9 @@ export default function BoardingGateDisplay() {
                                                         return (
                                                             <>
                                                                 <div className="flex justify-between items-center">
-                                                                    <div className="bg-white rounded py-1 px-3 h-12 flex items-center shadow-inner max-w-[160px]">
+                                                                    <div className="bg-white rounded py-1 px-3 h-12 w-40 max-w-full flex items-center justify-center shadow-inner">
                                                                         {fl.maskapai?.logo ? (
-                                                                            <img src={fl.maskapai.logo} className="max-h-8 w-auto object-contain" alt="logo" />
+                                                                            <AirlineLogo src={fl.maskapai.logo} name={fl.maskapai.nama ?? 'Maskapai'} />
                                                                         ) : (
                                                                             <span className="font-bold text-gray-800 text-sm">{fl.maskapai?.nama}</span>
                                                                         )}

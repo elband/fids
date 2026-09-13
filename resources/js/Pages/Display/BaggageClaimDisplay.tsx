@@ -1,3 +1,4 @@
+import AirlineLogo from '@/Components/AirlineLogo';
 ﻿import { useEffect, useState, useCallback } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
@@ -138,9 +139,9 @@ export default function BaggageClaimDisplay() {
                                                     {flight ? (
                                                         <>
                                                             <div className="flex justify-between items-center mb-4">
-                                                                <div className="bg-white rounded py-1 px-3 h-12 flex items-center shadow-inner max-w-[160px]">
+                                                                <div className="bg-white rounded py-1 px-3 h-12 w-40 max-w-full flex items-center justify-center shadow-inner">
                                                                     {flight.airline?.logo ? (
-                                                                        <img src={flight.airline.logo} className="max-h-8 w-auto object-contain" alt="logo" />
+                                                                        <AirlineLogo src={flight.airline.logo} name={flight.airline.nama} />
                                                                     ) : (
                                                                         <span className="font-bold text-gray-800 text-sm">{flight.airline?.nama}</span>
                                                                     )}

@@ -1,3 +1,4 @@
+import AirlineLogo from '@/Components/AirlineLogo';
 ﻿import { useEffect, useState, useCallback } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
 import IdleImage from '@/Components/IdleImage';
@@ -207,7 +208,9 @@ export default function SingleCheckinDisplay({ identifier }: { identifier: strin
                         </div>
                         {flight?.airline?.logo && (
                             <div className="bg-white p-[1vw] rounded-3xl shadow-2xl shrink-0">
-                                <img src={flight.airline.logo} alt="Airline Logo" style={{ height: 'min(14vw,16vh)', maxWidth: '32vw' }} className="object-contain" />
+                                <div style={{ height: 'min(14vw,16vh)', width: '30vw' }}>
+                                    <AirlineLogo src={flight.airline.logo} name={flight.airline.nama} />
+                                </div>
                             </div>
                         )}
                     </div>

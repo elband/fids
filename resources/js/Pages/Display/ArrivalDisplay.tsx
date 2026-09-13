@@ -1,3 +1,4 @@
+import AirlineLogo from '@/Components/AirlineLogo';
 ﻿import { useEffect, useState, useCallback, useRef } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
 import { PlaneLanding } from 'lucide-react';
@@ -254,9 +255,9 @@ export default function Arrivals() {
                                     {/* Maskapai logo */}
                                     <div className="col-span-2">
                                         <div className="bg-white rounded-lg flex items-center justify-center shadow-md"
-                                            style={{ height: '5.5vh', maxWidth: '10vw', padding: '0.4vh 0.6vw' }}>
+                                            style={{ height: '5.5vh', width: '10vw', padding: '0.5vh 0.65vw' }}>
                                             {flight.maskapai?.logo ? (
-                                                <img src={flight.maskapai.logo} alt={flight.maskapai.nama} className="max-h-full w-auto object-contain" />
+                                                <AirlineLogo src={flight.maskapai.logo} name={flight.maskapai.nama} />
                                             ) : (
                                                 <span style={{ fontSize: '0.8vw' }} className="font-black text-gray-800 tracking-widest uppercase">{flight.maskapai?.nama}</span>
                                             )}
