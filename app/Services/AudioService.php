@@ -13,7 +13,7 @@ class AudioService
      * Speak text using server-side TTS (Windows or Linux).
      * Supports bilingual text separated by '---'
      */
-    public function speak(string $text, int $repeat = 1, int $intervalSeconds = 150): void
+    public function speak(string $text, int $repeat = 1, int $intervalSeconds = 150, bool $wait = false): void
     {
         $segments = explode('---', $text);
         $audioFiles = [];
@@ -37,7 +37,7 @@ class AudioService
             // dideteksi lewat nilai kembalian, lalu jatuh ke TTS lokal.
             if (!file_exists($filePath) || filesize($filePath) === 0) {
                 if (!$this->downloadTts($cleanSegment, $lang, $filePath)) {
-                    $this->speakLocal($text, $repeat, $intervalSeconds);
+                    $this->speakLocal($text, $repeat, $intervalSeconds, $wait);
                     return;
                 }
             }
@@ -67,14 +67,19 @@ class AudioService
             $psScript .= "}";
             
             $command = "start /B powershell -WindowStyle Hidden -Command \"{$psScript}\"";
-            pclose(popen($command, "r"));
+            if ($wait) {
+                exec(str_replace('start /B ', '', $command), $output, $code);
+                if ($code !== 0) throw new \RuntimeException('Pemutaran audio gagal.');
+            } else {
+                pclose(popen($command, "r"));
+            }
         } else {
             $player = $this->linuxPlayer();
 
             // Tidak ada pemutar mp3 terpasang: lebih baik suara robotik espeak
             // daripada senyap tanpa jejak.
             if ($player === null) {
-                $this->speakLocal($text, $repeat, $intervalSeconds);
+                $this->speakLocal($text, $repeat, $intervalSeconds, $wait);
                 return;
             }
 
@@ -103,7 +108,7 @@ class AudioService
             $ttl = (max(1, $repeat) * count($audioFiles) * self::PLAYER_TIMEOUT_SEC)
                  + (max(0, $repeat - 1) * (int) $intervalSeconds) + 10;
 
-            $this->runDetached($script, $ttl);
+            $this->runDetached($script, $ttl, $wait);
         }
     }
 
@@ -180,11 +185,22 @@ class AudioService
      * melindungi apa pun — command PHP-nya memang sudah selesai. Tanpa kunci
      * ini, tiap menit menambah satu proses pemutar baru di atas yang lama.
      */
-    private function runDetached(string $script, int $ttlSeconds = 120): void
+    private function runDetached(string $script, int $ttlSeconds = 120, bool $wait = false): void
     {
         // Kunci dilepas oleh kedaluwarsa, bukan oleh kita: prosesnya terlepas
         // sehingga tidak ada yang tersisa untuk melepaskannya secara eksplisit.
         if (! Cache::add(self::PLAYER_LOCK_KEY, 1, max(10, $ttlSeconds))) {
+            if ($wait) throw new \RuntimeException('Speaker sedang digunakan.');
+            return;
+        }
+
+        if ($wait) {
+            try {
+                exec('sh -e -c ' . escapeshellarg($script), $output, $code);
+                if ($code !== 0) throw new \RuntimeException('Pemutaran audio gagal.');
+            } finally {
+                Cache::forget(self::PLAYER_LOCK_KEY);
+            }
             return;
         }
 
@@ -216,7 +232,7 @@ class AudioService
     /**
      * Fallback to local robotic TTS if internet is down.
      */
-    private function speakLocal(string $text, int $repeat, int $intervalSeconds): void
+    private function speakLocal(string $text, int $repeat, int $intervalSeconds, bool $wait = false): void
     {
         $segments = explode('---', $text);
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
@@ -226,14 +242,19 @@ class AudioService
                 $psScript .= "\$s.SelectVoiceByHints(0, 0, 0, [System.Globalization.CultureInfo]::GetCultureInfo('{$lang}')); \$s.Speak('" . str_replace("'", "", $segment) . "'); ";
             }
             $psScript .= "if(\$i -lt " . ($repeat - 1) . "){ Start-Sleep -s {$intervalSeconds} } }";
-            exec("start /B powershell -WindowStyle Hidden -Command \"{$psScript}\"");
+            $prefix = $wait ? '' : 'start /B ';
+            exec($prefix . "powershell -WindowStyle Hidden -Command \"{$psScript}\"", $output, $code);
+            if ($wait && $code !== 0) throw new \RuntimeException('Pemutaran audio gagal.');
             return;
         }
 
         // Cabang Linux sebelumnya TIDAK ADA: saat internet mati, fallback ini
         // dipanggil lalu tidak melakukan apa pun, jadi pengumuman hilang tanpa
         // jejak. espeak berbunyi robotik tapi jauh lebih baik daripada senyap.
-        if (!shell_exec('command -v espeak 2>/dev/null')) return;
+        if (!shell_exec('command -v espeak 2>/dev/null')) {
+            if ($wait) throw new \RuntimeException('Pemutar audio tidak tersedia.');
+            return;
+        }
 
         $script = '';
         for ($i = 0; $i < max(1, $repeat); $i++) {
@@ -253,7 +274,7 @@ class AudioService
         if ($script !== '') {
             $ttl = (max(1, $repeat) * max(1, count($segments)) * self::PLAYER_TIMEOUT_SEC)
                  + (max(0, $repeat - 1) * (int) $intervalSeconds) + 10;
-            $this->runDetached($script, $ttl);
+            $this->runDetached($script, $ttl, $wait);
         }
     }
 }

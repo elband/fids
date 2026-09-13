@@ -79,7 +79,7 @@ class PlayAnnouncementsCommandTest extends TestCase
     }
 
     /** Pemutaran terakhir menonaktifkan pengumuman agar keluar dari antrian. */
-    public function test_deactivates_when_limit_reached(): void
+    public function test_deletes_when_limit_reached(): void
     {
         config(['fids.pas.server_speaker' => true]);
         $ann = $this->announcement([
@@ -90,9 +90,7 @@ class PlayAnnouncementsCommandTest extends TestCase
 
         $this->artisan('fids:play-announcements')->assertSuccessful();
 
-        $ann->refresh();
-        $this->assertSame(3, (int) $ann->broadcast_count);
-        $this->assertFalse((bool) $ann->status_aktif);
+        $this->assertDatabaseMissing('announcements', ['id' => $ann->id]);
     }
 
     /** --check hanya mendiagnosis: tidak memutar, tidak menyentuh hitungan. */
@@ -126,6 +124,82 @@ class PlayAnnouncementsCommandTest extends TestCase
         $this->artisan('fids:play-announcements')->assertSuccessful();
 
         $this->assertSame(0, (int) $ann->fresh()->broadcast_count);
+    }
+
+    public function test_three_plays_follow_card_interval_then_delete(): void
+    {
+        config(['fids.pas.server_speaker' => true]);
+        $ann = $this->announcement(['max_broadcasts' => 3, 'interval_pemutaran' => 4]);
+        $this->muteSpeaker(3);
+
+        $this->artisan('fids:play-announcements')->assertSuccessful();
+        $this->assertSame(2, $ann->fresh()->max_broadcasts - $ann->fresh()->broadcast_count);
+        $this->travel(3)->minutes();
+        $this->artisan('fids:play-announcements')->assertSuccessful();
+        $this->assertSame(1, (int) $ann->fresh()->broadcast_count);
+        $this->travel(1)->minutes();
+        $this->artisan('fids:play-announcements')->assertSuccessful();
+        $this->assertSame(1, $ann->fresh()->max_broadcasts - $ann->fresh()->broadcast_count);
+        $this->travel(4)->minutes();
+        $this->artisan('fids:play-announcements')->assertSuccessful();
+        $this->assertDatabaseMissing('announcements', ['id' => $ann->id]);
+        $this->artisan('fids:play-announcements')->assertSuccessful();
+    }
+
+    public function test_single_play_is_deleted_after_audio_returns(): void
+    {
+        config(['fids.pas.server_speaker' => true]);
+        $ann = $this->announcement(['max_broadcasts' => 1]);
+        $this->mock(AudioService::class, function ($mock) use ($ann) {
+            $mock->shouldReceive('speak')->once()->with('Tes pengumuman', 1, 150, true)
+                ->andReturnUsing(function () use ($ann) {
+                    $this->assertDatabaseHas('announcements', ['id' => $ann->id]);
+                });
+        });
+        $this->artisan('fids:play-announcements')->assertSuccessful();
+        $this->assertDatabaseMissing('announcements', ['id' => $ann->id]);
+    }
+
+    public function test_custom_interval_is_respected_to_the_second(): void
+    {
+        config(['fids.pas.server_speaker' => true]);
+        $this->freezeTime();
+        $ann = $this->announcement(['interval_pemutaran' => 7]);
+        $this->muteSpeaker(2);
+        $this->artisan('fids:play-announcements')->assertSuccessful();
+        $this->travel(419)->seconds();
+        $this->artisan('fids:play-announcements')->assertSuccessful();
+        $this->assertSame(1, (int) $ann->fresh()->broadcast_count);
+        $this->travel(1)->seconds();
+        $this->artisan('fids:play-announcements')->assertSuccessful();
+        $this->assertSame(2, (int) $ann->fresh()->broadcast_count);
+    }
+
+    public function test_failed_third_play_can_retry_without_losing_announcement(): void
+    {
+        config(['fids.pas.server_speaker' => true]);
+        $ann = $this->announcement(['broadcast_count' => 2, 'last_broadcast_at' => now()->subMinutes(10)]);
+        $this->mock(AudioService::class, function ($mock) {
+            $mock->shouldReceive('speak')->once()->andThrow(new \RuntimeException('Speaker busy'));
+        });
+        $this->artisan('fids:play-announcements')->assertFailed();
+        $this->assertSame(2, (int) $ann->fresh()->broadcast_count);
+        $this->assertTrue($ann->fresh()->status_aktif);
+        $this->muteSpeaker(1);
+        $this->artisan('fids:play-announcements')->assertSuccessful();
+        $this->assertDatabaseMissing('announcements', ['id' => $ann->id]);
+    }
+
+    public function test_failed_audio_remains_pending(): void
+    {
+        config(['fids.pas.server_speaker' => true]);
+        $ann = $this->announcement(['max_broadcasts' => 1]);
+        $this->mock(AudioService::class, function ($mock) {
+            $mock->shouldReceive('speak')->once()->andThrow(new \RuntimeException('Playback failed'));
+        });
+        $this->artisan('fids:play-announcements')->assertFailed();
+        $this->assertSame(0, (int) $ann->fresh()->broadcast_count);
+        $this->assertTrue($ann->fresh()->status_aktif);
     }
 
     protected function tearDown(): void

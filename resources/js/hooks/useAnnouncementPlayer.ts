@@ -59,7 +59,6 @@ export function useAnnouncementPlayer(enabled = true): void {
         const text = String(ann.isi_pengumuman ?? '').replace(/---/g, '. ');
 
         announce(text, { lang: 'id-ID', rate: 0.92 })
-            .catch((e) => console.error('PAS: gagal memutar', e))
             .then(() =>
                 // Endpoint publik tanpa auth/CSRF supaya kios yang tidak login tetap bisa melapor.
                 fetch(`/api/fids/announcements/${ann.id}/played`, {
@@ -67,7 +66,7 @@ export function useAnnouncementPlayer(enabled = true): void {
                     headers: { Accept: 'application/json' },
                 }),
             )
-            .catch((e) => console.error('PAS: gagal melapor', e))
+            .catch((e) => console.error('PAS: pemutaran atau laporan gagal', e))
             .finally(() => {
                 isPlayingRef.current = false;
                 // Segarkan antrian: yang sudah mencapai batas keluar dengan sendirinya.

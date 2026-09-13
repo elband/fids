@@ -65,16 +65,25 @@ class PlayAnnouncements extends Command
             return self::SUCCESS;
         }
 
-        $audio->speak((string) $announcement->isi_pengumuman, 1);
+        try {
+            $audio->speak((string) $announcement->isi_pengumuman, 1, 150, true);
+        } catch (\Throwable $e) {
+            Announcement::whereKey($announcement->id)->update([
+                'broadcast_count' => $announcement->broadcast_count,
+                'last_broadcast_at' => $announcement->last_broadcast_at,
+            ]);
+            Cache::forget('fids:api:announcements');
+            $this->error($e->getMessage());
+            return self::FAILURE;
+        }
 
         $announcement->refresh();
         $this->info("Diputar #{$announcement->id} \"{$announcement->judul}\" ({$announcement->broadcast_count}/{$announcement->max_broadcasts}).");
 
-        // Batas tercapai: nonaktifkan agar keluar dari antrian. Penghapusan permanen
-        // tetap dilakukan proses admin (PublicAnnouncementController@index).
+        // Pemutar sudah selesai: hapus tanpa menunggu halaman admin dibuka.
         if ($announcement->broadcast_count >= $announcement->max_broadcasts) {
-            $announcement->update(['status_aktif' => false]);
-            $this->info("Selesai: #{$announcement->id} mencapai batas pemutaran, dinonaktifkan.");
+            $announcement->delete();
+            $this->info("Selesai: #{$announcement->id} mencapai batas pemutaran, dihapus.");
         }
 
         Cache::forget('fids:api:announcements');

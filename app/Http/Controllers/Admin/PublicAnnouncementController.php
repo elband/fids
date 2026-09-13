@@ -13,8 +13,6 @@ class PublicAnnouncementController extends Controller
 
     public function index()
     {
-        // Auto-cleanup: hapus pengumuman yang sudah mencapai batas pemutaran (sisa putar = 0)
-        Announcement::whereColumn('broadcast_count', '>=', 'max_broadcasts')->delete();
 
         $announcements = Announcement::latest()->paginate(10);
 

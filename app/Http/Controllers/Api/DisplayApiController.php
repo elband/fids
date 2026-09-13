@@ -548,14 +548,9 @@ class DisplayApiController extends Controller
 
         $announcement->refresh();
 
-        // Audit C-03: endpoint publik ini TIDAK menghapus data secara permanen.
-        // Saat mencapai batas, pengumuman hanya dinonaktifkan (status_aktif=false) agar
-        // tidak hilang dari antrian pending; pembersihan permanen dilakukan oleh proses
-        // terotentikasi di Admin (PublicAnnouncementController@index).
         $reachedLimit = $announcement->broadcast_count >= $announcement->max_broadcasts;
-
-        if ($incremented && $reachedLimit && $announcement->status_aktif) {
-            $announcement->update(['status_aktif' => false]);
+        if ($incremented && $reachedLimit) {
+            $announcement->delete();
         }
 
         // Bust cache daftar pengumuman agar layar tidak memutar ulang yang sudah selesai.

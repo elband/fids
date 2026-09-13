@@ -29,11 +29,8 @@ class DisplayApiTest extends TestCase
             ->assertJsonStructure(['data' => ['sukses', 'pesan', 'result']]);
     }
 
-    /**
-     * C-03: endpoint publik "played" menaikkan hitungan namun TIDAK menghapus data.
-     * Saat batas tercapai, pengumuman hanya dinonaktifkan (status_aktif = false).
-     */
-    public function test_played_endpoint_soft_deactivates_and_never_deletes(): void
+    /** Completed announcements are removed immediately after the playback report. */
+    public function test_played_endpoint_deletes_after_single_play(): void
     {
         $ann = Announcement::create([
             'judul'           => 'Uji',
@@ -53,10 +50,7 @@ class DisplayApiTest extends TestCase
             ->assertOk()
             ->assertJson(['success' => true, 'finished' => true]);
 
-        // Record TETAP ADA (tidak dihapus oleh kanal publik)...
-        $this->assertDatabaseHas('announcements', ['id' => $ann->id]);
-        // ...namun dinonaktifkan.
-        $this->assertFalse((bool) $ann->fresh()->status_aktif);
+        $this->assertDatabaseMissing('announcements', ['id' => $ann->id]);
     }
 
     /**
