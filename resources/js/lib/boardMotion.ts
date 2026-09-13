@@ -11,26 +11,19 @@
  * lewat override di bawah, bukan lewat percabangan di JSX, supaya tidak ada
  * jalur animasi yang lolos karena terlupa dibungkus kondisi.
  *
- * Layar publik menyala 24/7: animasi yang berjalan terus-menerus (sweep, beacon)
- * dibatasi durasinya panjang dan jumlahnya sedikit agar GPU kios tidak panas.
+ * GERAKAN SENGAJA MINIMAL
+ * Dulu papan menumpuk kilau melintas, ikon mengambang, baris memantul, tiap
+ * huruf meluncur berurutan, dan teks status berdenyut di atas lampu kedip —
+ * terlalu ramai untuk dibaca penumpang. Sekarang hanya gerakan yang membawa
+ * informasi yang tersisa, semuanya tanpa pantulan:
+ *   - baris & label kolom (ID/EN) muncul dengan fade singkat,
+ *   - ubin flip + sorotan hanya pada status yang benar-benar berubah,
+ *   - satu lampu kedip lembut untuk status kritis.
  */
 export const BOARD_CSS = `
-    @keyframes score-slide-up {
-        0%   { transform: translateY(100%); opacity: 0; }
-        60%  { transform: translateY(-8%); opacity: 1; }
-        80%  { transform: translateY(3%); }
-        100% { transform: translateY(0%); opacity: 1; }
-    }
-    @keyframes score-row-in {
-        0%   { transform: translateY(100%); opacity: 0; }
-        50%  { transform: translateY(-3%); opacity: 1; }
-        100% { transform: translateY(0); opacity: 1; }
-    }
-    @keyframes header-col-in {
-        0%   { transform: translateY(110%); opacity: 0; }
-        55%  { transform: translateY(-6%);  opacity: 1; }
-        75%  { transform: translateY(2%); }
-        100% { transform: translateY(0%);   opacity: 1; }
+    @keyframes board-fade-in {
+        from { opacity: 0; }
+        to   { opacity: 1; }
     }
     /* Split-flap sungguhan: ubin jatuh dari engsel atas seperti papan Solari. */
     @keyframes flap-in {
@@ -47,21 +40,8 @@ export const BOARD_CSS = `
     }
     /* Lampu status kritis (Final Call / Boarding / Landed / Baggage Claim). */
     @keyframes beacon-blink {
-        0%, 45%  { opacity: 1; transform: scale(1); }
-        60%      { opacity: 0.25; transform: scale(0.72); }
-        100%     { opacity: 1; transform: scale(1); }
-    }
-    /* Kilau lambat melintasi papan, meniru pantulan lampu bandara. */
-    @keyframes board-sweep {
-        0%   { transform: translateX(-30%); opacity: 0; }
-        8%   { opacity: 1; }
-        92%  { opacity: 1; }
-        100% { transform: translateX(130%); opacity: 0; }
-    }
-    /* Ikon pesawat di header mengambang halus. */
-    @keyframes head-float {
-        0%, 100% { transform: translateY(0) translateX(0); }
-        50%      { transform: translateY(-7%) translateX(2%); }
+        0%, 100% { opacity: 1; }
+        50%      { opacity: 0.35; }
     }
 
     .header-col-wrap {
@@ -70,17 +50,16 @@ export const BOARD_CSS = `
     }
     .header-col-text {
         display: inline-block;
-        animation: header-col-in 0.55s cubic-bezier(0.16, 0.84, 0.44, 1) both;
+        animation: board-fade-in 0.4s ease-out both;
     }
     .score-row {
-        animation: score-row-in 0.6s cubic-bezier(0.16, 0.84, 0.44, 1) both;
-        transform-origin: bottom center;
+        animation: board-fade-in 0.4s ease-out both;
         position: relative;
     }
     /* Baris dengan status baru: kilat latar + pita penanda di tepi kiri. */
     .score-row--changed {
-        animation: score-row-in 0.6s cubic-bezier(0.16, 0.84, 0.44, 1) both,
-                   row-flash 5s ease-out 0.6s both;
+        animation: board-fade-in 0.4s ease-out both,
+                   row-flash 5s ease-out 0.4s both;
     }
     .score-row--changed::before {
         content: '';
@@ -90,23 +69,6 @@ export const BOARD_CSS = `
         background: var(--row-marker, #facc15);
         box-shadow: 0 0 1vw var(--row-marker, #facc15);
     }
-    .board-sweep {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        z-index: 3;
-        background: linear-gradient(105deg,
-            transparent 0%,
-            rgba(255,255,255,0.045) 45%,
-            rgba(255,255,255,0.10) 50%,
-            rgba(255,255,255,0.045) 55%,
-            transparent 100%);
-        width: 26%;
-        animation: board-sweep 14s linear infinite;
-    }
-    .head-float {
-        animation: head-float 5.5s ease-in-out infinite;
-    }
     .status-beacon {
         display: inline-block;
         width: 0.55vw;
@@ -115,8 +77,7 @@ export const BOARD_CSS = `
         margin-right: 0.45vw;
         vertical-align: middle;
         background: currentColor;
-        box-shadow: 0 0 0.6vw currentColor;
-        animation: beacon-blink 1.4s ease-in-out infinite;
+        animation: beacon-blink 2s ease-in-out infinite;
     }
     /* Ubin split-flap (Solari): ubin gelap, belahan atas/bawah, seam melintang. */
     .score-char {
@@ -156,11 +117,12 @@ export const BOARD_CSS = `
         background: var(--score-seam, rgba(0,0,0,0.7));
         z-index: 2;
     }
+    /* Huruf diam saat baris sekadar dirender ulang/dirotasi; hanya flip (status
+       yang benar-benar berubah) yang bergerak. */
     .score-char > span {
         position: relative;
         z-index: 1;
         display: inline-block;
-        animation: score-slide-up 0.4s cubic-bezier(0.16, 0.84, 0.44, 1) both;
     }
     .score-char > span.score-char-flip {
         transform-origin: center top;
@@ -180,13 +142,9 @@ export const BOARD_CSS = `
     .board-scroll::-webkit-scrollbar { display: none; }
 
     /* ---- Mode hemat: buang yang berjalan terus & yang mahal digambar ---- */
-    .fids-eco .board-sweep,
-    .fids-eco .head-float,
     .fids-eco .status-beacon {
         animation: none;
     }
-    .fids-eco .board-sweep { display: none; }
-    .fids-eco .status-beacon { box-shadow: none; }
     .fids-eco .score-row--changed {
         animation: row-flash 5s ease-out both;
     }
@@ -210,11 +168,9 @@ export const BOARD_CSS = `
 
     /* Hormati preferensi sistem kios yang dikonfigurasi anti-animasi. */
     @media (prefers-reduced-motion: reduce) {
-        .board-sweep { display: none; }
         .score-row,
         .score-row--changed,
         .header-col-text,
-        .head-float,
         .status-beacon,
         .score-char > span,
         .score-char > span.score-char-flip {

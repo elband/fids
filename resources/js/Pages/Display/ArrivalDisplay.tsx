@@ -24,22 +24,8 @@ interface Flight {
     status: string;
 }
 
-const statusColors: Record<string, { bg: string; text: string; glow: string }> = {
-    'Scheduled':     { bg: 'bg-transparent', text: 'text-white',       glow: '' },
-    'On Time':       { bg: 'bg-transparent', text: 'text-emerald-400', glow: '' },
-    'Landed':        { bg: 'bg-transparent', text: 'text-green-400',   glow: 'animate-pulse' },
-    'Arrived':       { bg: 'bg-transparent', text: 'text-emerald-300', glow: '' },
-    'Baggage Claim': { bg: 'bg-transparent', text: 'text-violet-400',  glow: 'animate-pulse' },
-    'Delayed':       { bg: 'bg-transparent', text: 'text-orange-400',  glow: '' },
-    'Cancelled':     { bg: 'bg-transparent', text: 'text-red-500',     glow: '' },
-};
-
 /** Warna jam header papan (permintaan lapangan: merah, terbaca dari jauh). */
 const CLOCK_COLOR = '#ef4444';
-
-function getStatusStyle(status: string) {
-    return statusColors[status] || { bg: 'bg-transparent', text: 'text-white', glow: '' };
-}
 
 export default function Arrivals() {
     const [flights, setFlights] = useState<Flight[]>([]);
@@ -198,7 +184,7 @@ export default function Arrivals() {
                         <h1 style={{ fontSize: '3.5vw', color: textColor }} className="font-extrabold tracking-tighter drop-shadow-lg leading-none whitespace-nowrap">
                             {t.arrivals[lang]}
                         </h1>
-                        <PlaneLanding style={{ width: '3.5vw', height: '3.5vw', flexShrink: 0, color: accentColor }} className="drop-shadow head-float" />
+                        <PlaneLanding style={{ width: '3.5vw', height: '3.5vw', flexShrink: 0, color: accentColor }} className="drop-shadow" />
                     </div>
                 </header>
 
@@ -209,27 +195,25 @@ export default function Arrivals() {
                             <span key={`airline-${headerKey}`} className="header-col-text">{t.colAirline[headerLang]}</span>
                         </div>
                         <div style={{ fontSize: '0.9vw', color: accentColor }} className="col-span-1 font-black text-yellow-500 tracking-[0.3em] uppercase header-col-wrap">
-                            <span key={`sched-${headerKey}`} className="header-col-text" style={{ animationDelay: '40ms' }}>{t.colScheduled[headerLang]}</span>
+                            <span key={`sched-${headerKey}`} className="header-col-text">{t.colScheduled[headerLang]}</span>
                         </div>
                         <div style={{ fontSize: '0.9vw', color: accentColor }} className="col-span-2 font-black text-yellow-500 tracking-[0.3em] uppercase header-col-wrap">
-                            <span key={`flight-${headerKey}`} className="header-col-text" style={{ animationDelay: '80ms' }}>{t.colFlight[headerLang]}</span>
+                            <span key={`flight-${headerKey}`} className="header-col-text">{t.colFlight[headerLang]}</span>
                         </div>
                         <div style={{ fontSize: '0.9vw', color: accentColor }} className="col-span-4 font-black text-yellow-500 tracking-[0.3em] uppercase header-col-wrap">
-                            <span key={`from-${headerKey}`} className="header-col-text" style={{ animationDelay: '120ms' }}>{t.colArrivingFrom[headerLang]}</span>
+                            <span key={`from-${headerKey}`} className="header-col-text">{t.colArrivingFrom[headerLang]}</span>
                         </div>
                         <div style={{ fontSize: '0.9vw', color: accentColor }} className="col-span-1 font-black text-yellow-500 tracking-[0.3em] uppercase text-center header-col-wrap">
-                            <span key={`bag-${headerKey}`} className="header-col-text" style={{ animationDelay: '160ms' }}>{t.colBaggage[headerLang]}</span>
+                            <span key={`bag-${headerKey}`} className="header-col-text">{t.colBaggage[headerLang]}</span>
                         </div>
                         <div style={{ fontSize: '0.9vw', color: accentColor }} className="col-span-2 font-black text-yellow-500 tracking-[0.3em] uppercase text-right header-col-wrap">
-                            <span key={`status-${headerKey}`} className="header-col-text" style={{ animationDelay: '200ms' }}>{t.colStatus[headerLang]}</span>
+                            <span key={`status-${headerKey}`} className="header-col-text">{t.colStatus[headerLang]}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Baris penerbangan â€” animasi scoreboard badminton */}
                 <div ref={scrollRef} className={`board-font flex-1 min-h-0 relative ${eco ? 'overflow-y-auto board-scroll' : 'overflow-hidden'}`}>
-                    {/* Kilau lambat melintasi papan — dimatikan otomatis di mode hemat. */}
-                    <div className="board-sweep" aria-hidden="true" />
                     {loading ? (
                         <div className="flex items-center justify-center py-20">
                             <div style={{ fontSize: '1.5vw' }} className="text-yellow-500 font-bold animate-pulse tracking-widest">
@@ -242,7 +226,6 @@ export default function Arrivals() {
                         </div>
                     ) : (
                         visibleFlights.map((flight, idx) => {
-                            const style = getStatusStyle(flight.status);
                             // Warna status semantik (tetap); status lain ikut warna teks utama
                             // agar terbaca di latar terang/gelap.
                             const semanticStatusClass =
@@ -266,7 +249,6 @@ export default function Arrivals() {
                                         paddingRight: '2.5vw',
                                         paddingTop: '1vh',
                                         paddingBottom: '1vh',
-                                        animationDelay: `${idx * 100}ms`,
                                         borderBottomColor: 'var(--row-divider, rgba(255,255,255,0.06))',
                                     }}
                                 >
@@ -284,22 +266,22 @@ export default function Arrivals() {
 
                                     {/* Waktu */}
                                     <div style={{ fontSize: '1.8vw', color: textColor }} className="col-span-1 font-black tracking-tight font-mono">
-                                        <ScoreChars text={flight.waktu} baseDelay={idx * 100 + 100} />
+                                        <ScoreChars text={flight.waktu} />
                                     </div>
 
                                     {/* Nomor penerbangan */}
                                     <div style={{ fontSize: '1.5vw', color: textColor, opacity: 0.85 }} className="col-span-2 font-bold tracking-tight">
-                                        <ScoreChars text={flight.nomor_penerbangan} baseDelay={idx * 100 + 200} />
+                                        <ScoreChars text={flight.nomor_penerbangan} />
                                     </div>
 
                                     {/* Asal */}
                                     <div style={{ fontSize: '2.2vw', color: accentColor }} className="col-span-4 font-black tracking-tight truncate pr-4 drop-shadow-sm uppercase">
-                                        <ScoreChars text={flight.asal} baseDelay={idx * 100 + 150} />
+                                        <ScoreChars text={flight.asal} />
                                     </div>
 
                                     {/* Baggage */}
                                     <div style={{ fontSize: '1.2vw', color: textColor }} className="col-span-1 font-black text-center whitespace-nowrap">
-                                        <ScoreChars text={flight.baggage_claim ? `B${flight.baggage_claim}` : '-'} baseDelay={idx * 100 + 300} />
+                                        <ScoreChars text={flight.baggage_claim ? `B${flight.baggage_claim}` : '-'} />
                                     </div>
 
                                     {/* Status */}
@@ -311,10 +293,10 @@ export default function Arrivals() {
                                                 color: semanticStatusClass ? undefined : textColor,
                                                 opacity: semanticStatusClass ? undefined : 0.75,
                                             }}
-                                            className={`font-black tracking-[0.1em] uppercase whitespace-nowrap ${semanticStatusClass} ${eco ? '' : style.glow}`}
+                                            className={`font-black tracking-[0.1em] uppercase whitespace-nowrap ${semanticStatusClass}`}
                                         >
                                             {urgent && <span className="status-beacon" aria-hidden="true" />}
-                                            <ScoreChars text={flight.status} baseDelay={idx * 100 + 350} flip={justChanged} />
+                                            <ScoreChars text={flight.status} flip={justChanged} />
                                         </span>
                                     </div>
                                 </div>
