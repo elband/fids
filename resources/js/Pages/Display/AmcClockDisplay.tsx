@@ -80,7 +80,14 @@ function WindRose({ deg, runwayHeading, color }: { deg: number | null; runwayHea
     const size = 'min(12vw,23vh)';
     return (
         <div className="amc-compass relative shrink-0" style={{ width: size, height: size }}>
-            <div className="absolute inset-0 rounded-full border-2 border-white/15" />
+            <svg className="amc-compass-ticks absolute inset-0 h-full w-full" viewBox="0 0 100 100" aria-hidden="true">
+                {Array.from({ length: 36 }, (_, i) => (
+                    <line key={i} x1="50" y1="2" x2="50" y2={i % 3 === 0 ? '7' : '4.5'}
+                        transform={`rotate(${i * 10} 50 50)`} stroke="currentColor" strokeWidth={i % 3 === 0 ? '1' : '0.5'} />
+                ))}
+                <circle cx="50" cy="50" r="2" fill="currentColor" />
+            </svg>
+            <div className="absolute inset-0 rounded-full border border-white/15" />
             <div className="absolute inset-[14%] rounded-full border border-white/10" />
 
             {/* Runway digambar sebagai garis melintang supaya hubungan angin-runway
@@ -137,7 +144,7 @@ function Card({ label, icon, accent, children }: {
                     {label}
                 </span>
             </div>
-            <div className="flex min-h-0 flex-1 flex-col justify-center overflow-hidden">
+            <div className="amc-card-body flex min-h-0 flex-1 flex-col justify-center overflow-hidden">
                 {children}
             </div>
         </section>
@@ -180,19 +187,20 @@ export default function AmcClockDisplay() {
     const lang: Lang = settings?.bahasa ?? 'id';
     const accent = '#38bdf8';
 
-    const utcText = useMemo(
-        () => new Intl.DateTimeFormat('en-GB', {
-            timeZone: 'UTC', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    const zoneClocks = useMemo(() => [
+        { label: 'WIB', zone: 'Asia/Jakarta', offset: 'UTC+07', city: 'Jakarta' },
+        { label: 'WIT', zone: 'Asia/Jayapura', offset: 'UTC+09', city: 'Jayapura' },
+        { label: 'UTC', zone: 'UTC', offset: 'UTC+00', city: lang === 'id' ? 'Waktu universal' : 'Universal time' },
+    ].map(clock => ({
+        ...clock,
+        time: new Intl.DateTimeFormat('en-GB', {
+            timeZone: clock.zone, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
         }).format(now),
-        [now],
-    );
-
-    const utcDate = useMemo(
-        () => new Intl.DateTimeFormat(lang === 'id' ? 'id-ID' : 'en-GB', {
-            timeZone: 'UTC', day: '2-digit', month: 'short', year: 'numeric',
+        date: new Intl.DateTimeFormat(lang === 'id' ? 'id-ID' : 'en-GB', {
+            timeZone: clock.zone, day: '2-digit', month: 'short', year: 'numeric',
         }).format(now),
-        [now, lang],
-    );
+    })), [now, lang]);
+    const localZoneLabel = ({ 'Asia/Makassar': 'WITA', 'Asia/Jakarta': 'WIB', 'Asia/Jayapura': 'WIT' } as Record<string, string>)[timezone] ?? timezone;
 
     const windKmh = weather?.kecepatan_angin ?? null;
     const windKt = windKmh !== null ? kmhToKnots(windKmh) : null;
@@ -254,7 +262,7 @@ export default function AmcClockDisplay() {
                 <div className="amc-hero flex shrink-0 items-center gap-[2vw] px-[2vw]" style={{ height: '40vh' }}>
                     <div className="min-w-0 flex-1">
                         <div style={{ fontSize: 'min(1vw,1.7vh)' }} className="font-bold uppercase tracking-[0.4em] text-white/40">
-                            {L.localTime[lang]} <span className="amc-timezone">{timezone}</span>
+                            {L.localTime[lang]} <span className="amc-timezone">{localZoneLabel}</span>
                         </div>
                         <div style={{ fontSize: 'min(16vw,24vh)', lineHeight: 0.95 }}
                              className="amc-local-digits font-black tabular-nums tracking-tighter drop-shadow-[0_0_25px_rgba(56,189,248,0.25)]">
@@ -265,20 +273,20 @@ export default function AmcClockDisplay() {
                         </div>
                     </div>
 
-                    {/* Warna berbeda supaya UTC tidak pernah terbaca sebagai jam lokal. */}
-                    <div className="amc-utc shrink-0 rounded-2xl border px-[1.6vw] py-[1.2vh] text-right"
-                         style={{ borderColor: `${accent}55`, background: `${accent}12` }}>
-                        <div style={{ fontSize: 'min(1vw,1.7vh)', color: accent }} className="font-black tracking-[0.4em]">
-                            UTC
-                        </div>
-                        <div style={{ fontSize: 'min(5.5vw,8.5vh)', lineHeight: 1, color: accent }}
-                             className="font-black tabular-nums tracking-tighter">
-                            {utcText}
-                        </div>
-                        <div style={{ fontSize: 'min(0.9vw,1.6vh)' }} className="font-bold uppercase tracking-[0.2em] text-white/50">
-                            {utcDate}
-                        </div>
-                    </div>
+                    <aside className="amc-zone-list" aria-label={lang === 'id' ? 'Zona waktu lainnya' : 'Other time zones'}>
+                        {zoneClocks.map(clock => (
+                            <section key={clock.label} className={`amc-zone-card amc-zone-${clock.label.toLowerCase()}`} aria-label={`${clock.label} ${clock.city}`}>
+                                <div className="amc-zone-info">
+                                    <div className="amc-zone-title">{clock.label}<span>{clock.offset}</span></div>
+                                    <div className="amc-zone-city">{clock.city}</div>
+                                </div>
+                                <div className="amc-zone-value">
+                                    <div className="amc-zone-digits">{clock.time}</div>
+                                    <div className="amc-zone-date">{clock.date}</div>
+                                </div>
+                            </section>
+                        ))}
+                    </aside>
                 </div>
 
                 <main className="amc-panels grid min-h-0 flex-1 grid-cols-[1.25fr_1fr_1fr] gap-[1.2vw] overflow-hidden px-[2vw] pb-[0.8vh]">
@@ -299,7 +307,7 @@ export default function AmcClockDisplay() {
                                 <div style={{ fontSize: 'min(1.15vw,1.9vh)' }} className="mt-[0.5vh] truncate font-black tracking-[0.1em]">
                                     {windDeg !== null
                                         ? `${compassLabel(windDeg, lang)} · ${compassPoint(windDeg)} ${String(Math.round(windDeg)).padStart(3, '0')}°`
-                                        : L.noData[lang]}
+                                        : (lang === 'id' ? 'Arah belum tersedia' : 'Direction unavailable')}
                                 </div>
 
                                 {comp && (
@@ -322,12 +330,13 @@ export default function AmcClockDisplay() {
                         </div>
                     </Card>
 
-                    <Card label={L.visibility[lang]} accent={accent} icon={<Eye style={iconSize} />}>
+                    <Card label={L.visibility[lang]} accent="#6ee7b7" icon={<Eye style={iconSize} />}>
+                        <div className="amc-visibility-symbol" aria-hidden="true"><Eye strokeWidth={1.2} /></div>
                         <div style={{ fontSize: 'min(6.5vw,11vh)', lineHeight: 1, color: visColor }} className="font-black tabular-nums">
                             {vis !== null ? formatVisibility(vis) : dash}
                         </div>
                         <div style={{ fontSize: 'min(1vw,1.7vh)' }} className="mt-[0.3vh] font-bold text-white/50">
-                            {weather?.jarak_pandang_teks ?? ''}
+                            {weather?.jarak_pandang_teks ?? (vis === null ? (lang === 'id' ? 'Data jarak pandang belum tersedia' : 'Visibility data unavailable') : '')}
                         </div>
                         {/* Pita status: kondisi buruk harus terbaca tanpa membaca angkanya. */}
                         <div className="mt-[0.9vh] h-[1.1vh] w-full overflow-hidden rounded-full bg-white/10">
@@ -339,8 +348,8 @@ export default function AmcClockDisplay() {
                         </div>
                     </Card>
 
-                    <Card label={L.weather[lang]} accent={accent} icon={<Thermometer style={iconSize} />}>
-                        <div className="flex min-w-0 items-center gap-[1vw]">
+                    <Card label={L.weather[lang]} accent="#fcd34d" icon={<Thermometer style={iconSize} />}>
+                        <div className="amc-weather-summary flex min-w-0 items-center gap-[1vw]">
                             <WeatherIcon desc={weather?.kondisi_cuaca ?? null} className="amc-weather-icon shrink-0 text-yellow-300" />
                             <div className="min-w-0">
                                 <div className="flex items-baseline gap-[0.3vw]">
