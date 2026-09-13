@@ -78,6 +78,28 @@ class AmcClockTest extends TestCase
             ->assertJsonPath('data.lokasi', 'Bugis');
     }
 
+    /**
+     * Regresi: last_updated dulu objek Carbon. Setelah keluar dari cache (dengan
+     * serializable_classes = false) ia menjadi __PHP_Incomplete_Class, sehingga
+     * layar AMC selalu menulis "diperbarui belum pernah" walau fetch berjalan.
+     */
+    public function test_api_cuaca_mengirim_last_updated_sebagai_string_setelah_dicache(): void
+    {
+        config([
+            'cache.default' => 'array',
+            'cache.stores.array.serialize' => true,
+        ]);
+        Cache::purge('array');
+
+        WeatherInfo::create(['lokasi' => 'Sungai Siring', 'suhu' => 26, 'kondisi_cuaca' => 'Cerah']);
+
+        $this->getJson('/api/fids/weather')->assertOk();
+        $lastUpdated = $this->getJson('/api/fids/weather')->assertOk()->json('data.last_updated');
+
+        $this->assertIsString($lastUpdated);
+        $this->assertNotFalse(strtotime($lastUpdated));
+    }
+
     /** Runway dipakai layar AMC untuk menghitung headwind/crosswind. */
     public function test_api_settings_mengirim_runway(): void
     {

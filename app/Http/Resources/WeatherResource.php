@@ -33,7 +33,10 @@ class WeatherResource extends JsonResource
             'tutupan_awan' => $this->tutupan_awan !== null ? (int) $this->tutupan_awan : null,
             // Jam berlaku slot prakiraan (ISO 8601, UTC) — beda dengan waktu ambil data.
             'berlaku_pada' => optional($this->berlaku_pada)->toIso8601String(),
-            'last_updated' => $this->updated_at,
+            // Harus string, bukan objek Carbon: hasil resolve() disimpan di cache dan
+            // config cache.serializable_classes = false membuat objek kembali sebagai
+            // __PHP_Incomplete_Class, sehingga layar selalu menulis "diperbarui belum pernah".
+            'last_updated' => optional($this->updated_at)->toIso8601String(),
         ];
     }
 }
