@@ -19,20 +19,17 @@
     font-display: swap;
 }
 
-/* Jam 7-segment ala LCD: digit menyala di atas "segmen mati" yang samar. */
+/* Match the red, slightly slanted seven-segment digits on AMC Clock. */
 .dseg-clock {
     position: relative;
     display: inline-block;
     font-family: 'DSEG7 Classic', ui-monospace, monospace;
     font-weight: 700;
     line-height: 1;
-    letter-spacing: 0.06em;
-}
-.dseg-clock .dseg-off {
-    position: absolute;
-    inset: 0;
-    opacity: 0.13;         /* segmen mati (background 88:88:88) */
-    pointer-events: none;
+    letter-spacing: 0;
+    white-space: nowrap;
+    transform: skewX(-6deg);
+    transform-origin: center;
 }
 
 @layer utilities {

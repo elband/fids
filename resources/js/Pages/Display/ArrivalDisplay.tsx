@@ -170,8 +170,7 @@ export default function Arrivals() {
                         </div>
                         {/* Jam digital 7-segment (DSEG7) ala foto referensi. Warnanya
                             dipatok merah, tidak ikut warna_utama dari Pengaturan Layar. */}
-                        <div className="dseg-clock mt-1 drop-shadow" style={{ fontSize: '2vw', color: CLOCK_COLOR }}>
-                            <span className="dseg-off" aria-hidden="true">88:88:88</span>
+                        <div className="dseg-clock mt-1" style={{ fontSize: '2vw', color: CLOCK_COLOR }}>
                             <span>{time24h}</span>
                         </div>
                     </div>
