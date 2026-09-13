@@ -1,0 +1,131 @@
+.world-clock-display {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100dvh;
+    padding: 0 2.5vw 3vh;
+}
+.world-clock-background,
+.world-clock-shade {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+}
+.world-clock-background { object-fit: cover; }
+.world-clock-shade { background: linear-gradient(180deg, #080f1bb3, #080f1b99 45%, #080f1be6); }
+.world-clock-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2vw;
+    min-height: 11vh;
+    margin: 0;
+}
+.world-clock-header h1 { font-size: clamp(16px, 1.8vw, 36px); }
+.world-clock-header .amc-brand > span { color: #38bdf8; }
+.world-clock-sync {
+    display: flex;
+    align-items: center;
+    gap: 0.6vw;
+    flex-shrink: 0;
+    padding: 0.8vh 1vw;
+    border: 1px solid #fbbf2460;
+    border-radius: 999px;
+    color: #fcd34d;
+    background: #fbbf240a;
+    font-size: clamp(9px, 0.7vw, 16px);
+    font-weight: 700;
+    letter-spacing: 0.16em;
+}
+.world-clock-sync.is-synced { color: #6ee7b7; border-color: #6ee7b750; background: #34d3990a; }
+.world-clock-sync > span { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.world-clock-content { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; gap: 4vh; padding-top: 3vh; }
+.world-clock-primary { text-align: center; min-width: 0; }
+.world-clock-eyebrow { color: #95abc0; font-size: clamp(11px, 1.1vw, 24px); font-weight: 700; letter-spacing: 0.25em; }
+.world-clock-primary .amc-local-digits { font-size: min(16vw, 30vh) !important; line-height: 1.2; margin: 3vh 0; }
+.world-clock-date { color: #c1d2e3; font-size: clamp(12px, 1.5vw, 30px); font-weight: 600; letter-spacing: 0.15em; }
+.world-clock-offset { margin-top: 1.5vh; font-size: clamp(10px, 0.85vw, 18px); color: #71889f; letter-spacing: 0.1em; }
+.world-clock-offset > span { padding: 0 0.7vw; }
+.world-clock-period { font-family: ui-sans-serif, sans-serif; font-size: 0.15em; margin-left: 0.5em; letter-spacing: 0; }
+.world-clock-content .amc-zone-list { width: 100%; gap: 1.5vw; }
+.world-clock-content .amc-zone-card {
+    position: relative;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2.8vh;
+    padding: 2.5vh 2vw;
+    border: 1px solid #ffffff20;
+    border-radius: 8px;
+    background: #101923f5;
+    box-shadow: 0 4px 12px #00000020;
+}
+.world-clock-content .amc-zone-card::before {
+    content: none;
+}
+.world-clock-content .amc-zone-wita { --zone-color: #fcd34d; }
+.world-clock-content .amc-zone-info {
+    display: grid;
+    gap: 0.7vh;
+    padding-bottom: 1.6vh;
+    border-bottom: 1px solid #ffffff15;
+}
+.world-clock-content .amc-zone-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1vw;
+    color: #e0e7ee;
+    font-size: clamp(14px, 1.4vw, 30px);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+}
+.world-clock-content .amc-zone-title > span {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 0.6em;
+    font-weight: 400;
+    color: #93a1ae;
+    white-space: nowrap;
+}
+.world-clock-zone-label { display: flex; align-items: center; gap: 0.55em; }
+.world-clock-zone-label > svg { width: 1em; height: 1em; flex-shrink: 0; color: #93a1ae; }
+.world-clock-content .amc-zone-city {
+    margin: 0;
+    font-size: clamp(9px, 0.75vw, 15px);
+    text-align: left;
+    color: #93a1ae;
+    letter-spacing: 0.06em;
+}
+.world-clock-content .amc-zone-value {
+    text-align: center;
+    padding: 0.8vh 0 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+}
+.world-clock-content .amc-zone-digits { font-size: min(4.6vw, 8vh); text-shadow: none; }
+.world-clock-content .amc-zone-date { margin-top: 2.6vh; font-size: clamp(10px, 0.8vw, 18px); color: #93a1ae; letter-spacing: 0.08em; }
+.world-clock-empty { text-align: center; color: #95abc0; }
+
+@media (max-aspect-ratio: 1/1) {
+    .world-clock-primary .amc-local-digits { font-size: 16vw !important; }
+    .world-clock-content { gap: 4vh; }
+    .world-clock-content .amc-zone-list { grid-template-columns: 1fr !important; gap: 1.5vh; }
+    .world-clock-content .amc-zone-card { flex-direction: row; align-items: center; padding: 2vh 4vw; }
+    .world-clock-content .amc-zone-info { flex-direction: column; align-items: flex-start; padding-bottom: 0; border-bottom: 0; }
+    .world-clock-content .amc-zone-value { padding: 1.5vh 2vw; }
+    .world-clock-content .amc-zone-title { font-size: 3vw; }
+    .world-clock-content .amc-zone-info { min-width: 29%; }
+    .world-clock-content .amc-zone-city { font-size: 1.6vw; text-align: left; }
+    .world-clock-content .amc-zone-digits { font-size: 7vw; }
+    .world-clock-content .amc-zone-date { font-size: 1.8vw; }
+    .world-clock-sync { letter-spacing: 0.06em; padding: 0.8vh 2vw; }
+}
