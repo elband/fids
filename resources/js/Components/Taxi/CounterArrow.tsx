@@ -12,6 +12,10 @@ import {
  * Nilai yang tersimpan di basis data tetap berupa karakter panah.
  */
 const ICONS: Record<string, LucideIcon> = {
+    '➡': ArrowRight,
+    '⬅': ArrowLeft,
+    '⬆': ArrowUp,
+    '⬇': ArrowDown,
     '→': ArrowRight,
     '←': ArrowLeft,
     '↑': ArrowUp,
@@ -31,7 +35,7 @@ interface Props {
 }
 
 export default function CounterArrow({ arah, className, strokeWidth = 3.5, style }: Props) {
-    const Icon = ICONS[arah] ?? ArrowRight;
+    const Icon = ICONS[arah.replace(/[\uFE0E\uFE0F]/g, '')] ?? ArrowRight;
 
     return <Icon className={className} strokeWidth={strokeWidth} style={style} />;
 }

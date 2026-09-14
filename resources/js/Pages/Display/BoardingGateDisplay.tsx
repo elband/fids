@@ -1,4 +1,5 @@
 import AirlineLogo from '@/Components/AirlineLogo';
+import CounterArrow from '@/Components/Taxi/CounterArrow';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import FidsLayout from '@/Layouts/FidsLayout';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
@@ -246,9 +247,10 @@ export default function BoardingGateDisplay() {
                                                 {gate.nama_gate || gate.kode_gate}
                                             </span>
                                             {gate.petunjuk_arah && (
-                                                <span className="text-5xl leading-none text-[#ff2020] drop-shadow-[0_0_8px_rgba(255,32,32,0.85)] mt-1">
-                                                    {gate.petunjuk_arah}
-                                                </span>
+                                                <CounterArrow
+                                                    arah={gate.petunjuk_arah}
+                                                    className="h-14 w-14 text-[#ff2020] drop-shadow-[0_0_8px_rgba(255,32,32,0.85)] mt-1"
+                                                />
                                             )}
                                         </div>
 
