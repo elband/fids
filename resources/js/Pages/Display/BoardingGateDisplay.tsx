@@ -171,10 +171,10 @@ export default function BoardingGateDisplay() {
                     <div className="absolute inset-0 bg-black/30"></div>
                     <div className="relative z-10 min-w-0 flex-1">
                         <h1
-                            className="text-[clamp(1.25rem,2.6vw,2.25rem)] leading-tight font-extrabold tracking-tighter text-yellow-400 whitespace-nowrap overflow-hidden text-ellipsis"
+                            className="text-[clamp(1.75rem,4vw,4rem)] leading-tight font-black tracking-tight text-yellow-400 whitespace-nowrap overflow-hidden text-ellipsis"
                             /* Foto header bisa terang (langit siang); tanpa garis luar gelap
                                teks emas ikut tenggelam saat dilihat dari jauh. */
-                            style={{ textShadow: '0 0 6px rgba(0,0,0,0.95), 0 2px 4px rgba(0,0,0,0.9)' }}
+                            style={{ WebkitTextStroke: '1px rgba(0,0,0,0.65)', paintOrder: 'stroke fill', textShadow: '0 3px 2px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.9)' }}
                         >
                             {t.boardingGates[lang]}
                         </h1>
@@ -246,7 +246,7 @@ export default function BoardingGateDisplay() {
                                                 {gate.nama_gate || gate.kode_gate}
                                             </span>
                                             {gate.petunjuk_arah && (
-                                                <span className="text-5xl leading-none text-amber-300 mt-1">
+                                                <span className="text-5xl leading-none text-[#ff2020] drop-shadow-[0_0_8px_rgba(255,32,32,0.85)] mt-1">
                                                     {gate.petunjuk_arah}
                                                 </span>
                                             )}
@@ -267,6 +267,11 @@ export default function BoardingGateDisplay() {
                                                         <span className="text-sm font-black tracking-[0.2em] uppercase text-teal-100/80">
                                                             {t.nextFlight[lang]}
                                                         </span>
+                                                        {gate.upcoming_flight.maskapai?.logo && (
+                                                            <div className="bg-white rounded py-1 px-2 h-10 w-28 shrink-0 flex items-center justify-center">
+                                                                <AirlineLogo src={gate.upcoming_flight.maskapai.logo} name={gate.upcoming_flight.maskapai.nama ?? 'Maskapai'} />
+                                                            </div>
+                                                        )}
                                                         <div className="flex items-baseline justify-center gap-4 flex-wrap">
                                                             <span className="text-4xl font-black tracking-wider tabular-nums text-white">
                                                                 {gate.upcoming_flight.jam_jadwal?.substring(0, 5) ?? '--:--'}
@@ -361,11 +366,16 @@ export default function BoardingGateDisplay() {
                                                                 return (
                                                                     <div
                                                                         key={fl.id}
-                                                                        className={`flex items-center gap-3 ${isDep ? 'opacity-70' : ''}`}
+                                                                        className={`flex flex-wrap items-center gap-3 ${isDep ? 'opacity-70' : ''}`}
                                                                     >
                                                                         <span className="text-lg font-bold tracking-wider shrink-0 tabular-nums">
                                                                             {fl.jam_jadwal?.substring(0, 5) ?? '--:--'}
                                                                         </span>
+                                                                        {fl.maskapai?.logo && (
+                                                                            <div className="bg-white rounded py-1 px-2 h-8 w-24 shrink-0 flex items-center justify-center">
+                                                                                <AirlineLogo src={fl.maskapai.logo} name={fl.maskapai.nama ?? 'Maskapai'} />
+                                                                            </div>
+                                                                        )}
                                                                         <span className="text-lg font-black tracking-widest shrink-0">
                                                                             {fl.nomor_penerbangan}
                                                                         </span>
