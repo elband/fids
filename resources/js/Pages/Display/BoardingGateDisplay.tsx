@@ -180,13 +180,16 @@ export default function BoardingGateDisplay() {
                             {t.boardingGates[lang]}
                         </h1>
                     </div>
-                    <div className="relative z-10 shrink-0 text-right">
+                    <div
+                        className="relative z-10 shrink-0 text-right flex flex-col gap-1.5"
+                        style={{ textShadow: '0 2px 4px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.7)' }}
+                    >
                         {weather && (
-                            <div className="text-[clamp(0.75rem,1.3vw,1.25rem)] leading-tight font-medium text-yellow-400 drop-shadow whitespace-nowrap">
+                            <div className="text-[clamp(1rem,2vw,2rem)] leading-tight font-bold text-yellow-400 whitespace-nowrap">
                                 {weather.suhu}°C <span className="mx-2">•</span> {weather.kondisi_cuaca}
                             </div>
                         )}
-                        <div className="text-[clamp(0.9rem,1.7vw,1.5rem)] leading-tight font-bold tracking-wide mt-1 drop-shadow whitespace-nowrap">
+                        <div className="text-[clamp(1.125rem,2.4vw,2.5rem)] leading-tight font-extrabold tracking-wide tabular-nums whitespace-nowrap">
                             {dateText} <span className="mx-2">|</span> {timeText}
                         </div>
                     </div>
