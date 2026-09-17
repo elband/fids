@@ -22,6 +22,23 @@ const OCCUPANT_BADGE: Record<string, { id: string; en: string; cls: string }> = 
     'Delayed':         { id: 'DITUNDA',       en: 'DELAYED',       cls: 'bg-red-500 text-white' },
 };
 
+const WEATHER_EN: Record<string, string> = {
+    'cerah': 'Clear',
+    'cerah berawan': 'Partly Cloudy',
+    'berawan': 'Cloudy',
+    'berawan tebal': 'Overcast',
+    'kabut': 'Fog',
+    'berkabut': 'Foggy',
+    'udara kabur': 'Haze',
+    'asap': 'Smoke',
+    'hujan ringan': 'Light Rain',
+    'hujan sedang': 'Moderate Rain',
+    'hujan lebat': 'Heavy Rain',
+    'hujan lokal': 'Local Showers',
+    'hujan petir': 'Thunderstorms',
+    'hujan disertai petir': 'Thunderstorms',
+};
+
 interface Flight {
     id: number;
     jam_jadwal: string;
@@ -50,7 +67,12 @@ interface Gate {
 
 export default function BoardingGateDisplay() {
     const [gates, setGates] = useState<Gate[]>([]);
-    const { dateText, timeText } = useNtpClock();
+    const { now, timezone, timeText, time24h } = useNtpClock();
+    // Ikuti menit jam layar (NTP + timezone display), bukan waktu sejak halaman dibuka.
+    const lang: Lang = Number(time24h.split(':')[1]) % 2 === 1 ? 'id' : 'en';
+    const dateText = now.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-GB', {
+        timeZone: timezone, weekday: 'short', day: 'numeric', month: 'short',
+    });
     const [loading, setLoading] = useState(true);
     const [scrollSpeed, setScrollSpeed] = useState(1);
     const scrollRef = useAutoScroll(scrollSpeed, 4000, [gates]);
@@ -58,7 +80,6 @@ export default function BoardingGateDisplay() {
     const [bgImage, setBgImage] = useState<string | null>(null);
     const [tickerText, setTickerText] = useState('');
     const [tickerSpeed, setTickerSpeed] = useState(TICKER_SPEED_DEFAULT);
-    const [lang, setLang] = useState<Lang>('id');
 
     const fetchData = useCallback(async () => {
         try {
@@ -81,7 +102,6 @@ export default function BoardingGateDisplay() {
             if (jsonSettings.data?.kecepatan_scroll !== undefined) setScrollSpeed(jsonSettings.data.kecepatan_scroll);
             if (jsonSettings.data?.teks_ticker) setTickerText(jsonSettings.data.teks_ticker);
             if (jsonSettings.data?.kecepatan_running_text) setTickerSpeed(jsonSettings.data.kecepatan_running_text);
-            if (jsonSettings.data?.bahasa) setLang(jsonSettings.data.bahasa);
         } catch (err) {
             console.error('Failed to fetch gates:', err);
         } finally {
@@ -97,7 +117,7 @@ export default function BoardingGateDisplay() {
 
     return (
         <FidsLayout title="FIDS - Boarding Gate">
-            <div className="gate-board h-screen bg-black text-white font-sans select-none overflow-hidden flex flex-col">
+            <div lang={lang} className="gate-board h-screen bg-black text-white font-sans select-none overflow-hidden flex flex-col">
                 <header
                     className="gate-header relative w-full shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-900 via-emerald-900 to-slate-900 overflow-hidden shadow-lg border-b-2 border-black bg-cover bg-center"
                     style={{ backgroundImage: bgImage ? `url(${bgImage})` : undefined }}
@@ -114,7 +134,11 @@ export default function BoardingGateDisplay() {
                                 <>
                                     <span className="gate-header-dot" aria-hidden>•</span>
                                     <span className="shrink-0 tabular-nums">{weather.suhu}°C</span>
-                                    <span className="gate-header-weather">{weather.kondisi_cuaca}</span>
+                                    <span className="gate-header-weather">
+                                        {lang === 'en'
+                                            ? WEATHER_EN[weather.kondisi_cuaca?.trim().toLowerCase()] ?? weather.kondisi_cuaca
+                                            : weather.kondisi_cuaca}
+                                    </span>
                                 </>
                             )}
                         </div>

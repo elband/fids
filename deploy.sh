@@ -22,7 +22,7 @@ for arg in "$@"; do
     esac
 done
 
-TOTAL=11
+TOTAL=12
 
 echo "==> [1/$TOTAL] Pemeriksaan awal..."
 # Gagal di sini jauh lebih murah daripada gagal setelah migrasi berjalan.
@@ -82,7 +82,7 @@ echo "==> [4/$TOTAL] Building frontend assets..."
 # --include=dev wajib: vite & plugin-nya ada di devDependencies, sedangkan server
 # produksi umumnya menyetel NODE_ENV=production yang membuat `npm ci` polos
 # melewatkannya — build lalu gagal dengan "vite: not found".
-npm ci --include=dev
+PUPPETEER_SKIP_DOWNLOAD=true npm ci --include=dev
 npm run build
 
 # public/build/ tidak ikut di-commit (lihat .gitignore), jadi bila build diam-diam
@@ -91,6 +91,14 @@ if [ ! -f public/build/manifest.json ]; then
     echo "     GAGAL: public/build/manifest.json tidak terbentuk — hentikan deploy."
     exit 1
 fi
+
+# Font gate harus tersedia lokal, termasuk saat koneksi internet TV terputus.
+for asset in public/fonts/AtkinsonHyperlegible-Bold.ttf public/fonts/AtkinsonHyperlegible-OFL.txt; do
+    if [ ! -s "$asset" ]; then
+        echo "     GAGAL: aset font wajib tidak tersedia: $asset"
+        exit 1
+    fi
+done
 
 # Sisa `npm run dev` yang pernah dijalankan di server. Selama berkas ini ada,
 # Laravel mengarahkan SELURUH aset ke http://127.0.0.1:5173 dan setiap layar
@@ -162,6 +170,11 @@ echo "==> [11/$TOTAL] Memberi tahu queue worker agar memakai kode baru..."
 # kode versi lama sampai di-restart manual — masalah yang sama dengan OPcache
 # di langkah sebelumnya, tapi pada sisi antrean.
 php artisan queue:restart
+
+echo "==> [12/$TOTAL] Meminta layar TV memuat versi terbaru..."
+# Kirim hanya setelah build, migrasi, cache, dan restart worker berhasil.
+# Halaman gate menentukan bahasa dari menit NTP; jangan ubah setting bahasa global.
+php artisan fids:reload-displays
 
 echo ""
 echo "Deployment complete."
