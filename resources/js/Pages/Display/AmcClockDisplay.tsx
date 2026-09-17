@@ -80,6 +80,15 @@ const L = {
     minutesAgo: { id: 'menit lalu',          en: 'min ago' },
     never:      { id: 'belum pernah',        en: 'never' },
     source:     { id: 'Prakiraan BMKG',      en: 'BMKG forecast' },
+    dataSource: { id: 'SUMBER DATA',         en: 'DATA SOURCE' },
+    sourceMetar: {
+        id: 'BMKG · Portal Aviasi (METAR/SPECI)',
+        en: 'BMKG · Aviation Portal (METAR/SPECI)',
+    },
+    sourceForecast: {
+        id: 'BMKG · Prakiraan Cuaca Publik',
+        en: 'BMKG · Public Weather Forecast',
+    },
     qnh:        { id: 'QNH',                 en: 'QNH' },
     dewPoint:   { id: 'TITIK EMBUN',         en: 'DEW POINT' },
     observed:   { id: 'pengamatan',          en: 'observed' },
@@ -498,6 +507,14 @@ export default function AmcClockDisplay() {
                 </main>
 
                 <footer className="amc-footer flex shrink-0 items-center justify-between gap-[1vw] border-t border-white/10 bg-black/40 px-[2vw] py-[0.7vh]">
+                    <div className="min-w-0">
+                    {/* Sumber data selalu tercantum dan tidak ikut terpotong oleh teks METAR mentah. */}
+                    <div style={{ fontSize: 'min(0.8vw,1.4vh)' }} className="amc-data-source truncate font-black tracking-[0.15em] text-sky-200/80">
+                        {L.dataSource[lang]}:{' '}
+                        {obs
+                            ? `${L.sourceMetar[lang]} · ${metar?.source ?? 'web-aviation.bmkg.go.id'} · ${metar?.icao ?? ''}`
+                            : `${L.sourceForecast[lang]} · api.bmkg.go.id${weather?.lokasi ? ` · ${weather.lokasi}` : ''}`}
+                    </div>
                     <div style={{ fontSize: 'min(0.8vw,1.4vh)' }} className="truncate font-bold tracking-[0.15em] text-white/50">
                         {obs ? (
                             <>
@@ -507,7 +524,6 @@ export default function AmcClockDisplay() {
                         ) : (
                             <>
                                 {L.source[lang]}
-                                {weather?.lokasi ? ` · ${weather.lokasi}` : ''}
                                 {validText ? ` · ${L.validAt[lang]} ${validText}` : ''}
                             </>
                         )}
@@ -515,6 +531,7 @@ export default function AmcClockDisplay() {
                         <span style={{ color: freshColor }}>
                             {L.updated[lang]} {ageMin === null ? L.never[lang] : `${ageMin} ${L.minutesAgo[lang]}`}
                         </span>
+                    </div>
                     </div>
                     <div style={{ fontSize: 'min(0.8vw,1.4vh)' }}
                          className="shrink-0 rounded border border-amber-400/40 bg-amber-500/15 px-[0.8vw] py-[0.25vh] font-black tracking-[0.15em] text-amber-300">
