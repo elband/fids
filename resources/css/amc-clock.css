@@ -196,7 +196,7 @@
 
 @media (min-aspect-ratio: 1/1) {
     .amc-hero {
-        height: 59vh !important;
+        height: 56vh !important;
         flex-direction: column;
         justify-content: center;
         align-items: stretch;
@@ -215,6 +215,7 @@
     .amc-card-heading > svg { padding: 0.35vw; }
     .amc-card-body { padding: 0.8vh 0; }
     .amc-compass { width: min(8vw, 15vh) !important; height: min(8vw, 15vh) !important; }
+    .amc-wind-speed { font-size: min(4vw, 6.5vh) !important; }
     .amc-visibility-symbol { width: 3vh; height: 3vh; margin-bottom: 0.5vh; box-shadow: none; }
     .amc-card:nth-child(2) .amc-card-body > :nth-child(2) { font-size: min(4vw, 6vh) !important; }
     .amc-card:nth-child(2) .amc-card-body > :last-child { margin-top: 1vh; }

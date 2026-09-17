@@ -391,7 +391,7 @@ export default function AmcClockDisplay() {
                             <WindRose deg={windDeg} runwayHeading={runwayHeading} color={accent} />
                             <div className="min-w-0">
                                 <div className="flex items-baseline gap-[0.4vw]">
-                                    <span style={{ fontSize: 'min(5vw,8.5vh)', lineHeight: 1 }} className="font-black tabular-nums">
+                                    <span style={{ fontSize: 'min(5vw,8.5vh)', lineHeight: 1 }} className="amc-wind-speed font-black tabular-nums">
                                         {windKt !== null ? Math.round(windKt) : dash}
                                     </span>
                                     <span style={{ fontSize: 'min(1.3vw,2.1vh)' }} className="font-bold text-white/60">kt</span>
@@ -400,9 +400,13 @@ export default function AmcClockDisplay() {
                                             G{obs.wind_gust_kt}
                                         </span>
                                     )}
-                                </div>
-                                <div style={{ fontSize: 'min(0.9vw,1.6vh)' }} className="font-bold tabular-nums text-white/45">
-                                    {windKmh !== null ? `${windKmh.toFixed(1)} km/jam` : ''}
+                                    {/* km/jam sebaris dengan kt: hemat satu baris supaya komponen
+                                        runway di bawah tidak terpotong pada layar landscape. */}
+                                    {windKmh !== null && (
+                                        <span style={{ fontSize: 'min(0.9vw,1.6vh)' }} className="ml-[0.5vw] whitespace-nowrap font-bold tabular-nums text-white/45">
+                                            {windKmh.toFixed(1)} km/jam
+                                        </span>
+                                    )}
                                 </div>
                                 <div style={{ fontSize: 'min(1.15vw,1.9vh)' }} className="mt-[0.5vh] truncate font-black tracking-[0.1em]">
                                     {windDeg !== null
