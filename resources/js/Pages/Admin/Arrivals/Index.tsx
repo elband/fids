@@ -28,7 +28,8 @@ export default function Index({
     today_date = '',
     current_filter_day = '',
     available_days = [],
-    airplanes = []
+    airplanes = [],
+    statusOptions = [] as string[]
 }: any) {
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -510,18 +511,10 @@ export default function Index({
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
                                         <select value={data.status} onChange={e => setData('status', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white font-semibold" required>
-                                            <option value="Scheduled">Scheduled</option>
-                                            <option value="Check-in Open">Check-in Open</option>
-                                            <option value="Check-in Closed">Check-in Closed</option>
-                                            <option value="Boarding">Boarding</option>
-                                            <option value="Final Call">Final Call</option>
-                                            <option value="Departed">Departed</option>
-                                            <option value="Arrived">Arrived</option>
-                                            <option value="Delayed">Delayed</option>
-                                            <option value="Cancelled">Cancelled</option>
-                                            <option value="Gate Open">Gate Open</option>
-                                            <option value="Baggage Claim">Baggage Claim</option>
-                                            <option value="On Time">On Time</option>
+                                            {!statusOptions.includes(data.status) && data.status && (
+                                                <option value={data.status}>{data.status} (nonaktif)</option>
+                                            )}
+                                            {statusOptions.map((s: string) => <option key={s} value={s}>{s}</option>)}
                                         </select>
                                     </div>
                                 )}

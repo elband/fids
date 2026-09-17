@@ -110,7 +110,8 @@ fi
 
 echo "==> [6/$TOTAL] Seeding database..."
 if [ "$NO_SEED" = false ]; then
-    # DatabaseSeeder hanya berisi role & permission: idempotent penuh dan tidak
+    # DatabaseSeeder hanya berisi role & permission serta remark status inti
+    # penerbangan (FlightStatusRemarkSeeder): idempotent penuh dan tidak
     # menyentuh data operasional. Data master contoh (bandara, maskapai, gate,
     # counter, belt) sengaja TIDAK di dalamnya — di server, semua itu sudah
     # dikelola operator lewat panel admin, dan menulisinya ulang tiap deploy
@@ -124,8 +125,15 @@ if [ "$NO_SEED" = false ]; then
         php artisan db:seed --class=MasterDataSeeder --force
     fi
 else
-    echo "     dilewati (--no-seed)"
+    # --no-seed hanya melewati role/permission & data contoh. Remark status inti
+    # tetap wajib: tanpanya dropdown status penerbangan kosong dan petugas tidak
+    # bisa mengubah status sama sekali.
+    echo "     dilewati (--no-seed) — kecuali remark status penerbangan"
+    php artisan db:seed --class=FlightStatusRemarkSeeder --force
 fi
+
+# Gagal menutup: jangan sampai deploy "sukses" dengan dropdown status yang kosong.
+php artisan fids:check-flight-status-remarks
 
 echo "==> [7/$TOTAL] Linking storage..."
 php artisan storage:link --force

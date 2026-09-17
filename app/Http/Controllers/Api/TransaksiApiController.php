@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Flight;
+use App\Models\Remark;
 use Illuminate\Http\Request;
 
 /**
@@ -19,6 +20,9 @@ class TransaksiApiController extends Controller
 {
     /** Jumlah baris per halaman, mengikuti referensi (per_page = 5). */
     private const PER_PAGE = 5;
+
+    /** @var array<string, int>|null nama_remark => id, dimuat sekali per request. */
+    private ?array $remarkIds = null;
 
     /**
      * Daftar transaksi keberangkatan (departure).
@@ -125,6 +129,9 @@ class TransaksiApiController extends Controller
             ? $f->checkinCounters->first()->nomor_counter
             : ($f->checkinCounter->nomor_counter ?? null);
 
+        $this->remarkIds ??= Remark::pluck('id', 'nama_remark')->all();
+        $remarkId = $this->remarkIds[$f->status] ?? null;
+
         $base = [
             'id'          => $f->id,
             'tanggal'     => optional($f->tanggal_penerbangan)->format('Y-m-d'),
@@ -136,13 +143,13 @@ class TransaksiApiController extends Controller
             'is_extra'    => 0,
             'is_force'    => 0,
             'keterangan'  => $f->catatan,
-            'remark_id'   => null,
+            'remark_id'   => $remarkId,
             'reason_id'   => 0,
             'created_at'  => $f->created_at,
             'updated_at'  => $f->updated_at,
             'maskapai'    => $maskapai,
             'pesawat'     => ['kode_penerbangan' => $f->nomor_penerbangan, 'jenis' => null, 'tipe' => null],
-            'remark'      => ['id' => null, 'status' => $f->status],
+            'remark'      => ['id' => $remarkId, 'status' => $f->status],
             'reason'      => ['id' => 0, 'deskripsi' => '---'],
         ];
 

@@ -51,6 +51,7 @@ class DailyArrivalController extends Controller
             'checkinCounters' => CheckinCounter::orderByRaw('CAST(nomor_counter AS UNSIGNED), nomor_counter')->get(),
             'baggageClaims' => BaggageClaim::all(),
             'isDaily' => true,
+            'statusOptions' => \App\Models\Remark::flightStatusOptions(),
             'routes' => FlightRoute::with(['airportAsal', 'airportTujuan'])->where('jenis_rute', 'arrival')->get(),
             'airplanes' => \App\Models\Airplane::with('airline')->get(),
             'server_timezone' => \App\Support\DisplayTimezone::get(),

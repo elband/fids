@@ -6,6 +6,8 @@ use App\Models\BaggageClaim;
 use App\Models\CheckinCounter;
 use App\Models\Flight;
 use App\Models\Gate;
+use App\Models\Remark;
+use App\Support\FlightStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
@@ -77,5 +79,47 @@ class DeploySeedSafetyTest extends TestCase
         $this->assertNotNull($dummy->gate_id);
         $this->assertNotNull(Gate::find($dummy->gate_id));
         $this->assertSame('G1', Gate::find($dummy->gate_id)->kode_gate);
+    }
+
+    /**
+     * Status penerbangan inti harus selalu tersedia sebagai remark setelah deploy,
+     * walau remark-nya sempat terhapus langsung dari database produksi.
+     */
+    public function test_deploy_seed_restores_missing_flight_status_remarks(): void
+    {
+        Remark::where('nama_remark', 'Boarding')->delete();
+        Remark::where('nama_remark', 'Gate Closed')->update(['status_aktif' => false]);
+        Remark::where('nama_remark', 'Scheduled')->update(['status_aktif' => false]);
+        Remark::create(['kode' => 'DIV', 'nama_remark' => 'Diverted', 'status_aktif' => false]);
+
+        $this->assertSame(1, Artisan::call('fids:check-flight-status-remarks'));
+
+        Artisan::call('db:seed', ['--force' => true]);
+        Artisan::call('db:seed', ['--force' => true]); // idempotent: tidak menggandakan
+
+        $this->assertSame(0, Artisan::call('fids:check-flight-status-remarks'));
+        $this->assertSame(count(FlightStatus::ALL), Remark::where('is_system', true)->count());
+        $this->assertTrue(Remark::where('nama_remark', 'Boarding')->value('status_aktif'));
+        // Pilihan operator dihormati, kecuali Scheduled yang wajib aktif.
+        $this->assertFalse(Remark::where('nama_remark', 'Gate Closed')->value('status_aktif'));
+        $this->assertTrue(Remark::where('nama_remark', 'Scheduled')->value('status_aktif'));
+        // Remark buatan operator tidak disentuh.
+        $this->assertFalse(Remark::where('nama_remark', 'Diverted')->value('status_aktif'));
+        $this->assertFalse(Remark::where('nama_remark', 'Diverted')->value('is_system'));
+    }
+
+    /** Remark lama bernama sama (beda huruf) diambil alih, bukan digandakan. */
+    public function test_flight_status_seeder_adopts_legacy_remark_names(): void
+    {
+        Remark::where('nama_remark', 'Delayed')->delete();
+        $legacy = Remark::create(['kode' => 'DLY', 'nama_remark' => 'DELAYED', 'status_aktif' => false]);
+
+        Artisan::call('db:seed', ['--class' => 'Database\Seeders\FlightStatusRemarkSeeder', '--force' => true]);
+
+        $legacy->refresh();
+        $this->assertSame('Delayed', $legacy->nama_remark);
+        $this->assertTrue($legacy->is_system);
+        $this->assertTrue($legacy->status_aktif);
+        $this->assertSame(1, Remark::whereRaw('LOWER(nama_remark) = ?', ['delayed'])->count());
     }
 }

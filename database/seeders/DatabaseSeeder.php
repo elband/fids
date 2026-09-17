@@ -15,8 +15,9 @@ class DatabaseSeeder extends Seeder
      * SETIAP deploy, jadi isinya harus aman untuk database produksi yang sudah
      * berisi data operasional.
      *
-     * Hanya role & permission: keduanya idempotent penuh dan memang perlu jalan
-     * tiap deploy karena permission bisa bertambah antar rilis.
+     * Hanya role & permission serta remark status inti: semuanya idempotent penuh
+     * dan memang perlu jalan tiap deploy karena permission maupun status penerbangan
+     * bisa bertambah antar rilis.
      *
      * MasterDataSeeder sengaja TIDAK di sini. Isinya data contoh untuk instalasi
      * baru (bandara, maskapai, gate G1-G4, counter, belt, penerbangan dummy),
@@ -33,6 +34,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             TaxiPermissionSeeder::class,
+            FlightStatusRemarkSeeder::class,
         ]);
     }
 }

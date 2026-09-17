@@ -1,13 +1,14 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
-import { Edit, Trash, Plus, Search, Hash, AlertCircle, MessageSquare, CheckCircle2, XCircle } from 'lucide-react';
+import { Edit, Trash, Plus, Search, Hash, AlertCircle, MessageSquare, CheckCircle2, XCircle, Lock, Plane } from 'lucide-react';
 import MasterHero from '@/Components/MasterHero';
 import { appConfirm } from '@/lib/confirm';
 
 export default function Index({ remarks }: { remarks: any[] }) {
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const editing = remarks.find((r) => r.id === editingId) ?? null;
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         kode: '',
@@ -99,7 +100,7 @@ export default function Index({ remarks }: { remarks: any[] }) {
                         eyebrow="Data Master"
                         icon={<Hash size={12} />}
                         title="Remark Penerbangan"
-                        description="Daftar kode remark/keterangan singkat untuk status penerbangan."
+                        description="Sumber daftar status pada menu Keberangkatan & Kedatangan. Hanya remark aktif yang muncul di dropdown; remark sistem dipakai layar display sehingga namanya terkunci."
                         actions={
                             <button
                                 onClick={() => openModal()}
@@ -112,7 +113,7 @@ export default function Index({ remarks }: { remarks: any[] }) {
                             { label: 'Total', value: stats.total, icon: <Hash size={14} /> },
                             { label: 'Aktif', value: stats.active, icon: <CheckCircle2 size={14} /> },
                             { label: 'Nonaktif', value: stats.inactive, icon: <XCircle size={14} /> },
-                            { label: 'Tersedia', value: stats.active, icon: <MessageSquare size={14} /> },
+                            { label: 'Sistem', value: remarks.filter((r) => r.is_system).length, icon: <Lock size={14} /> },
                         ]}
                     />
 
@@ -175,6 +176,11 @@ export default function Index({ remarks }: { remarks: any[] }) {
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">
                                                         Remark
                                                     </span>
+                                                    {remark.is_system && (
+                                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-sky-600" title="Status inti layar display">
+                                                            <Lock size={10} /> Sistem
+                                                        </span>
+                                                    )}
                                                     {remark.status_aktif ? (
                                                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-600">
                                                             <CheckCircle2 size={10} /> Aktif
@@ -188,6 +194,9 @@ export default function Index({ remarks }: { remarks: any[] }) {
                                                 <h5 className="mt-1 text-sm font-bold text-gray-900 dark:text-white leading-snug line-clamp-2" title={remark.nama_remark}>
                                                     {remark.nama_remark}
                                                 </h5>
+                                                <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400">
+                                                    <Plane size={11} /> Dipakai {remark.flights_count ?? 0} penerbangan
+                                                </p>
                                             </div>
                                         </div>
 
@@ -198,13 +207,15 @@ export default function Index({ remarks }: { remarks: any[] }) {
                                             >
                                                 <Edit size={12} /> Edit
                                             </button>
-                                            <button
-                                                onClick={() => deleteRemark(remark.id)}
-                                                className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
-                                                title="Hapus"
-                                            >
-                                                <Trash size={14} />
-                                            </button>
+                                            {!remark.is_system && (
+                                                <button
+                                                    onClick={() => deleteRemark(remark.id)}
+                                                    className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+                                                    title="Hapus"
+                                                >
+                                                    <Trash size={14} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -240,9 +251,15 @@ export default function Index({ remarks }: { remarks: any[] }) {
                                     type="text"
                                     value={data.nama_remark}
                                     onChange={(e) => setData('nama_remark', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:opacity-60"
+                                    disabled={!!editing?.is_system}
                                     required
                                 />
+                                {editing?.is_system ? (
+                                    <p className="text-gray-500 text-xs mt-1">Nama remark sistem terkunci karena dicocokkan oleh layar display.</p>
+                                ) : (
+                                    <p className="text-gray-500 text-xs mt-1">Teks ini tampil sebagai status penerbangan. Remark tambahan tidak memicu perilaku khusus di papan gate, check-in, atau bagasi.</p>
+                                )}
                                 {errors.nama_remark && <p className="text-red-500 text-xs mt-1">{errors.nama_remark}</p>}
                             </div>
 
@@ -252,12 +269,14 @@ export default function Index({ remarks }: { remarks: any[] }) {
                                     id="status_aktif"
                                     checked={data.status_aktif}
                                     onChange={(e) => setData('status_aktif', e.target.checked)}
+                                    disabled={editing?.nama_remark === 'Scheduled'}
                                     className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                                 />
                                 <label htmlFor="status_aktif" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-                                    Status Aktif
+                                    Status Aktif (tampil di dropdown status)
                                 </label>
                             </div>
+                            {errors.status_aktif && <p className="text-red-500 text-xs -mt-2">{errors.status_aktif}</p>}
 
                             <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700">
                                 <button

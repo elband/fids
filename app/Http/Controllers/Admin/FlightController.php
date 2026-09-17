@@ -10,6 +10,8 @@ use App\Models\Gate;
 use App\Models\CheckinCounter;
 use App\Models\BaggageClaim;
 use App\Models\FlightStatusLog;
+use App\Models\Remark;
+use App\Rules\ActiveRemarkStatus;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
@@ -35,6 +37,7 @@ class FlightController extends Controller
             'gates' => Gate::all(),
             'checkinCounters' => CheckinCounter::orderByRaw('CAST(nomor_counter AS UNSIGNED), nomor_counter')->get(),
             'baggageClaims' => BaggageClaim::all(),
+            'statusOptions' => Remark::flightStatusOptions(),
         ]);
     }
 
@@ -78,7 +81,7 @@ class FlightController extends Controller
      * `tanggal_penerbangan` nullable: master template menyimpannya null, sehingga
      * dulu setiap penyuntingan master dari modul ini selalu gagal validasi.
      */
-    private function rules(): array
+    private function rules(?Flight $flight = null): array
     {
         return [
             'tanggal_penerbangan' => 'nullable|date',
@@ -94,14 +97,14 @@ class FlightController extends Controller
             'gate_id' => 'nullable|exists:gates,id',
             'checkin_counter_id' => 'nullable|exists:checkin_counters,id',
             'baggage_claim_id' => 'nullable|exists:baggage_claims,id',
-            'status' => 'required|string',
+            'status' => ['required', 'string', new ActiveRemarkStatus($flight?->status)],
             'catatan' => 'nullable|string',
         ];
     }
 
     public function update(Request $request, Flight $flight)
     {
-        $validated = $request->validate($this->rules());
+        $validated = $request->validate($this->rules($flight));
 
         $validated['updated_by'] = Auth::id();
 

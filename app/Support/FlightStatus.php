@@ -12,15 +12,25 @@ namespace App\Support;
  * penerbangan LENYAP dari layar gate begitu petugas memilih status tersebut.
  * Semua modul sekarang wajib merujuk konstanta di kelas ini.
  *
- * @see resources/js/Pages/Admin/Departures/Index.tsx — dropdown status petugas
+ * Dropdown status petugas diisi dari master Remark (App\Models\Remark); setiap
+ * status di ALL tersimpan di sana sebagai remark sistem yang tidak boleh diganti nama.
  */
 final class FlightStatus
 {
-    /** Semua status yang dapat dipilih petugas pada dropdown penerbangan harian. */
+    /** Status inti yang dikenali layar publik; wajib ada sebagai remark sistem. */
     public const ALL = [
         'Scheduled', 'On Time', 'Check-in Open', 'Check-in Closed', 'Boarding',
         'Gate Open', 'Final Call', 'Gate Closed', 'Departed', 'Landed', 'Arrived',
         'Baggage Claim', 'Delayed', 'Cancelled',
+    ];
+
+    /** Kode remark bawaan untuk setiap status inti. */
+    public const DEFAULT_CODES = [
+        'Scheduled' => 'SCH', 'On Time' => 'ONT', 'Check-in Open' => 'CKO',
+        'Check-in Closed' => 'CKC', 'Boarding' => 'BDG', 'Gate Open' => 'GTO',
+        'Final Call' => 'FCL', 'Gate Closed' => 'GTC', 'Departed' => 'DEP',
+        'Landed' => 'LND', 'Arrived' => 'ARR', 'Baggage Claim' => 'BGC',
+        'Delayed' => 'DLY', 'Cancelled' => 'CNL',
     ];
 
     /**

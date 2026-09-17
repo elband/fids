@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Flight;
+use App\Rules\ActiveRemarkStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
 class FlightRequest extends FormRequest
@@ -70,10 +72,23 @@ class FlightRequest extends FormRequest
             'checkin_counter_ids' => 'nullable|array',
             'checkin_counter_ids.*' => 'exists:checkin_counters,id',
             'baggage_claim_id' => 'nullable|exists:baggage_claims,id',
-            'status' => 'sometimes|required|string', // Master often fixed to 'Scheduled'
+            // Master selalu dipaksa 'Scheduled' oleh controller; harian wajib remark aktif.
+            'status' => ['sometimes', 'required', 'string', new ActiveRemarkStatus($this->editedFlight()?->status)],
             'catatan' => 'nullable|string',
             'hari_operasi' => 'nullable|array', // Required for master usually
             'frekuensi_per_minggu' => 'nullable|integer',
         ];
+    }
+
+    /** Penerbangan yang sedang disunting, apa pun nama parameter rutenya. */
+    private function editedFlight(): ?Flight
+    {
+        foreach ($this->route()?->parameters() ?? [] as $param) {
+            if ($param instanceof Flight) {
+                return $param;
+            }
+        }
+
+        return null;
     }
 }
