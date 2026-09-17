@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\DisplayApiController;
+use App\Http\Controllers\Api\MetarApiController;
 use App\Http\Controllers\Api\TaxiSignageApiController;
 use App\Http\Controllers\Api\TransaksiApiController;
 
@@ -35,6 +36,7 @@ Route::prefix('fids')->middleware('throttle:600,1')->group(function () {
     Route::post('/announcements/{announcement}/played', [DisplayApiController::class, 'markAnnouncementPlayed'])
         ->middleware('throttle:20,1');
     Route::get('/weather', [DisplayApiController::class, 'weather']);
+    Route::get('/metar', [MetarApiController::class, 'show']);
     Route::get('/settings', [DisplayApiController::class, 'settings']);
     Route::get('/time', [DisplayApiController::class, 'time']);
     Route::get('/world-clock-settings', [DisplayApiController::class, 'worldClockSettings']);

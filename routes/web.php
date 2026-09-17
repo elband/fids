@@ -151,6 +151,7 @@ Route::middleware(['auth', 'verified', 'role:Super Admin|Admin Operasional'])->p
     Route::get('display-settings', [DisplaySettingController::class, 'index'])->name('display-settings.index');
     Route::post('display-settings', [DisplaySettingController::class, 'update'])->name('display-settings.update');
     Route::post('display-settings/force-reload', [DisplaySettingController::class, 'forceReload'])->name('display-settings.force-reload');
+    Route::post('display-settings/fetch-metar', [DisplaySettingController::class, 'fetchMetar'])->name('display-settings.fetch-metar');
     Route::get('public-screen-settings', [DisplaySettingController::class, 'publicScreenSettings'])->name('public-screen-settings.index');
     Route::post('public-screen-settings', [DisplaySettingController::class, 'updatePublicScreenSettings'])->name('public-screen-settings.update');
     Route::resource('advertisements', AdvertisementController::class)->only(['index', 'store', 'update', 'destroy']);

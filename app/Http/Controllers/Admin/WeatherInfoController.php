@@ -35,6 +35,12 @@ class WeatherInfoController extends Controller
 
         $validated['updated_by'] = \Illuminate\Support\Facades\Auth::id();
 
+        // Layar AMC mengutamakan teks BMKG (mis. "> 10 km"). Bila petugas mengisi
+        // jarak pandang manual, teks BMKG lama harus dibuang agar tidak menutupi angkanya.
+        if (array_key_exists('jarak_pandang', $validated)) {
+            $validated['jarak_pandang_teks'] = null;
+        }
+
         \App\Models\WeatherInfo::updateOrCreate(
             ['lokasi' => $validated['lokasi']],
             $validated

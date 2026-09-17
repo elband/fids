@@ -182,4 +182,28 @@ class AmcClockTest extends TestCase
 
         return $user;
     }
+
+    /**
+     * Layar AMC menampilkan teks BMKG (mis. "> 10 km") sebagai nilai utama, jadi
+     * input manual petugas harus membuang teks lama agar angkanya yang tampil.
+     */
+    public function test_input_manual_jarak_pandang_membuang_teks_bmkg_lama(): void
+    {
+        \Spatie\Permission\Models\Role::findOrCreate('Super Admin');
+        $user = \App\Models\User::factory()->create(['email_verified_at' => now()])->assignRole('Super Admin');
+
+        WeatherInfo::create([
+            'lokasi' => 'Samarinda', 'suhu' => 30, 'kondisi_cuaca' => 'Berawan',
+            'jarak_pandang' => 26000, 'jarak_pandang_teks' => '> 10 km',
+        ]);
+
+        $this->actingAs($user)->post(route('admin.weather-infos.store'), [
+            'lokasi' => 'Samarinda', 'suhu' => 30, 'kondisi_cuaca' => 'Kabut',
+            'jarak_pandang' => 800,
+        ])->assertSessionHasNoErrors();
+
+        $weather = WeatherInfo::where('lokasi', 'Samarinda')->first();
+        $this->assertSame(800, $weather->jarak_pandang);
+        $this->assertNull($weather->jarak_pandang_teks);
+    }
 }

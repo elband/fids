@@ -5,11 +5,12 @@ import { useNtpClock } from '@/hooks/useNtpClock';
 import { getNtpStatus } from '@/lib/timezoneClock';
 import { type Lang } from '@/lib/fids';
 import {
-    compassLabel, compassPoint, dataFreshness, formatVisibility, kmhToKnots,
+    compassLabel, compassPoint, dataFreshness, describeMetarClouds, describeMetarWeather,
+    formatMetarVisibility, formatVisibility, kmhToKnots, KMH_PER_KNOT,
     minutesSince, normalizeDegrees, visibilityLevel, windComponents,
 } from '@/lib/amcWeather';
 import {
-    Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSun, Sun, Wind, Eye, Thermometer,
+    AlertTriangle, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSun, Sun, Wind, Eye, Thermometer,
 } from 'lucide-react';
 
 interface Weather {
@@ -26,6 +27,35 @@ interface Weather {
     berlaku_pada: string | null;
     last_updated: string | null;
 }
+
+interface MetarData {
+    raw_text: string;
+    observed_at: string | null;
+    wind_dir_deg: number | null;
+    wind_variable: boolean;
+    wind_var_from: number | null;
+    wind_var_to: number | null;
+    wind_speed_kt: number | null;
+    wind_gust_kt: number | null;
+    visibility_m: number | null;
+    present_weather: string | null;
+    clouds: string | null;
+    temperature_c: number | null;
+    dew_point_c: number | null;
+    qnh_hpa: number | null;
+    trend: string | null;
+}
+
+interface MetarPayload {
+    enabled: boolean;
+    icao: string | null;
+    source?: string;
+    report: MetarData | null;
+    problem: { code: string; message: string } | null;
+}
+
+/** METAR lebih tua dari ini tidak dipakai lagi; layar kembali ke prakiraan BMKG. */
+const METAR_MAX_AGE_MINUTES = 180;
 
 interface Settings {
     nama_bandara: string | null;
@@ -50,6 +80,21 @@ const L = {
     minutesAgo: { id: 'menit lalu',          en: 'min ago' },
     never:      { id: 'belum pernah',        en: 'never' },
     source:     { id: 'Prakiraan BMKG',      en: 'BMKG forecast' },
+    qnh:        { id: 'QNH',                 en: 'QNH' },
+    dewPoint:   { id: 'TITIK EMBUN',         en: 'DEW POINT' },
+    observed:   { id: 'pengamatan',          en: 'observed' },
+    metarWarning: {
+        id: 'METAR HASIL SCRAPING BMKG - BUKAN SUMBER RESMI OPERASIONAL',
+        en: 'METAR SCRAPED FROM BMKG - NOT AN OFFICIAL OPERATIONAL SOURCE',
+    },
+    metarFallback: {
+        id: 'Layar menampilkan prakiraan BMKG sebagai pengganti.',
+        en: 'Showing BMKG forecast instead.',
+    },
+    metarLastKnown: {
+        id: 'Layar menampilkan METAR terakhir yang berhasil ditarik.',
+        en: 'Showing the last METAR that was fetched successfully.',
+    },
     warning:    {
         id: 'PRAKIRAAN BMKG - BUKAN DATA OPERASIONAL',
         en: 'BMKG FORECAST - NOT FOR OPERATIONAL USE',
@@ -69,8 +114,8 @@ function WeatherIcon({ desc, className }: { desc: string | null; className?: str
     if (d.includes('petir') || d.includes('thunder')) return <CloudLightning {...props} />;
     if (d.includes('lebat') || d.includes('heavy rain')) return <CloudRain {...props} />;
     if (d.includes('hujan') || d.includes('rain')) return <CloudDrizzle {...props} />;
-    if (d.includes('kabut') || d.includes('asap') || d.includes('fog') || d.includes('haze')) return <CloudFog {...props} />;
-    if (d.includes('berawan tebal') || d.includes('overcast') || d.includes('mendung')) return <Cloud {...props} />;
+    if (d.includes('kabut') || d.includes('asap') || d.includes('fog') || d.includes('haze') || d.includes('mist') || d.includes('smoke') || d.includes('obscured')) return <CloudFog {...props} />;
+    if (d.includes('berawan tebal') || d.includes('overcast') || d.includes('mendung') || d.includes('broken')) return <Cloud {...props} />;
     if (d.includes('berawan') || d.includes('cloud')) return <CloudSun {...props} />;
     return <Sun {...props} />;
 }
@@ -155,16 +200,26 @@ export default function AmcClockDisplay() {
     const { now, timezone, time24h, dateFullId } = useNtpClock();
     const [weather, setWeather] = useState<Weather | null>(null);
     const [settings, setSettings] = useState<Settings | null>(null);
+    const [metar, setMetar] = useState<MetarPayload | null>(null);
     const [ntpSynced, setNtpSynced] = useState(false);
 
     const fetchData = useCallback(async () => {
         try {
-            const [wRes, sRes] = await Promise.all([
+            const [wRes, sRes, mRes] = await Promise.all([
                 fetch('/api/fids/weather'),
                 fetch('/api/fids/settings'),
+                fetch('/api/fids/metar'),
             ]);
             if (wRes.ok) setWeather((await wRes.json()).data);
             if (sRes.ok) setSettings((await sRes.json()).data);
+            if (mRes.ok) {
+                setMetar((await mRes.json()).data);
+            } else {
+                setMetar({
+                    enabled: true, icao: null, report: null,
+                    problem: { code: 'api', message: `Server FIDS gagal menyajikan data METAR (HTTP ${mRes.status}).` },
+                });
+            }
         } catch (err) {
             console.error('AMC clock: gagal mengambil data', err);
         }
@@ -202,9 +257,17 @@ export default function AmcClockDisplay() {
     })), [now, lang]);
     const localZoneLabel = ({ 'Asia/Makassar': 'WITA', 'Asia/Jakarta': 'WIB', 'Asia/Jayapura': 'WIT' } as Record<string, string>)[timezone] ?? timezone;
 
-    const windKmh = weather?.kecepatan_angin ?? null;
-    const windKt = windKmh !== null ? kmhToKnots(windKmh) : null;
-    const windDeg = weather?.arah_angin_derajat ?? null;
+    // METAR (pengamatan bandara) diutamakan; prakiraan BMKG hanya cadangan bila
+    // METAR nonaktif, belum ada, atau sudah terlalu tua untuk dipajang.
+    const metarAge = minutesSince(metar?.report?.observed_at, now);
+    const obs = metar?.enabled && metar.report && metarAge !== null && metarAge <= METAR_MAX_AGE_MINUTES
+        ? metar.report : null;
+
+    const windKt = obs ? obs.wind_speed_kt
+        : (weather?.kecepatan_angin != null ? kmhToKnots(weather.kecepatan_angin) : null);
+    const windKmh = obs ? (obs.wind_speed_kt !== null ? obs.wind_speed_kt * KMH_PER_KNOT : null)
+        : (weather?.kecepatan_angin ?? null);
+    const windDeg = obs ? obs.wind_dir_deg : (weather?.arah_angin_derajat ?? null);
     const runwayHeading = settings?.runway_heading ?? null;
 
     const comp = useMemo(() => {
@@ -212,11 +275,19 @@ export default function AmcClockDisplay() {
         return windComponents(windDeg, windKt, runwayHeading);
     }, [windDeg, windKt, runwayHeading]);
 
-    const vis = weather?.jarak_pandang ?? null;
+    const vis = obs ? obs.visibility_m : (weather?.jarak_pandang ?? null);
+    const visText = obs
+        ? (obs.visibility_m !== null ? formatMetarVisibility(obs.visibility_m, lang) : null)
+        : (weather?.jarak_pandang_teks?.trim() || null);
     const visLevel = vis !== null ? visibilityLevel(vis) : null;
     const visColor = visLevel === 'poor' ? '#f87171' : visLevel === 'moderate' ? '#fbbf24' : '#4ade80';
 
-    const ageMin = minutesSince(weather?.last_updated, now);
+    const metarProblem = metar?.enabled ? metar.problem : null;
+    const obsTime = obs?.observed_at
+        ? new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(obs.observed_at))
+        : null;
+
+    const ageMin = obs ? metarAge : minutesSince(weather?.last_updated, now);
     const fresh = ageMin !== null ? dataFreshness(ageMin) : 'expired';
     const freshColor = fresh === 'expired' ? '#f87171' : fresh === 'stale' ? '#fbbf24' : '#94a3b8';
 
@@ -289,6 +360,21 @@ export default function AmcClockDisplay() {
                     </aside>
                 </div>
 
+                {metarProblem && (
+                    <div role="alert"
+                         className="amc-metar-alert mx-[2vw] mb-[0.8vh] flex shrink-0 items-center gap-[0.8vw] rounded-xl border border-red-400/40 bg-red-500/15 px-[1.2vw] py-[0.7vh]">
+                        <AlertTriangle className="shrink-0 text-red-300" style={{ width: 'min(1.4vw,2.4vh)', height: 'min(1.4vw,2.4vh)' }} />
+                        <div className="min-w-0">
+                            <div style={{ fontSize: 'min(0.95vw,1.6vh)' }} className="font-black leading-snug text-red-100">
+                                {metarProblem.message}
+                            </div>
+                            <div style={{ fontSize: 'min(0.75vw,1.3vh)' }} className="font-bold text-red-200/70">
+                                {obs ? L.metarLastKnown[lang] : L.metarFallback[lang]}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <main className="amc-panels grid min-h-0 flex-1 grid-cols-[1.25fr_1fr_1fr] gap-[1.2vw] overflow-hidden px-[2vw] pb-[0.8vh]">
 
                     <Card label={L.wind[lang]} accent={accent} icon={<Wind style={iconSize} />}>
@@ -300,6 +386,11 @@ export default function AmcClockDisplay() {
                                         {windKt !== null ? Math.round(windKt) : dash}
                                     </span>
                                     <span style={{ fontSize: 'min(1.3vw,2.1vh)' }} className="font-bold text-white/60">kt</span>
+                                    {obs?.wind_gust_kt != null && (
+                                        <span style={{ fontSize: 'min(1.3vw,2.1vh)' }} className="font-black tabular-nums text-amber-300">
+                                            G{obs.wind_gust_kt}
+                                        </span>
+                                    )}
                                 </div>
                                 <div style={{ fontSize: 'min(0.9vw,1.6vh)' }} className="font-bold tabular-nums text-white/45">
                                     {windKmh !== null ? `${windKmh.toFixed(1)} km/jam` : ''}
@@ -307,8 +398,15 @@ export default function AmcClockDisplay() {
                                 <div style={{ fontSize: 'min(1.15vw,1.9vh)' }} className="mt-[0.5vh] truncate font-black tracking-[0.1em]">
                                     {windDeg !== null
                                         ? `${compassLabel(windDeg, lang)} · ${compassPoint(windDeg)} ${String(Math.round(windDeg)).padStart(3, '0')}°`
-                                        : (lang === 'id' ? 'Arah belum tersedia' : 'Direction unavailable')}
+                                        : obs?.wind_variable
+                                            ? (lang === 'id' ? 'ARAH BERUBAH-UBAH (VRB)' : 'VARIABLE (VRB)')
+                                            : (lang === 'id' ? 'Arah belum tersedia' : 'Direction unavailable')}
                                 </div>
+                                {obs?.wind_var_from != null && obs.wind_var_to != null && (
+                                    <div style={{ fontSize: 'min(0.9vw,1.6vh)' }} className="font-bold tabular-nums text-white/45">
+                                        {lang === 'id' ? 'Bervariasi' : 'Varying'} {String(obs.wind_var_from).padStart(3, '0')}°–{String(obs.wind_var_to).padStart(3, '0')}°
+                                    </div>
+                                )}
 
                                 {comp && (
                                     <div className="mt-[0.7vh] flex flex-wrap items-center gap-x-[0.8vw] gap-y-[0.3vh]">
@@ -332,12 +430,16 @@ export default function AmcClockDisplay() {
 
                     <Card label={L.visibility[lang]} accent="#6ee7b7" icon={<Eye style={iconSize} />}>
                         <div className="amc-visibility-symbol" aria-hidden="true"><Eye strokeWidth={1.2} /></div>
-                        <div style={{ fontSize: 'min(6.5vw,11vh)', lineHeight: 1, color: visColor }} className="font-black tabular-nums">
-                            {vis !== null ? formatVisibility(vis) : dash}
+                        {/* Nilai utama mengikuti teks resmi BMKG (mis. "> 10 km"), sama seperti
+                            situs BMKG; angka meter hanya dipakai bila teksnya tidak ada (input manual). */}
+                        <div style={{ fontSize: 'min(6.5vw,11vh)', lineHeight: 1, color: visColor }} className="font-black tabular-nums whitespace-nowrap">
+                            {visText ?? (vis !== null ? formatVisibility(vis) : dash)}
                         </div>
-                        <div style={{ fontSize: 'min(1vw,1.7vh)' }} className="mt-[0.3vh] font-bold text-white/50">
-                            {weather?.jarak_pandang_teks ?? (vis === null ? (lang === 'id' ? 'Data jarak pandang belum tersedia' : 'Visibility data unavailable') : '')}
-                        </div>
+                        {visText === null && vis === null && (
+                            <div style={{ fontSize: 'min(1vw,1.7vh)' }} className="mt-[0.3vh] font-bold text-white/50">
+                                {lang === 'id' ? 'Data jarak pandang belum tersedia' : 'Visibility data unavailable'}
+                            </div>
+                        )}
                         {/* Pita status: kondisi buruk harus terbaca tanpa membaca angkanya. */}
                         <div className="mt-[0.9vh] h-[1.1vh] w-full overflow-hidden rounded-full bg-white/10">
                             <div className="h-full rounded-full transition-all duration-700"
@@ -350,35 +452,45 @@ export default function AmcClockDisplay() {
 
                     <Card label={L.weather[lang]} accent="#fcd34d" icon={<Thermometer style={iconSize} />}>
                         <div className="amc-weather-summary flex min-w-0 items-center gap-[1vw]">
-                            <WeatherIcon desc={weather?.kondisi_cuaca ?? null} className="amc-weather-icon shrink-0 text-yellow-300" />
+                            <WeatherIcon desc={obs ? (describeMetarWeather(obs.present_weather, 'en') ?? describeMetarClouds(obs.clouds, 'en')) : (weather?.kondisi_cuaca ?? null)} className="amc-weather-icon shrink-0 text-yellow-300" />
                             <div className="min-w-0">
                                 <div className="flex items-baseline gap-[0.3vw]">
                                     <span style={{ fontSize: 'min(4vw,7vh)', lineHeight: 1 }} className="font-black tabular-nums">
-                                        {weather?.suhu ?? dash}
+                                        {obs ? (obs.temperature_c ?? dash) : (weather?.suhu ?? dash)}
                                     </span>
                                     <span style={{ fontSize: 'min(1.3vw,2.1vh)' }} className="font-bold text-white/60">°C</span>
                                 </div>
                                 <div style={{ fontSize: 'min(1.15vw,1.9vh)' }} className="truncate font-bold">
-                                    {weather?.kondisi_cuaca ?? L.noData[lang]}
+                                    {obs
+                                        ? (describeMetarWeather(obs.present_weather, lang) ?? describeMetarClouds(obs.clouds, lang) ?? weather?.kondisi_cuaca ?? L.noData[lang])
+                                        : (weather?.kondisi_cuaca ?? L.noData[lang])}
                                 </div>
                             </div>
                         </div>
                         <div className="amc-weather-stats mt-[0.9vh] grid grid-cols-2 gap-[1vw]">
-                            {[
-                                { label: L.humidity[lang], value: weather?.kelembapan ?? null },
-                                { label: L.clouds[lang], value: weather?.tutupan_awan ?? null },
-                            ].map((item) => (
+                            {(obs
+                                ? [
+                                    { label: L.qnh[lang], value: obs.qnh_hpa, unit: ' hPa', bar: null },
+                                    { label: L.dewPoint[lang], value: obs.dew_point_c, unit: ' °C', bar: null },
+                                ]
+                                : [
+                                    { label: L.humidity[lang], value: weather?.kelembapan ?? null, unit: '%', bar: weather?.kelembapan ?? null },
+                                    { label: L.clouds[lang], value: weather?.tutupan_awan ?? null, unit: '%', bar: weather?.tutupan_awan ?? null },
+                                ]
+                            ).map((item) => (
                                 <div key={item.label}>
                                     <div style={{ fontSize: 'min(0.75vw,1.3vh)' }} className="font-black tracking-[0.2em] text-white/40">
                                         {item.label}
                                     </div>
                                     <div style={{ fontSize: 'min(2vw,3.4vh)' }} className="font-black tabular-nums">
-                                        {item.value !== null ? `${item.value}%` : dash}
+                                        {item.value !== null ? `${item.value}${item.unit}` : dash}
                                     </div>
-                                    <div className="mt-[0.3vh] h-[0.6vh] w-full overflow-hidden rounded-full bg-white/10">
-                                        <div className="h-full rounded-full bg-white/40"
-                                             style={{ width: `${Math.min(100, Math.max(0, item.value ?? 0))}%` }} />
-                                    </div>
+                                    {item.bar !== null && (
+                                        <div className="mt-[0.3vh] h-[0.6vh] w-full overflow-hidden rounded-full bg-white/10">
+                                            <div className="h-full rounded-full bg-white/40"
+                                                 style={{ width: `${Math.min(100, Math.max(0, item.bar))}%` }} />
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -387,9 +499,18 @@ export default function AmcClockDisplay() {
 
                 <footer className="amc-footer flex shrink-0 items-center justify-between gap-[1vw] border-t border-white/10 bg-black/40 px-[2vw] py-[0.7vh]">
                     <div style={{ fontSize: 'min(0.8vw,1.4vh)' }} className="truncate font-bold tracking-[0.15em] text-white/50">
-                        {L.source[lang]}
-                        {weather?.lokasi ? ` · ${weather.lokasi}` : ''}
-                        {validText ? ` · ${L.validAt[lang]} ${validText}` : ''}
+                        {obs ? (
+                            <>
+                                METAR {metar?.icao} · {L.observed[lang]} {obsTime} UTC
+                                <span className="ml-[0.6vw] font-mono text-white/35">{obs.raw_text}</span>
+                            </>
+                        ) : (
+                            <>
+                                {L.source[lang]}
+                                {weather?.lokasi ? ` · ${weather.lokasi}` : ''}
+                                {validText ? ` · ${L.validAt[lang]} ${validText}` : ''}
+                            </>
+                        )}
                         {' · '}
                         <span style={{ color: freshColor }}>
                             {L.updated[lang]} {ageMin === null ? L.never[lang] : `${ageMin} ${L.minutesAgo[lang]}`}
@@ -397,7 +518,7 @@ export default function AmcClockDisplay() {
                     </div>
                     <div style={{ fontSize: 'min(0.8vw,1.4vh)' }}
                          className="shrink-0 rounded border border-amber-400/40 bg-amber-500/15 px-[0.8vw] py-[0.25vh] font-black tracking-[0.15em] text-amber-300">
-                        {L.warning[lang]}
+                        {obs ? L.metarWarning[lang] : L.warning[lang]}
                     </div>
                 </footer>
             </div>

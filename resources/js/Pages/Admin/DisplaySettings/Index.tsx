@@ -21,6 +21,9 @@ interface DisplaySetting {
     kode_bmkg: string | null;
     runway_kode: string | null;
     runway_heading: number | null;
+    metar_aktif?: boolean | null;
+    metar_url?: string | null;
+    metar_icao?: string | null;
     bahasa: 'id' | 'en';
     timezone: string | null;
     bagasi_durasi_status_menit?: number | null;
@@ -28,6 +31,21 @@ interface DisplaySetting {
     auto_reload_jam?: number | null;
     mode_hemat?: boolean | null;
 }
+
+interface MetarReport {
+    icao: string;
+    raw_text: string | null;
+    observed_at: string | null;
+    last_attempt_at: string | null;
+    last_success_at: string | null;
+    error_code: string | null;
+    error_message: string | null;
+}
+
+const DEFAULT_METAR_URL = 'https://web-aviation.bmkg.go.id/web/metar_speci.php';
+
+const formatDateTime = (iso: string | null) =>
+    iso ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso)) : 'belum pernah';
 
 const TIMEZONE_OPTIONS = [
     { value: 'Asia/Jakarta', label: 'WIB — Asia/Jakarta (UTC+7)' },
@@ -37,7 +55,7 @@ const TIMEZONE_OPTIONS = [
     { value: 'UTC', label: 'UTC (UTC+0)' },
 ];
 
-export default function Index({ auth, setting }: PageProps<{ setting: DisplaySetting | null }>) {
+export default function Index({ auth, setting, metarReport }: PageProps<{ setting: DisplaySetting | null; metarReport: MetarReport | null }>) {
     const { data, setData, post, processing, errors } = useForm({
         nama_bandara: setting?.nama_bandara || '',
         logo_bandara: null as File | null,
@@ -51,6 +69,9 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
         kode_bmkg: setting?.kode_bmkg || '',
         runway_kode: setting?.runway_kode || '',
         runway_heading: setting?.runway_heading ?? ('' as number | ''),
+        metar_aktif: setting?.metar_aktif ?? true,
+        metar_url: setting?.metar_url ?? DEFAULT_METAR_URL,
+        metar_icao: setting?.metar_icao ?? 'WALS',
         bahasa: setting?.bahasa || 'id',
         timezone: setting?.timezone || 'Asia/Makassar',
         bagasi_durasi_status_menit: setting?.bagasi_durasi_status_menit ?? 30,
@@ -64,6 +85,15 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
         e.preventDefault();
         post(route('admin.display-settings.update'), {
             preserveScroll: true,
+        });
+    };
+
+    const [metarFetching, setMetarFetching] = useState(false);
+    const fetchMetarNow = () => {
+        router.post(route('admin.display-settings.fetch-metar'), {}, {
+            preserveScroll: true,
+            onStart: () => setMetarFetching(true),
+            onFinish: () => setMetarFetching(false),
         });
     };
 
@@ -312,6 +342,94 @@ export default function Index({ auth, setting }: PageProps<{ setting: DisplaySet
                                         </select>
                                         <p className="text-sm text-gray-500 mt-1">Zona waktu ini menjadi sumber jam pada dashboard dan layar FIDS.</p>
                                         <InputError message={errors.timezone} className="mt-2" />
+                                    </div>
+                                </div>
+
+                                {/* METAR bandara untuk layar AMC, di-scrape dari portal aviasi BMKG. */}
+                                <div className="border-t border-gray-200 pt-6">
+                                    <h3 className="text-base font-semibold text-gray-800 mb-1">METAR Bandara (Layar AMC)</h3>
+                                    <p className="text-sm text-gray-500 mb-4">
+                                        Pengamatan cuaca bandara (angin, jarak pandang, QNH, titik embun) ditarik dari
+                                        formulir METAR portal aviasi BMKG setiap 30 menit memakai request HTTP biasa, tanpa
+                                        membuka browser, sehingga prosesnya langsung selesai dan tidak membebani server.
+                                        Bila gagal, layar AMC menampilkan alasannya.
+                                    </p>
+
+                                    <label className="flex items-center gap-3 mb-4 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            checked={!!data.metar_aktif}
+                                            onChange={(e) => setData('metar_aktif', e.target.checked)}
+                                        />
+                                        <span className="text-sm font-semibold text-gray-800">Aktifkan penarikan METAR</span>
+                                    </label>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="md:col-span-2">
+                                            <InputLabel htmlFor="metar_url" value="Alamat Web METAR" />
+                                            <TextInput
+                                                id="metar_url"
+                                                type="url"
+                                                className="mt-1 block w-full"
+                                                value={data.metar_url}
+                                                onChange={(e: any) => setData('metar_url', e.target.value)}
+                                                placeholder={DEFAULT_METAR_URL}
+                                                disabled={!data.metar_aktif}
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Halaman formulir METAR/SPECI portal aviasi BMKG. Bawaan:{' '}
+                                                <button type="button" className="underline text-indigo-600 break-all" onClick={() => setData('metar_url', DEFAULT_METAR_URL)}>
+                                                    {DEFAULT_METAR_URL}
+                                                </button>
+                                            </p>
+                                            <InputError message={errors.metar_url} className="mt-2" />
+                                        </div>
+                                        <div>
+                                            <InputLabel htmlFor="metar_icao" value="Kode ICAO Stasiun" />
+                                            <TextInput
+                                                id="metar_icao"
+                                                className="mt-1 block w-full uppercase"
+                                                maxLength={4}
+                                                value={data.metar_icao}
+                                                onChange={(e: any) => setData('metar_icao', e.target.value.toUpperCase())}
+                                                placeholder="WALS"
+                                                disabled={!data.metar_aktif}
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">4 huruf, mis. WALS untuk APT Pranoto Samarinda.</p>
+                                            <InputError message={errors.metar_icao} className="mt-2" />
+                                        </div>
+                                    </div>
+
+                                    <div className={`mt-4 rounded-lg border p-3 text-sm ${
+                                        metarReport?.error_message ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
+                                        <div className="flex flex-wrap items-center justify-between gap-3">
+                                            <div className="space-y-1 min-w-0">
+                                                <div className="text-gray-700">
+                                                    <span className="font-semibold">Percobaan terakhir:</span> {formatDateTime(metarReport?.last_attempt_at ?? null)}
+                                                    {' · '}
+                                                    <span className="font-semibold">Berhasil terakhir:</span> {formatDateTime(metarReport?.last_success_at ?? null)}
+                                                </div>
+                                                {metarReport?.raw_text && (
+                                                    <div className="font-mono text-xs text-gray-600 break-all">{metarReport.raw_text}</div>
+                                                )}
+                                                {metarReport?.error_message && (
+                                                    <div className="text-red-700 font-medium">Gagal: {metarReport.error_message}</div>
+                                                )}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={fetchMetarNow}
+                                                disabled={metarFetching || !setting?.metar_aktif}
+                                                title={!setting?.metar_aktif ? 'Aktifkan dan simpan pengaturan METAR terlebih dahulu' : undefined}
+                                                className="shrink-0 px-4 py-2 rounded-md bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700 disabled:opacity-50"
+                                            >
+                                                {metarFetching ? 'Menarik data...' : 'Tarik Sekarang'}
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-2">
+                                            Tombol Tarik Sekarang memakai pengaturan yang sudah <strong>disimpan</strong>. Simpan dulu bila mengubah alamat web atau kode ICAO.
+                                        </p>
                                     </div>
                                 </div>
 

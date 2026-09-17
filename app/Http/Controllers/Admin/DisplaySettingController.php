@@ -9,15 +9,39 @@ use App\Models\Advertisement;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
+use App\Models\MetarReport;
+use App\Services\Metar\MetarService;
 
 class DisplaySettingController extends Controller
 {
     public function index()
     {
         $setting = DisplaySetting::first();
+        $icao = strtoupper(trim((string) $setting?->metar_icao));
+
         return Inertia::render('Admin/DisplaySettings/Index', [
-            'setting' => $setting
+            'setting' => $setting,
+            'metarReport' => $icao !== '' ? MetarReport::where('icao', $icao)->first() : null,
         ]);
+    }
+
+    /**
+     * Tarik METAR sekarang juga (tanpa menunggu jadwal 30 menit) supaya petugas
+     * bisa langsung memastikan alamat web & kode ICAO yang diisi benar.
+     */
+    public function fetchMetar(MetarService $service)
+    {
+        $report = $service->refresh();
+
+        if ($report === null) {
+            return back()->with('error', 'Penarikan METAR sedang dinonaktifkan. Aktifkan dan simpan pengaturan terlebih dahulu.');
+        }
+
+        if ($report->error_code !== null) {
+            return back()->with('error', "METAR {$report->icao} gagal ditarik: {$report->error_message}");
+        }
+
+        return back()->with('success', "METAR {$report->icao} berhasil ditarik: {$report->raw_text}");
     }
 
     /**
@@ -113,12 +137,20 @@ class DisplaySettingController extends Controller
             // 0-359: 360 dan 0 menunjuk arah yang sama, jadi hanya satu yang diterima
             // supaya hitungan crosswind tidak punya dua representasi untuk satu arah.
             'runway_heading'    => 'nullable|integer|min:0|max:359',
+            'metar_aktif'       => 'nullable|boolean',
+            'metar_url'         => 'nullable|required_if:metar_aktif,true,1|url:http,https|max:255',
+            'metar_icao'        => ['nullable', 'required_if:metar_aktif,true,1', 'regex:/^[A-Za-z]{4}$/'],
             'bahasa'            => 'required|string|in:id,en',
             'timezone'          => 'nullable|string|max:64',
             'bagasi_durasi_status_menit'  => 'nullable|integer|min:1|max:240',
             'board_hide_after_menit'      => 'nullable|integer|min:0|max:1440',
             'auto_reload_jam'             => 'nullable|integer|min:0|max:168',
             'mode_hemat'                  => 'nullable|boolean',
+        ], [
+            'metar_url.required_if'  => 'Alamat web METAR wajib diisi bila penarikan METAR aktif.',
+            'metar_url.url'          => 'Alamat web METAR harus berupa URL http/https yang valid.',
+            'metar_icao.required_if' => 'Kode ICAO wajib diisi bila penarikan METAR aktif.',
+            'metar_icao.regex'       => 'Kode ICAO harus 4 huruf, mis. WALS.',
         ]);
 
         $setting->nama_bandara     = $validated['nama_bandara'];
@@ -129,6 +161,9 @@ class DisplaySettingController extends Controller
         $setting->kode_bmkg        = $validated['kode_bmkg'] ?? null;
         $setting->runway_kode      = $validated['runway_kode'] ?? null;
         $setting->runway_heading   = isset($validated['runway_heading']) ? (int) $validated['runway_heading'] : null;
+        $setting->metar_aktif      = (bool) ($validated['metar_aktif'] ?? false);
+        $setting->metar_url        = $validated['metar_url'] ?? null;
+        $setting->metar_icao       = isset($validated['metar_icao']) ? strtoupper($validated['metar_icao']) : null;
         $setting->bahasa           = $validated['bahasa'];
         $setting->timezone         = $validated['timezone'] ?? null;
 
@@ -158,6 +193,7 @@ class DisplaySettingController extends Controller
         }
 
         $setting->save();
+        Cache::forget(MetarService::CACHE_KEY);
 
         return redirect()->back()->with('success', 'Pengaturan tampilan berhasil disimpan.');
     }
