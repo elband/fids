@@ -51,7 +51,8 @@ class DisplayApiController extends Controller
     /** Menit tampil boarding gate SEBELUM jam jadwal. */
     private const GATE_LEAD_MINUTES = 60;
     /** Menit penerbangan tetap tampil SETELAH berangkat. */
-    private const GATE_LINGER_MINUTES = 5;
+    private const GATE_LINGER_MINUTES = 15;
+    private const GATE_LAST_FLIGHT_LINGER_MINUTES = 60;
 
     /**
      * Status yang berarti penerbangan sudah benar-benar melekat ke gate-nya:
@@ -69,7 +70,8 @@ class DisplayApiController extends Controller
      * Tentukan penerbangan yang tampil di sebuah kartu gate, menurut aturan operasional:
      *  - Status aktif (check-in dibuka dst.) langsung tampil; selain itu mulai
      *    1 jam sebelum jam jadwal (GATE_LEAD_MINUTES).
-     *  - Hilang 5 menit setelah statusnya "Departed" (GATE_LINGER_MINUTES).
+     *  - Departed bertahan 15 menit bila masih ada penerbangan berikutnya,
+     *    atau 60 menit bila tidak ada penerbangan tersisa di gate hari ini.
      *
      * SEMUA penerbangan yang lolos dikembalikan, bukan hanya satu: bila beberapa
      * penerbangan terdaftar di gate yang sama, penumpang perlu melihat miliknya
@@ -89,7 +91,11 @@ class DisplayApiController extends Controller
         $now = Carbon::now($tz);
         $today = $now->toDateString();
 
-        $eligible = $flights->filter(function ($f) use ($now, $today, $tz) {
+        $hasNextFlight = $flights->contains(fn ($f) => ! empty($f->jam_jadwal)
+            && ! in_array($f->status, ['Departed', 'Cancelled'], true));
+        $lingerMinutes = $hasNextFlight ? self::GATE_LINGER_MINUTES : self::GATE_LAST_FLIGHT_LINGER_MINUTES;
+
+        $eligible = $flights->filter(function ($f) use ($now, $today, $tz, $lingerMinutes) {
             if (empty($f->jam_jadwal)) {
                 return false;
             }
@@ -100,12 +106,12 @@ class DisplayApiController extends Controller
             $sched = Carbon::parse("{$today} {$f->jam_jadwal}", $tz);
 
             if ($f->status === 'Departed') {
-                // Sudah berangkat: tampil hanya sampai 5 menit setelah waktu berangkat.
+                // Hitung di server agar durasi tetap sama setelah layar dimuat ulang.
                 $departedAt = ! empty($f->jam_aktual)
                     ? Carbon::parse("{$today} {$f->jam_aktual}", $tz)
                     : ($f->updated_at ? $f->updated_at->copy()->setTimezone($tz) : $sched);
 
-                return $now->lte($departedAt->copy()->addMinutes(self::GATE_LINGER_MINUTES));
+                return $now->lt($departedAt->copy()->addMinutes($lingerMinutes));
             }
 
             // Check-in sudah dibuka / boarding: gate sudah resmi dipakai, tampilkan
@@ -422,7 +428,7 @@ class DisplayApiController extends Controller
 
             if (!$gate) return null;
 
-            // Aturan operasional: 1 jam sebelum jadwal, hilang 5 menit setelah
+            // Aturan operasional: 1 jam sebelum jadwal, hilang 15/60 menit setelah
             // berangkat. Elemen pertama = penghuni gate, sisanya antrian.
             $occupant = $this->gateOccupant($gate->flights);
 
@@ -649,7 +655,7 @@ class DisplayApiController extends Controller
             }, ...self::nestedFlightRelations()])->orderBy('kode_gate', 'asc')->get();
 
             return $gates->map(function ($gate) {
-                // Aturan operasional: 1 jam sebelum jadwal, hilang 5 menit setelah
+                // Aturan operasional: 1 jam sebelum jadwal, hilang 15/60 menit setelah
                 // berangkat. Elemen pertama = penghuni gate, sisanya antrian.
                 $occupant = $this->gateOccupant($gate->flights);
                 $arr = $gate->toArray();

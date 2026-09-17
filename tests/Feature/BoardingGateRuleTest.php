@@ -16,7 +16,7 @@ use Tests\TestCase;
  *  - Penerbangan muncul mulai 1 jam sebelum jam jadwal.
  *  - Semua penerbangan yang lolos ikut tampil; elemen pertama adalah penghuni
  *    gate (dipilih prioritas status), sisanya antrian terurut jam jadwal.
- *  - Hilang 5 menit setelah status "Departed".
+ *  - Departed hilang setelah 15 menit jika ada penerbangan berikutnya, selain itu 60 menit.
  */
 class BoardingGateRuleTest extends TestCase
 {
@@ -120,18 +120,46 @@ class BoardingGateRuleTest extends TestCase
         $this->assertCount(1, $this->gateFlights());
     }
 
-    public function test_departed_flight_lingers_5_minutes_then_hidden(): void
+    public function test_departed_with_next_flight_hides_at_15_minutes(): void
     {
-        // Berangkat 09:57 (3 menit lalu) → masih tampil.
-        $this->makeFlight('IU400', '09:00:00', 'Departed', '09:57:00');
+        $this->makeFlight('IU400', '09:00:00', 'Departed', '09:45:00');
+        $this->makeFlight('IU401', '15:00:00');
+        Carbon::setTestNow($this->now->copy()->subSecond());
         $this->assertCount(1, $this->gateFlights());
-        $this->assertSame('IU400', $this->gateFlights()[0]['nomor_penerbangan']);
+        Carbon::setTestNow($this->now);
+        \Illuminate\Support\Facades\Cache::flush();
+        $this->assertCount(0, $this->gateFlights());
+        $this->assertSame('IU401', $this->gateUpcoming()['nomor_penerbangan']);
+        $this->getJson('/api/fids/gates')->assertOk()->assertJsonCount(0, 'data.0.flights');
     }
 
-    public function test_departed_flight_beyond_5_minutes_is_hidden(): void
+    public function test_last_departed_flight_hides_at_60_minutes(): void
     {
-        // Berangkat 09:50 (10 menit lalu) → sudah hilang.
-        $this->makeFlight('IU500', '09:00:00', 'Departed', '09:50:00');
+        $this->makeFlight('IU500', '08:30:00', 'Departed', '09:00:00');
+        Carbon::setTestNow($this->now->copy()->subSecond());
+        $this->assertCount(1, $this->gateFlights());
+        Carbon::setTestNow($this->now);
+        \Illuminate\Support\Facades\Cache::flush();
+        $this->assertCount(0, $this->gateFlights());
+        $this->assertNull($this->gateUpcoming());
+    }
+
+    public function test_cancelled_or_other_gate_flight_does_not_shorten_linger(): void
+    {
+        $this->makeFlight('IU510', '09:00:00', 'Departed', '09:40:00');
+        $this->makeFlight('IU511', '15:00:00', 'Cancelled');
+        $otherGate = Gate::create(['kode_gate' => 'G8', 'nama_gate' => 'Gate G8', 'terminal' => 'T1']);
+        $this->makeFlight('IU512', '15:00:00')->update(['gate_id' => $otherGate->id]);
+        $this->assertSame(['IU510'], array_column($this->gateFlights(), 'nomor_penerbangan'));
+    }
+
+    public function test_departed_without_actual_time_uses_update_time(): void
+    {
+        $flight = $this->makeFlight('IU520', '09:00:00', 'Departed');
+        $this->makeFlight('IU521', '15:00:00');
+        $this->assertCount(1, $this->gateFlights());
+        Carbon::setTestNow($this->now->copy()->addMinutes(15));
+        \Illuminate\Support\Facades\Cache::flush();
         $this->assertCount(0, $this->gateFlights());
     }
 
@@ -184,9 +212,9 @@ class BoardingGateRuleTest extends TestCase
 
     public function test_gate_without_any_remaining_flight_has_no_next(): void
     {
-        // Sudah berangkat lebih dari 5 menit lalu: gate kosong dan memang tidak
+        // Sudah berangkat lebih dari 60 menit lalu: gate kosong dan memang tidak
         // ada lagi jadwal berikutnya hari ini.
-        $this->makeFlight('IU930', '09:00:00', 'Departed', '09:50:00');
+        $this->makeFlight('IU930', '08:00:00', 'Departed', '08:50:00');
 
         $this->assertCount(0, $this->gateFlights());
         $this->assertNull($this->gateUpcoming());
