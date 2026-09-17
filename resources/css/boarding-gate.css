@@ -1,0 +1,46 @@
+@font-face {
+    font-family: 'Atkinson Hyperlegible';
+    src: url('/fonts/AtkinsonHyperlegible-Bold.ttf') format('truetype');
+    font-weight: 700 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+.gate-board { font-family: 'Atkinson Hyperlegible', Arial, sans-serif; font-weight: 700; }
+.gate-header { min-height: 11vmin; border-bottom: .6vmin solid #f9db48; }
+.gate-header h1 { color: #f9db48; -webkit-text-stroke: 0 !important; text-shadow: none !important; }
+.gate-header { padding: 1.6vmin 3vmin; gap: 3vmin; }
+.gate-header-main { display: flex; flex-direction: column; gap: .8vmin; }
+.gate-header-title { font-size: 5.6vmin; line-height: 1; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gate-header-meta { display: flex; align-items: baseline; gap: 1.2vmin; min-width: 0; font-size: 2.8vmin; line-height: 1.2; color: #fff; white-space: nowrap; }
+.gate-header-dot { color: #f9db48; flex-shrink: 0; }
+.gate-header-weather { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: #f9db48; }
+.gate-header-clock { font-size: 9.5vmin; line-height: 1; letter-spacing: -.01em; color: #fff; padding-left: 3vmin; border-left: .5vmin solid #f9db48; }
+.gate-grid { padding: 2vmin; gap: 1.8vmin; align-content: start; }
+.gate-card { display: flex; min-height: 29vmin; overflow: hidden; border: 1px solid #526174; border-radius: 1vmin; background: #101c2c; }
+.gate-code-panel { width: 23%; background: #f9db48; color: #101820; gap: 1vmin; }
+.gate-code-panel > span { color: inherit; }
+.gate-code { font-size: 11vmin; letter-spacing: -.04em; overflow-wrap: anywhere; text-align: center; max-width: 100%; }
+.gate-direction { color: #101820; width: 7vmin; height: 7vmin; }
+.gate-flight { padding: 2vmin; gap: 1vmin; }
+.gate-flight-number, .gate-time { font-size: 4.8vmin; letter-spacing: .015em; line-height: 1.1; }
+.gate-destination { color: white; font-size: 6vmin; line-height: 1.05; overflow-wrap: anywhere; }
+.gate-status { border-radius: .5vmin; font-size: 3.3vmin; letter-spacing: .035em; line-height: 1.15; padding: .7vmin 1.4vmin; }
+.gate-card[data-status='Final Call'] { border-left: .7vmin solid #fb923c; }
+.gate-card[data-status='Delayed'] .gate-status { background: #b91c1c; }
+.gate-card-closed .gate-code-panel { background: #bac3cd; color: #243244; }
+.gate-next { border-color: #526174; }
+.gate-next > span { font-size: 2.4vmin; color: #bac8d8; letter-spacing: .1em; }
+.gate-next > div > span { font-size: 3vmin; }
+#gate-connection-status { flex-shrink: 0; }
+.gate-offline { display: flex; align-items: center; justify-content: center; gap: 1vmin; padding: 1vmin 2vmin; background: #fbbf24; color: #111827; font: 700 2.2vmin/1.2 'Atkinson Hyperlegible', Arial, sans-serif; }
+.gate-offline > span:last-child { font-size: inherit; }
+@media (orientation: landscape) {
+    .gate-code { font-size: 8vmin; }
+    .gate-destination { font-size: 4.5vmin; }
+    .gate-flight-number, .gate-time { font-size: 3.6vmin; }
+    .gate-status { font-size: 2.6vmin; }
+}
+.gate-next-row { display: grid; grid-template-columns: 9.5vmin 14.5vmin minmax(0, 1fr) auto; align-items: center; column-gap: 1.8vmin; line-height: 1.25; }
+.gate-next-status { justify-self: end; display: flex; gap: .8vmin; }
+.gate-next-status > span { border-radius: .5vmin; font-size: 2.6vmin; font-weight: 900; letter-spacing: .04em; padding: .3vmin 1.2vmin; text-transform: uppercase; white-space: nowrap; }

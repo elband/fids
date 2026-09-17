@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * Indikator status koneksi untuk layar publik (audit M-02).
@@ -44,10 +45,12 @@ export default function OfflineIndicator() {
         ? new Date(lastOnlineAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
         : null;
 
-    return (
+    const gateStatusSlot = document.getElementById('gate-connection-status');
+    const banner = (
         <div
+            role="status"
             style={{ zIndex: 2147483647 }}
-            className="fixed bottom-0 left-0 right-0 flex items-center justify-center gap-3 px-4 py-2 bg-amber-500 text-black font-bold tracking-wide shadow-[0_-4px_20px_rgba(0,0,0,0.4)] animate-pulse"
+            className={gateStatusSlot ? 'gate-offline' : 'fixed bottom-0 left-0 right-0 flex items-center justify-center gap-3 px-4 py-2 bg-amber-500 text-black font-bold tracking-wide shadow-[0_-4px_20px_rgba(0,0,0,0.4)]'}
         >
             <span className="relative flex h-3 w-3">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75 animate-ping" />
@@ -59,4 +62,5 @@ export default function OfflineIndicator() {
             </span>
         </div>
     );
+    return gateStatusSlot ? createPortal(banner, gateStatusSlot) : banner;
 }

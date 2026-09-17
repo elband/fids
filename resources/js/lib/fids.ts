@@ -42,7 +42,7 @@ export const t = {
     departures: { id: 'KEBERANGKATAN', en: 'DEPARTURES' },
     arrivals:   { id: 'KEDATANGAN',    en: 'ARRIVALS' },
     checkinCounters: { id: 'COUNTER CHECK-IN', en: 'CHECK-IN COUNTERS' },
-    boardingGates:   { id: 'GATE KEBERANGKATAN', en: 'BOARDING GATES' },
+    boardingGates:   { id: 'INFORMASI GATE',    en: 'GATE INFORMATION' },
     nextUp:          { id: 'BERIKUTNYA',        en: 'NEXT' },
     baggageClaim:    { id: 'PENGAMBILAN BAGASI', en: 'BAGGAGE CLAIM' },
 
