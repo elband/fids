@@ -82,4 +82,18 @@ class DisplayApiTest extends TestCase
         $this->assertSame(1, (int) $ann->fresh()->broadcast_count);
         $this->assertTrue((bool) $ann->fresh()->status_aktif);
     }
+
+    /**
+     * Banyak layar di belakang satu NAT: polling mereka tidak boleh menghabiskan
+     * jatah throttle heartbeat/transaksi (dulu semua throttle berbagi satu counter).
+     */
+    public function test_display_polling_does_not_exhaust_stricter_limits_behind_nat(): void
+    {
+        for ($i = 0; $i < 70; $i++) {
+            $this->getJson('/api/fids/time')->assertOk();
+        }
+
+        $this->postJson('/api/fids/taxi/heartbeat', ['kode' => 'TAXI-01'])->assertOk();
+        $this->getJson('/api/transaksi/keberangkatan')->assertOk();
+    }
 }

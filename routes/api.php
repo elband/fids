@@ -17,13 +17,16 @@ Route::get('/user', function (Request $request) {
 // NAT/proxy: satu papan menembak 3-4 endpoint tiap 15 dtk (~16 req/mnt), sehingga
 // batas 120/mnt jebol di layar ke-8 dan 429 terbaca oleh layar sebagai "Mode Luring".
 // 600/mnt menampung ~35 layar per IP dan masih memotong scraping/DoS.
+// Argumen ketiga throttle = prefix kunci counter. Tanpa prefix, SEMUA throttle
+// berbagi satu counter per IP (sha1(domain|ip)), sehingga polling layar ikut
+// menghabiskan jatah 60/20 milik heartbeat/played/transaksi di belakang NAT.
 // Transaksi penerbangan (format mengikuti API referensi 103.210.122.2)
-Route::prefix('transaksi')->middleware('throttle:60,1')->group(function () {
+Route::prefix('transaksi')->middleware('throttle:60,1,transaksi')->group(function () {
     Route::get('/keberangkatan', [TransaksiApiController::class, 'keberangkatan']);
     Route::get('/kedatangan', [TransaksiApiController::class, 'kedatangan']);
 });
 
-Route::prefix('fids')->middleware('throttle:600,1')->group(function () {
+Route::prefix('fids')->middleware('throttle:600,1,fids')->group(function () {
     Route::get('/departures', [DisplayApiController::class, 'departures']);
     Route::get('/arrivals', [DisplayApiController::class, 'arrivals']);
     Route::get('/gate/{gate}', [DisplayApiController::class, 'gate']);
@@ -34,7 +37,7 @@ Route::prefix('fids')->middleware('throttle:600,1')->group(function () {
     // Audit C-03: throttle ketat + endpoint TIDAK menghapus data (soft-deactivate di controller).
     // Disarankan tambahan: batasi ke VLAN/IP monitor di level Nginx/firewall.
     Route::post('/announcements/{announcement}/played', [DisplayApiController::class, 'markAnnouncementPlayed'])
-        ->middleware('throttle:20,1');
+        ->middleware('throttle:20,1,announcement-played');
     Route::get('/weather', [DisplayApiController::class, 'weather']);
     Route::get('/metar', [MetarApiController::class, 'show']);
     Route::get('/settings', [DisplayApiController::class, 'settings']);
@@ -50,9 +53,9 @@ Route::prefix('fids')->middleware('throttle:600,1')->group(function () {
     // dan statistik video di-throttle lebih ketat karena bersifat tulis.
     Route::get('/taxi', [TaxiSignageApiController::class, 'index'])->name('api.taxi.index');
     Route::post('/taxi/heartbeat', [TaxiSignageApiController::class, 'heartbeat'])
-        ->middleware('throttle:60,1')
+        ->middleware('throttle:60,1,taxi-heartbeat')
         ->name('api.taxi.heartbeat');
     Route::post('/taxi/videos/{video}/played', [TaxiSignageApiController::class, 'videoPlayed'])
-        ->middleware('throttle:60,1')
+        ->middleware('throttle:60,1,taxi-video')
         ->name('api.taxi.video-played');
 });
